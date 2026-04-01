@@ -1,0 +1,1098 @@
+openapi: 3.0.3
+info:
+  title: SOPM Project Service API
+  description: API для управления проектами, шаблонами, заявками и пользователями
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Templates
+    description: Управление шаблонами проектов
+  - name: Projects
+    description: Управление проектами
+  - name: Applications
+    description: Управление заявками студентов на проекты
+  - name: Users
+    description: Управление пользователями
+  - name: Health
+    description: Проверка состояния сервиса
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Проверка состояния сервиса
+      description: Возвращает статус работоспособности сервиса
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Сервис работает нормально
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: OK
+
+  # ========== TEMPLATES ==========
+  /api/templates:
+    post:
+      tags:
+        - Templates
+      summary: Создать новый шаблон
+      description: Создает новый шаблон проекта с полями
+      operationId: createTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateRequest'
+      responses:
+        '201':
+          description: Шаблон успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateResponse'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Templates
+      summary: Получить все шаблоны
+      description: Возвращает список всех шаблонов
+      operationId: getAllTemplates
+      responses:
+        '200':
+          description: Список шаблонов успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Template'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/templates/{id}:
+    get:
+      tags:
+        - Templates
+      summary: Получить шаблон по ID
+      description: Возвращает шаблон по его UUID
+      operationId: getTemplateById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID шаблона
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Шаблон найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Неверный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Шаблон не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Templates
+      summary: Обновить шаблон
+      description: Обновляет существующий шаблон
+      operationId: updateTemplate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID шаблона
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateRequest'
+      responses:
+        '200':
+          description: Шаблон успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Шаблон не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Templates
+      summary: Удалить шаблон
+      description: Удаляет шаблон по его ID
+      operationId: deleteTemplate
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID шаблона
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Шаблон успешно удален
+        '400':
+          description: Неверный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Шаблон не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========== PROJECTS ==========
+  /api/projects:
+    post:
+      tags:
+        - Projects
+      summary: Создать новый проект
+      description: Создает новый проект
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Проект успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Projects
+      summary: Получить список проектов
+      description: Возвращает список проектов с фильтрацией и пагинацией
+      operationId: getProjectList
+      parameters:
+        - name: limit
+          in: query
+          description: Количество проектов на странице (по умолчанию 20)
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          description: Смещение для пагинации (по умолчанию 0)
+          schema:
+            type: integer
+            default: 0
+        - name: company
+          in: query
+          description: Фильтр по компании
+          schema:
+            type: string
+        - name: course
+          in: query
+          description: Фильтр по курсу
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Фильтр по статусу проекта
+          schema:
+            type: string
+            enum:
+              - Черновик
+              - Опубликован
+              - Активный
+              - Завершен
+              - Архивный
+      responses:
+        '200':
+          description: Список проектов успешно получен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectListResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/projects/{id}:
+    get:
+      tags:
+        - Projects
+      summary: Получить проект по ID
+      description: Возвращает проект по его ID
+      operationId: getProjectById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID проекта
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Проект найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Неверный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Проект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Projects
+      summary: Обновить проект
+      description: Обновляет существующий проект
+      operationId: updateProject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID проекта
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Проект успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Проект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Projects
+      summary: Удалить проект
+      description: Удаляет проект по его ID
+      operationId: deleteProject
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID проекта
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Проект успешно удален
+        '400':
+          description: Неверный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Проект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========== APPLICATIONS ==========
+  /api/applications:
+    post:
+      tags:
+        - Applications
+      summary: Создать новую заявку
+      description: Создает новую заявку студента на проект
+      operationId: createApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplicationRequest'
+      responses:
+        '201':
+          description: Заявка успешно создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Applications
+      summary: Получить заявки студента
+      description: Возвращает все заявки конкретного студента
+      operationId: getApplicationsByStudentId
+      parameters:
+        - name: studentId
+          in: query
+          required: true
+          description: ID студента
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список заявок успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApplicationWithProject'
+        '400':
+          description: Student ID обязателен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/applications/project:
+    get:
+      tags:
+        - Applications
+      summary: Получить заявки на проект
+      description: Возвращает все заявки на конкретный проект
+      operationId: getApplicationsByProjectId
+      parameters:
+        - name: projectId
+          in: query
+          required: true
+          description: ID проекта
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Список заявок успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Application'
+        '400':
+          description: Project ID обязателен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/applications/{id}:
+    put:
+      tags:
+        - Applications
+      summary: Обновить заявку
+      description: Обновляет существующую заявку
+      operationId: updateApplication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID заявки
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplicationRequest'
+      responses:
+        '200':
+          description: Заявка успешно обновлена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Application'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Заявка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Applications
+      summary: Удалить заявку
+      description: Удаляет заявку по её ID
+      operationId: deleteApplication
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID заявки
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Заявка успешно удалена
+        '400':
+          description: Неверный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Заявка не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/applications/priorities:
+    put:
+      tags:
+        - Applications
+      summary: Обновить приоритеты заявок
+      description: Обновляет приоритеты нескольких заявок студента
+      operationId: updateApplicationPriorities
+      parameters:
+        - name: studentId
+          in: query
+          required: true
+          description: ID студента
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePrioritiesRequest'
+      responses:
+        '204':
+          description: Приоритеты успешно обновлены
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========== USERS ==========
+  /api/users:
+    post:
+      tags:
+        - Users
+      summary: Создать нового пользователя
+      description: Создает нового пользователя в системе
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: Пользователь успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Users
+      summary: Получить всех пользователей
+      description: Возвращает список всех пользователей
+      operationId: getAllUsers
+      responses:
+        '200':
+          description: Список пользователей успешно получен
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{id}:
+    get:
+      tags:
+        - Users
+      summary: Получить пользователя по ID
+      description: Возвращает пользователя по его ID
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID пользователя
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Пользователь найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Неверный ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # ========== TEMPLATES ==========
+    FieldType:
+      type: string
+      enum:
+        - Текст
+        - Маркдаун
+        - Число
+      description: Тип поля в шаблоне
+
+    TemplateField:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - required
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор поля
+        name:
+          type: string
+          description: Название поля
+        type:
+          $ref: '#/components/schemas/FieldType'
+        required:
+          type: boolean
+          description: Обязательное ли поле
+
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор шаблона
+        name:
+          type: string
+          description: Название шаблона
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateField'
+          description: Список полей шаблона
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания
+        updatedAt:
+          type: string
+          format: date-time
+          description: Дата и время последнего обновления
+
+    CreateTemplateRequest:
+      type: object
+      required:
+        - name
+        - fields
+      properties:
+        name:
+          type: string
+          description: Название шаблона
+          example: Проект по разработке
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateField'
+
+    UpdateTemplateRequest:
+      type: object
+      required:
+        - name
+        - fields
+      properties:
+        name:
+          type: string
+          description: Название шаблона
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateField'
+
+    TemplateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateField'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ========== PROJECTS ==========
+    ProjectStatus:
+      type: string
+      enum:
+        - Черновик
+        - Опубликован
+        - Активный
+        - Завершен
+        - Архивный
+      description: Статус проекта
+
+    FieldValue:
+      type: object
+      required:
+        - fieldId
+        - value
+      properties:
+        fieldId:
+          type: string
+          description: ID поля из шаблона
+        value:
+          type: string
+          description: Значение поля
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор проекта
+        title:
+          type: string
+          description: Название проекта
+        templateId:
+          type: string
+          format: uuid
+          description: ID шаблона
+        fieldValues:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldValue'
+          description: Значения полей проекта
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        mentorId:
+          type: integer
+          description: ID ментора
+        creatorId:
+          type: integer
+          description: ID создателя проекта
+        maxSlots:
+          type: integer
+          description: Максимальное количество мест
+        company:
+          type: string
+          description: Компания
+        course:
+          type: string
+          description: Курс
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания
+        updatedAt:
+          type: string
+          format: date-time
+          description: Дата и время последнего обновления
+
+    ProjectListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        mentorId:
+          type: integer
+        company:
+          type: string
+        course:
+          type: string
+        maxSlots:
+          type: integer
+        filledSlots:
+          type: integer
+          description: Количество занятых мест
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateProjectRequest:
+      type: object
+      required:
+        - title
+        - templateId
+        - mentorId
+        - creatorId
+        - maxSlots
+      properties:
+        title:
+          type: string
+          description: Название проекта
+        templateId:
+          type: string
+          format: uuid
+          description: ID шаблона
+        fieldValues:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldValue'
+        mentorId:
+          type: integer
+          description: ID ментора
+        creatorId:
+          type: integer
+          description: ID создателя
+        maxSlots:
+          type: integer
+          description: Максимальное количество мест
+        company:
+          type: string
+          description: Компания
+        course:
+          type: string
+          description: Курс
+
+    UpdateProjectRequest:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+        fieldValues:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldValue'
+        status:
+          type: string
+        maxSlots:
+          type: integer
+        company:
+          type: string
+        course:
+          type: string
+
+    ProjectListResponse:
+      type: object
+      properties:
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectListItem'
+        total:
+          type: integer
+          description: Общее количество проектов
+        limit:
+          type: integer
+          description: Лимит проектов на странице
+        offset:
+          type: integer
+          description: Смещение для пагинации
+
+    # ========== APPLICATIONS ==========
+    ApplicationStatus:
+      type: string
+      enum:
+        - Ожидает
+        - Принято
+        - Отклонено
+      description: Статус заявки
+
+    Application:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор заявки
+        projectId:
+          type: integer
+          description: ID проекта
+        studentId:
+          type: integer
+          description: ID студента
+        priority:
+          type: integer
+          description: Приоритет заявки
+        status:
+          $ref: '#/components/schemas/ApplicationStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания
+        updatedAt:
+          type: string
+          format: date-time
+          description: Дата и время последнего обновления
+
+    ApplicationWithProject:
+      allOf:
+        - $ref: '#/components/schemas/Application'
+        - type: object
+          properties:
+            projectTitle:
+              type: string
+              description: Название проекта
+            company:
+              type: string
+              description: Компания
+
+    CreateApplicationRequest:
+      type: object
+      required:
+        - projectId
+        - studentId
+      properties:
+        projectId:
+          type: integer
+          description: ID проекта
+        studentId:
+          type: integer
+          description: ID студента
+        priority:
+          type: integer
+          description: Приоритет заявки
+
+    UpdateApplicationRequest:
+      type: object
+      properties:
+        priority:
+          type: integer
+          description: Приоритет заявки
+        status:
+          type: string
+          description: Статус заявки
+
+    UpdatePrioritiesRequest:
+      type: object
+      required:
+        - applications
+      properties:
+        applications:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - priority
+            properties:
+              id:
+                type: integer
+                description: ID заявки
+              priority:
+                type: integer
+                description: Новый приоритет
+
+    # ========== USERS ==========
+    User:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - email
+        - role
+      properties:
+        id:
+          type: integer
+          description: Уникальный идентификатор пользователя
+        firstName:
+          type: string
+          description: Имя
+        lastName:
+          type: string
+          description: Фамилия
+        email:
+          type: string
+          format: email
+          description: Email
+        role:
+          type: string
+          description: Роль пользователя
+        company:
+          type: string
+          description: Компания (опционально)
+        course:
+          type: string
+          description: Курс (опционально)
+        group:
+          type: string
+          description: Группа (опционально)
+        avatar:
+          type: string
+          description: URL аватара (опционально)
+
+    # ========== COMMON ==========
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Сообщение об ошибке
