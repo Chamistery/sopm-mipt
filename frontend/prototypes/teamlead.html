@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>СУПП ВШПИ — Выбор проекта (Тимлид)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-sub">ВШПИ МФТИ</div>
+      <div class="sidebar-logo-main">Система управления<br>проектным практикумом</div>
+    </div>
+    <div class="role-switcher-wrap">
+      <div class="role-switcher-label">Тестовый режим — роль</div>
+      <select class="role-switcher" onchange="switchRole(this.value)">
+        <!-- filled by JS -->
+      </select>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item active" data-nav="catalog" onclick="showView('catalog')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="2" width="7" height="4" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="11" width="7" height="4" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="8" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
+        Выбор проекта
+      </button>
+      <button class="sidebar-nav-item" data-nav="profile" onclick="showView('profile')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.4"/></svg>
+        Мой профиль
+      </button>
+    </nav>
+    <div class="sidebar-user" onclick="showView('profile')" style="cursor:pointer">
+      <div class="sidebar-avatar"><svg width="20" height="20" fill="none" viewBox="0 0 20 20" style="color:rgba(255,255,255,0.7)"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div><div class="sidebar-user-name">Стародубов А.Ю.</div><div class="sidebar-user-role">Тимлид · 2 курс</div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="view-catalog" class="view active">
+      <h1 class="page-title">Выбор проекта</h1>
+      <div class="page-context">Весенний семестр 2025/2026 · Доступно проектов: <span id="available-count">8</span> · Ваш рейтинг: 7.2 · 2 курс</div>
+      <div class="tabs">
+        <button class="tab active" id="tab-projects" onclick="showCatalogTab('projects',this)">Доступные проекты</button>
+        <button class="tab" id="tab-choices" onclick="showCatalogTab('choices',this)">Мои выборы <span class="tab-badge" id="choices-badge">0</span></button>
+      </div>
+      <div id="ctab-projects" class="tab-content active">
+        <div class="cards-grid" id="cards-grid"></div>
+        <div id="project-detail-inline" style="display:none"></div>
+      </div>
+      <div id="ctab-choices" class="tab-content">
+        <div id="choices-list">
+          <div style="margin-bottom:16px;font-size:14px;color:var(--text-secondary)">Перетаскивайте карточки между слотами, чтобы расставить приоритеты. Выберите от 1 до 3 проектов.</div>
+          <div class="priority-slots">
+            <div class="priority-slot" id="slot-1" ondragover="onDragOver(event)" ondrop="onDrop(event,1)" ondragleave="onDragLeave(event)">
+              <span class="priority-label">Приоритет 1 — самый желаемый</span>
+              <div class="priority-empty">Перетащите сюда проект</div>
+            </div>
+            <div class="priority-slot" id="slot-2" ondragover="onDragOver(event)" ondrop="onDrop(event,2)" ondragleave="onDragLeave(event)">
+              <span class="priority-label">Приоритет 2</span>
+              <div class="priority-empty">Перетащите сюда проект</div>
+            </div>
+            <div class="priority-slot" id="slot-3" ondragover="onDragOver(event)" ondrop="onDrop(event,3)" ondragleave="onDragLeave(event)">
+              <span class="priority-label">Приоритет 3</span>
+              <div class="priority-empty">Перетащите сюда проект</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end"><button class="btn-submit" id="btn-submit" disabled onclick="alert('Заявка отправлена!')">Отправить заявку</button></div>
+        </div>
+        <div id="choices-detail-inline" style="display:none"></div>
+      </div>
+    </div>
+
+    <div id="view-profile" class="view"></div>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+// Init role switcher
+document.querySelector('.role-switcher').innerHTML = roleSwitcherHtml('teamlead');
+
+// Init profile
+document.getElementById('view-profile').innerHTML = getProfileHtml(studentUserData);
+
+// ─── Catalog logic ───
+let selected = {};
+
+function cardHtml(p, isSel, inSlot) {
+  const selClass = isSel ? ' selected' : '';
+  const drag = inSlot ? ' draggable="true"' : '';
+  if (inSlot) {
+    return `<div class="project-card${selClass}" ${drag} onclick="openChoicesDetail(${p.id})">
+      <button class="card-close-x" onclick="event.stopPropagation();removeProject(${p.id})" title="Убрать">✕</button>
+      <div class="card-company">${p.company}</div>
+      <div class="card-title">${p.title}</div>
+      <div class="card-mentor">${SVG_PERSON} ${p.mentor}</div>
+      <div class="card-expanded">
+        <div class="card-desc">${p.desc}</div>
+        <div class="card-tags">${p.tags.map(t => '<span class="card-tag">' + t + '</span>').join('')}</div>
+        <div class="card-stats">
+          <span class="card-stat"><b>${p.teamSize}</b> чел.</span>
+          <span class="card-stat"><b>${p.applied}</b> заявок</span>
+        </div>
+      </div>
+    </div>`;
+  }
+  const actionBtn = isSel
+    ? '<button class="btn-remove" style="flex:1" onclick="event.stopPropagation();removeProject(' + p.id + ')">Убрать из выбранных</button>'
+    : (Object.keys(selected).length < 3
+      ? '<button class="btn-want" style="flex:1" onclick="event.stopPropagation();selectProject(' + p.id + ',this)">Хочу в проект</button>'
+      : '<div style="flex:1;text-align:center;font-size:12px;color:var(--text-muted);padding:8px">Выбрано 3 проекта</div>');
+  return `<div class="project-card${selClass}" id="pcard-${p.id}">
+    <div class="card-company">${p.company}</div>
+    <div class="card-title">${p.title}</div>
+    <div class="card-mentor">${SVG_PERSON} ${p.mentor}</div>
+    <div class="card-expanded">
+      <div class="card-desc">${p.desc}</div>
+      <div class="card-tags">${p.tags.map(t => '<span class="card-tag">' + t + '</span>').join('')}</div>
+      <div class="card-stats">
+        <span class="card-stat"><b>${p.teamSize}</b> чел.</span>
+        <span class="card-stat"><b>${p.teams}</b> ${p.teams > 1 ? 'команды' : 'команда'}</span>
+        <span class="card-stat"><b>${p.applied}</b> заявок</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        ${actionBtn}
+        <button style="flex:1;padding:9px 16px;border:1px solid var(--border);border-radius:7px;background:var(--white);color:var(--text-secondary);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all 0.15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-secondary)'" onclick="event.stopPropagation();openDetail(${p.id})">Подробнее</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderCards() {
+  const grid = document.getElementById('cards-grid');
+  const selIds = new Set(Object.values(selected));
+  grid.innerHTML = projects.map(p => cardHtml(p, selIds.has(p.id), false)).join('');
+}
+
+function selectProject(id, btnEl) {
+  if (Object.keys(selected).length >= 3) return;
+  let slot = null;
+  for (let i = 1; i <= 3; i++) { if (!selected[i]) { slot = i; break; } }
+  if (!slot) return;
+  const card = document.getElementById('pcard-' + id);
+  if (card) {
+    const rect = card.getBoundingClientRect();
+    const tabEl = document.getElementById('tab-choices');
+    const tabRect = tabEl.getBoundingClientRect();
+    const clone = card.cloneNode(true);
+    clone.style.cssText = 'position:fixed;left:' + rect.left + 'px;top:' + rect.top + 'px;width:' + rect.width + 'px;height:' + rect.height + 'px;z-index:1000;transition:all 0.5s cubic-bezier(0.4,0,0.2,1);pointer-events:none;border-radius:10px;overflow:hidden;';
+    document.body.appendChild(clone);
+    requestAnimationFrame(() => {
+      clone.style.left = (tabRect.left + tabRect.width / 2 - 60) + 'px';
+      clone.style.top = tabRect.top + 'px';
+      clone.style.width = '120px'; clone.style.height = '40px';
+      clone.style.opacity = '0'; clone.style.transform = 'scale(0.3)';
+      clone.style.borderRadius = '20px';
+    });
+    setTimeout(() => clone.remove(), 550);
+  }
+  selected[slot] = id;
+  updateAll();
+  const badge = document.getElementById('choices-badge');
+  badge.classList.remove('pulse'); void badge.offsetWidth; badge.classList.add('pulse');
+}
+
+function removeProject(id) {
+  for (const s in selected) { if (selected[s] === id) { delete selected[s]; break; } }
+  updateAll();
+}
+
+function updateAll() {
+  renderCards(); renderSlots();
+  document.getElementById('choices-badge').textContent = Object.keys(selected).length;
+  document.getElementById('btn-submit').disabled = Object.keys(selected).length === 0;
+}
+
+function renderSlots(animate) {
+  const oldRects = {};
+  if (animate) {
+    for (let i = 1; i <= 3; i++) {
+      const card = document.getElementById('slot-' + i).querySelector('.project-card');
+      if (card) { const pid = card.getAttribute('data-pid'); if (pid) oldRects[pid] = card.getBoundingClientRect(); }
+    }
+  }
+  for (let i = 1; i <= 3; i++) {
+    const slot = document.getElementById('slot-' + i);
+    const pid = selected[i];
+    if (pid) {
+      const p = projects.find(x => x.id === pid);
+      slot.classList.add('has-card');
+      slot.innerHTML = '<span class="priority-label">Приоритет ' + i + (i === 1 ? ' — самый желаемый' : '') + '</span>' + cardHtml(p, true, true);
+      const cardEl = slot.querySelector('.project-card');
+      cardEl.setAttribute('ondragstart', 'onDragStart(event,' + i + ')');
+      cardEl.setAttribute('data-pid', pid);
+    } else {
+      slot.classList.remove('has-card');
+      slot.innerHTML = '<span class="priority-label">Приоритет ' + i + (i === 1 ? ' — самый желаемый' : '') + '</span><div class="priority-empty">Перетащите сюда проект</div>';
+    }
+  }
+  if (animate) {
+    for (let i = 1; i <= 3; i++) {
+      const card = document.getElementById('slot-' + i).querySelector('.project-card');
+      if (!card) continue;
+      const pid = card.getAttribute('data-pid');
+      if (!pid || !oldRects[pid]) continue;
+      const newRect = card.getBoundingClientRect();
+      const dx = oldRects[pid].left - newRect.left;
+      const dy = oldRects[pid].top - newRect.top;
+      if (dx === 0 && dy === 0) continue;
+      card.style.transition = 'none';
+      card.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      card.style.zIndex = '5';
+      requestAnimationFrame(() => {
+        card.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+        card.style.transform = 'translate(0,0)';
+        setTimeout(() => { card.style.transition = ''; card.style.zIndex = ''; }, 370);
+      });
+    }
+  }
+}
+
+let dragFrom = null;
+function onDragStart(e, s) { dragFrom = s; e.dataTransfer.effectAllowed = 'move'; }
+function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDrop(e, t) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if (dragFrom === null || dragFrom === t) return;
+  const tmp = selected[t]; selected[t] = selected[dragFrom];
+  if (tmp) selected[dragFrom] = tmp; else delete selected[dragFrom];
+  dragFrom = null;
+  const hadCardBefore = {};
+  for (let i = 1; i <= 3; i++) hadCardBefore[i] = !!document.getElementById('slot-' + i).querySelector('.project-card');
+  renderCards(); renderSlots(true);
+  for (let i = 1; i <= 3; i++) {
+    const slot = document.getElementById('slot-' + i);
+    if (!hadCardBefore[i] && selected[i]) {
+      slot.classList.remove('just-filled'); void slot.offsetWidth; slot.classList.add('just-filled');
+      setTimeout(() => slot.classList.remove('just-filled'), 350);
+    }
+  }
+  document.getElementById('choices-badge').textContent = Object.keys(selected).length;
+  document.getElementById('btn-submit').disabled = Object.keys(selected).length === 0;
+}
+
+function showCatalogTab(id, btn) {
+  document.querySelectorAll('#view-catalog .tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#view-catalog .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('ctab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'choices') closeChoicesDetail();
+}
+
+function closeDetail() {
+  document.getElementById('cards-grid').style.display = '';
+  document.getElementById('project-detail-inline').style.display = 'none';
+}
+
+function openDetail(id) {
+  const p = projects.find(x => x.id === id);
+  const selIds = new Set(Object.values(selected));
+  const isSel = selIds.has(p.id);
+  const detailEl = document.getElementById('project-detail-inline');
+  const gridEl = document.getElementById('cards-grid');
+  gridEl.style.display = 'none';
+  detailEl.style.display = 'block';
+  detailEl.innerHTML = `
+    <div style="margin-bottom:16px">
+      <a onclick="closeDetail()" style="color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M10 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Назад к списку проектов
+      </a>
+    </div>
+    <div class="detail-card">
+      <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${p.company}</div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:20px">${p.title}</h2>
+      <div class="detail-section"><div class="detail-section-title">Описание проекта</div><div class="detail-text">${p.fullDesc}</div></div>
+      <div class="detail-section"><div class="detail-section-title">Технологии</div><div class="detail-tags">${p.tags.map(t => '<span class="detail-tag">' + t + '</span>').join('')}</div></div>
+      <div class="detail-section"><div class="detail-section-title">Образовательный результат</div><div class="detail-text">${p.eduResult}</div></div>
+      <div class="detail-section"><div class="detail-section-title">Ментор</div>
+        <div class="mentor-info">
+          <div class="mentor-avatar-lg">${p.mentor.split(' ').map(w => w[0]).join('')}</div>
+          <div>
+            <div style="font-size:15px;font-weight:700">${p.mentor}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${p.mentorRole}</div>
+            <div class="mentor-contacts"><a href="mailto:${p.email}">${p.email}</a><a href="#">${p.tg}</a></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding-top:16px;border-top:1px solid var(--border-light)">
+        <span style="font-size:13px;color:var(--text-secondary)"><b>${p.teamSize}</b> чел. · <b>${p.teams}</b> ${p.teams > 1 ? 'команды' : 'команда'} · <b>${p.applied}</b> заявок</span>
+        <div style="margin-left:auto">${isSel
+          ? '<button class="btn-remove" style="width:auto;padding:10px 24px" onclick="removeProject(' + p.id + ');openDetail(' + p.id + ')">Убрать из выбранных</button>'
+          : (Object.keys(selected).length < 3
+            ? '<button class="btn-want" style="width:auto;padding:10px 24px" onclick="selectProject(' + p.id + ');closeDetail()">Хочу в проект</button>'
+            : '<span style="font-size:12px;color:var(--text-muted)">Выбрано 3 проекта</span>')
+        }</div>
+      </div>
+    </div>`;
+  window.scrollTo(0, 0);
+}
+
+function openChoicesDetail(id) {
+  const p = projects.find(x => x.id === id);
+  const listEl = document.getElementById('choices-list');
+  const detailEl = document.getElementById('choices-detail-inline');
+  listEl.style.display = 'none';
+  detailEl.style.display = 'block';
+  detailEl.innerHTML = `
+    <div style="margin-bottom:16px">
+      <a onclick="closeChoicesDetail()" style="color:var(--accent);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:4px">
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M10 4l-4 4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Назад к выбранным проектам
+      </a>
+    </div>
+    <div class="detail-card">
+      <div style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${p.company}</div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:20px">${p.title}</h2>
+      <div class="detail-section"><div class="detail-section-title">Описание проекта</div><div class="detail-text">${p.fullDesc}</div></div>
+      <div class="detail-section"><div class="detail-section-title">Технологии</div><div class="detail-tags">${p.tags.map(t => '<span class="detail-tag">' + t + '</span>').join('')}</div></div>
+      <div class="detail-section"><div class="detail-section-title">Образовательный результат</div><div class="detail-text">${p.eduResult}</div></div>
+      <div class="detail-section"><div class="detail-section-title">Ментор</div>
+        <div class="mentor-info">
+          <div class="mentor-avatar-lg">${p.mentor.split(' ').map(w => w[0]).join('')}</div>
+          <div>
+            <div style="font-size:15px;font-weight:700">${p.mentor}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">${p.mentorRole}</div>
+            <div class="mentor-contacts"><a href="mailto:${p.email}">${p.email}</a><a href="#">${p.tg}</a></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;padding-top:16px;border-top:1px solid var(--border-light)">
+        <span style="font-size:13px;color:var(--text-secondary)"><b>${p.teamSize}</b> чел. · <b>${p.teams}</b> ${p.teams > 1 ? 'команды' : 'команда'} · <b>${p.applied}</b> заявок</span>
+        <div style="margin-left:auto">
+          <button class="btn-remove" style="width:auto;padding:10px 24px" onclick="removeProject(${p.id});closeChoicesDetail()">Убрать из выбранных</button>
+        </div>
+      </div>
+    </div>`;
+  window.scrollTo(0, 0);
+}
+
+function closeChoicesDetail() {
+  document.getElementById('choices-list').style.display = '';
+  document.getElementById('choices-detail-inline').style.display = 'none';
+}
+
+// Init
+renderCards();
+renderSlots();
+  </script>
+</body>
+</html>
