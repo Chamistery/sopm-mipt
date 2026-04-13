@@ -44,12 +44,26 @@
         <button class="tab" id="tab-choices" onclick="showCatalogTab('choices',this)">Мои выборы <span class="tab-badge" id="choices-badge">0</span></button>
       </div>
       <div id="ctab-projects" class="tab-content active">
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <input id="filter-search" oninput="filterCards()" placeholder="Поиск по названию или технологии..." style="flex:1;min-width:200px;padding:8px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;outline:none">
+          <select id="filter-company" onchange="filterCards()" style="padding:8px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;outline:none;background:var(--white)">
+            <option value="">Все организации</option>
+            <option value="МФТИ">МФТИ</option>
+            <option value="Яндекс">Яндекс</option>
+            <option value="Т-Банк">Т-Банк</option>
+            <option value="VK">VK</option>
+            <option value="Сбер">Сбер</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+            <input type="checkbox" id="filter-qualified" onchange="filterCards()" checked> Только подходящие
+          </label>
+        </div>
         <div class="cards-grid" id="cards-grid"></div>
         <div id="project-detail-inline" style="display:none"></div>
       </div>
       <div id="ctab-choices" class="tab-content">
         <div id="choices-list">
-          <div style="margin-bottom:16px;font-size:14px;color:var(--text-secondary)">Перетаскивайте карточки между слотами, чтобы расставить приоритеты. Выберите от 1 до 3 проектов.</div>
+          <div style="margin-bottom:16px;font-size:14px;color:var(--text-secondary)">Перетаскивайте карточки между слотами, чтобы расставить приоритеты. Выберите от 1 до 5 проектов.</div>
           <div class="priority-slots">
             <div class="priority-slot" id="slot-1" ondragover="onDragOver(event)" ondrop="onDrop(event,1)" ondragleave="onDragLeave(event)">
               <span class="priority-label">Приоритет 1 — самый желаемый</span>
@@ -63,8 +77,17 @@
               <span class="priority-label">Приоритет 3</span>
               <div class="priority-empty">Перетащите сюда проект</div>
             </div>
+            <div class="priority-slot" id="slot-4" ondragover="onDragOver(event)" ondrop="onDrop(event,4)" ondragleave="onDragLeave(event)">
+              <span class="priority-label">Приоритет 4</span>
+              <div class="priority-empty">Перетащите сюда проект</div>
+            </div>
+            <div class="priority-slot" id="slot-5" ondragover="onDragOver(event)" ondrop="onDrop(event,5)" ondragleave="onDragLeave(event)">
+              <span class="priority-label">Приоритет 5</span>
+              <div class="priority-empty">Перетащите сюда проект</div>
+            </div>
           </div>
-          <div style="display:flex;justify-content:flex-end"><button class="btn-submit" id="btn-submit" disabled onclick="alert('Заявка отправлена!')">Отправить заявку</button></div>
+          <div id="submit-area" style="display:flex;justify-content:flex-end"><button class="btn-submit" id="btn-submit" disabled onclick="submitApplication()">Отправить заявку</button></div>
+          <div id="application-status" style="display:none"></div>
         </div>
         <div id="choices-detail-inline" style="display:none"></div>
       </div>
@@ -75,6 +98,8 @@
 
   <script src="common.js"></script>
   <script>
+var applicationSubmitted = false;
+
 // Init role switcher
 document.querySelector('.role-switcher').innerHTML = roleSwitcherHtml('teamlead');
 
@@ -103,11 +128,16 @@ function cardHtml(p, isSel, inSlot) {
       </div>
     </div>`;
   }
-  const actionBtn = isSel
-    ? '<button class="btn-remove" style="flex:1" onclick="event.stopPropagation();removeProject(' + p.id + ')">Убрать из выбранных</button>'
-    : (Object.keys(selected).length < 3
-      ? '<button class="btn-want" style="flex:1" onclick="event.stopPropagation();selectProject(' + p.id + ',this)">Хочу в проект</button>'
-      : '<div style="flex:1;text-align:center;font-size:12px;color:var(--text-muted);padding:8px">Выбрано 3 проекта</div>');
+  var actionBtn;
+  if (applicationSubmitted) {
+    actionBtn = isSel ? '<div style="flex:1;text-align:center;font-size:12px;color:var(--success);padding:8px;font-weight:600">✓ В заявке</div>' : '';
+  } else {
+    actionBtn = isSel
+      ? '<button class="btn-remove" style="flex:1" onclick="event.stopPropagation();removeProject(' + p.id + ')">Убрать из выбранных</button>'
+      : (Object.keys(selected).length < 5
+        ? '<button class="btn-want" style="flex:1" onclick="event.stopPropagation();selectProject(' + p.id + ',this)">Хочу в проект</button>'
+        : '<div style="flex:1;text-align:center;font-size:12px;color:var(--text-muted);padding:8px">Выбрано 5 проектов</div>');
+  }
   return `<div class="project-card${selClass}" id="pcard-${p.id}">
     <div class="card-company">${p.company}</div>
     <div class="card-title">${p.title}</div>
@@ -128,16 +158,51 @@ function cardHtml(p, isSel, inSlot) {
   </div>`;
 }
 
+const unqualifiedIds = new Set([7]);
+
 function renderCards() {
   const grid = document.getElementById('cards-grid');
   const selIds = new Set(Object.values(selected));
-  grid.innerHTML = projects.map(p => cardHtml(p, selIds.has(p.id), false)).join('');
+  grid.innerHTML = projects.map(p => {
+    const isUnqualified = unqualifiedIds.has(p.id);
+    let html = '<div class="card-filter-wrapper" data-company="' + p.company + '" data-title="' + p.title.toLowerCase() + '" data-tags="' + p.tags.join(' ').toLowerCase() + '" data-unqualified="' + (isUnqualified ? '1' : '0') + '" style="position:relative">';
+    if (isUnqualified) {
+      html += '<div style="position:absolute;top:8px;left:8px;right:8px;z-index:2;background:var(--danger);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:5px;text-align:center">Не соответствует требованиям</div>';
+      html += '<div style="position:absolute;inset:0;background:rgba(255,255,255,0.55);border-radius:10px;z-index:1;pointer-events:none"></div>';
+    }
+    html += cardHtml(p, selIds.has(p.id), false);
+    html += '</div>';
+    return html;
+  }).join('');
+  filterCards();
+}
+
+function filterCards() {
+  const search = (document.getElementById('filter-search').value || '').toLowerCase();
+  const company = document.getElementById('filter-company').value;
+  const onlyQualified = document.getElementById('filter-qualified').checked;
+  const wrappers = document.querySelectorAll('#cards-grid .card-filter-wrapper');
+  let visible = 0;
+  wrappers.forEach(w => {
+    const title = w.getAttribute('data-title');
+    const tags = w.getAttribute('data-tags');
+    const comp = w.getAttribute('data-company');
+    const unq = w.getAttribute('data-unqualified') === '1';
+    let show = true;
+    if (search && title.indexOf(search) === -1 && tags.indexOf(search) === -1 && comp.toLowerCase().indexOf(search) === -1) show = false;
+    if (company && comp !== company) show = false;
+    if (onlyQualified && unq) show = false;
+    w.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('available-count').textContent = visible;
 }
 
 function selectProject(id, btnEl) {
-  if (Object.keys(selected).length >= 3) return;
+  if (applicationSubmitted) return;
+  if (Object.keys(selected).length >= 5) return;
   let slot = null;
-  for (let i = 1; i <= 3; i++) { if (!selected[i]) { slot = i; break; } }
+  for (let i = 1; i <= 5; i++) { if (!selected[i]) { slot = i; break; } }
   if (!slot) return;
   const card = document.getElementById('pcard-' + id);
   if (card) {
@@ -163,6 +228,7 @@ function selectProject(id, btnEl) {
 }
 
 function removeProject(id) {
+  if (applicationSubmitted) return;
   for (const s in selected) { if (selected[s] === id) { delete selected[s]; break; } }
   updateAll();
 }
@@ -170,18 +236,18 @@ function removeProject(id) {
 function updateAll() {
   renderCards(); renderSlots();
   document.getElementById('choices-badge').textContent = Object.keys(selected).length;
-  document.getElementById('btn-submit').disabled = Object.keys(selected).length === 0;
+  document.getElementById('btn-submit').disabled = Object.keys(selected).length < 5;
 }
 
 function renderSlots(animate) {
   const oldRects = {};
   if (animate) {
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 5; i++) {
       const card = document.getElementById('slot-' + i).querySelector('.project-card');
       if (card) { const pid = card.getAttribute('data-pid'); if (pid) oldRects[pid] = card.getBoundingClientRect(); }
     }
   }
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 5; i++) {
     const slot = document.getElementById('slot-' + i);
     const pid = selected[i];
     if (pid) {
@@ -197,7 +263,7 @@ function renderSlots(animate) {
     }
   }
   if (animate) {
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 5; i++) {
       const card = document.getElementById('slot-' + i).querySelector('.project-card');
       if (!card) continue;
       const pid = card.getAttribute('data-pid');
@@ -223,15 +289,16 @@ function onDragStart(e, s) { dragFrom = s; e.dataTransfer.effectAllowed = 'move'
 function onDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
 function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 function onDrop(e, t) {
+  if (applicationSubmitted) { e.preventDefault(); return; }
   e.preventDefault(); e.currentTarget.classList.remove('drag-over');
   if (dragFrom === null || dragFrom === t) return;
   const tmp = selected[t]; selected[t] = selected[dragFrom];
   if (tmp) selected[dragFrom] = tmp; else delete selected[dragFrom];
   dragFrom = null;
   const hadCardBefore = {};
-  for (let i = 1; i <= 3; i++) hadCardBefore[i] = !!document.getElementById('slot-' + i).querySelector('.project-card');
+  for (let i = 1; i <= 5; i++) hadCardBefore[i] = !!document.getElementById('slot-' + i).querySelector('.project-card');
   renderCards(); renderSlots(true);
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 5; i++) {
     const slot = document.getElementById('slot-' + i);
     if (!hadCardBefore[i] && selected[i]) {
       slot.classList.remove('just-filled'); void slot.offsetWidth; slot.classList.add('just-filled');
@@ -239,7 +306,7 @@ function onDrop(e, t) {
     }
   }
   document.getElementById('choices-badge').textContent = Object.keys(selected).length;
-  document.getElementById('btn-submit').disabled = Object.keys(selected).length === 0;
+  document.getElementById('btn-submit').disabled = Object.keys(selected).length < 5;
 }
 
 function showCatalogTab(id, btn) {
@@ -290,9 +357,9 @@ function openDetail(id) {
         <span style="font-size:13px;color:var(--text-secondary)"><b>${p.teamSize}</b> чел. · <b>${p.teams}</b> ${p.teams > 1 ? 'команды' : 'команда'} · <b>${p.applied}</b> заявок</span>
         <div style="margin-left:auto">${isSel
           ? '<button class="btn-remove" style="width:auto;padding:10px 24px" onclick="removeProject(' + p.id + ');openDetail(' + p.id + ')">Убрать из выбранных</button>'
-          : (Object.keys(selected).length < 3
+          : (Object.keys(selected).length < 5
             ? '<button class="btn-want" style="width:auto;padding:10px 24px" onclick="selectProject(' + p.id + ');closeDetail()">Хочу в проект</button>'
-            : '<span style="font-size:12px;color:var(--text-muted)">Выбрано 3 проекта</span>')
+            : '<span style="font-size:12px;color:var(--text-muted)">Выбрано 5 проектов</span>')
         }</div>
       </div>
     </div>`;
@@ -341,6 +408,50 @@ function openChoicesDetail(id) {
 function closeChoicesDetail() {
   document.getElementById('choices-list').style.display = '';
   document.getElementById('choices-detail-inline').style.display = 'none';
+}
+
+function submitApplication() {
+  if (Object.keys(selected).length < 5) { alert('Необходимо заполнить все 5 приоритетов'); return; }
+  applicationSubmitted = true;
+  var mockStatuses = {
+    1:{status:'Рекомендован',color:'var(--accent)',bg:'#dbeafe',detail:'Вы рекомендованы в Команду 1'},
+    2:{status:'Принято ментором',color:'var(--warning)',bg:'var(--warning-bg)',detail:'Ментор отправил вам приглашение',hasActions:true},
+    3:{status:'Не рекомендован',color:'var(--text-muted)',bg:'var(--surface-alt)',detail:'Не попали в команду по распределению'},
+    4:{status:'Не рекомендован',color:'var(--text-muted)',bg:'var(--surface-alt)',detail:'Не попали в команду по распределению'},
+    5:{status:'Не рекомендован',color:'var(--text-muted)',bg:'var(--surface-alt)',detail:'Не попали в команду по распределению'},
+    6:{status:'Принят',color:'var(--success)',bg:'var(--success-bg)',detail:'Вы приняты в Команду 2'},
+    7:{status:'Рекомендован',color:'var(--accent)',bg:'#dbeafe',detail:'Вы рекомендованы в Команду 3'},
+    8:{status:'Отклонено',color:'var(--text-muted)',bg:'var(--surface-alt)',detail:'Вы отклонили приглашение'}
+  };
+  document.getElementById('submit-area').innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--success-bg);border-radius:8px;font-size:13px;font-weight:600;color:var(--success)"><svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Заявка отправлена</div>';
+  document.querySelectorAll('.priority-slot .card-close-x').forEach(function(x){x.style.display='none';});
+  renderCards();
+  for (var i=1;i<=5;i++) {
+    var pid=selected[i]; if(!pid) continue;
+    var st=mockStatuses[pid]||{status:'Ожидает',color:'var(--text-secondary)',bg:'var(--surface)',detail:'Распределение не запущено'};
+    var slot=document.getElementById('slot-'+i); if(!slot) continue;
+    var card=slot.querySelector('.project-card'); if(!card) continue;
+    var statusEl=document.createElement('div');
+    statusEl.id='slot-status-'+i;
+    statusEl.style.cssText='padding:8px 0 4px;margin-top:8px;border-top:1px solid var(--border-light)';
+    var html='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:'+st.bg+';color:'+st.color+';white-space:nowrap">'+st.status+'</span>';
+    if(st.hasActions){html+='<button onclick="event.stopPropagation();acceptInvite(this,'+i+')" style="padding:3px 10px;border:none;border-radius:5px;background:var(--success);color:#fff;font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">Принять</button><button onclick="event.stopPropagation();declineInvite(this,'+i+')" style="padding:3px 10px;border:1px solid var(--danger);border-radius:5px;background:var(--white);color:var(--danger);font-size:11px;font-weight:600;font-family:inherit;cursor:pointer">Отклонить</button>';}
+    html+='</div><div style="font-size:11px;color:var(--text-muted)">'+st.detail+'</div>';
+    statusEl.innerHTML=html;
+    var expanded=card.querySelector('.card-expanded');
+    if(expanded){card.insertBefore(statusEl,expanded);}else{card.appendChild(statusEl);}
+    slot.ondragover=null;slot.ondrop=null;slot.ondragleave=null;
+    card.setAttribute('draggable','false');
+  }
+}
+function acceptInvite(btn,slotIdx){
+  var s=document.getElementById('slot-status-'+slotIdx);
+  s.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--success-bg);color:var(--success)">Принят</span></div><div style="font-size:11px;color:var(--success)">Вы приняты в команду</div>';
+  for(var i=1;i<=5;i++){if(i===slotIdx)continue;var o=document.getElementById('slot-status-'+i);if(o&&o.querySelector('button')){o.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--surface-alt);color:var(--text-muted)">Отклонено</span></div><div style="font-size:11px;color:var(--text-muted)">Вы приняли другой проект</div>';}}
+}
+function declineInvite(btn,slotIdx){
+  var s=document.getElementById('slot-status-'+slotIdx);
+  s.innerHTML='<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px"><span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--surface-alt);color:var(--text-muted)">Отклонено</span></div><div style="font-size:11px;color:var(--text-muted)">Вы отклонили приглашение</div>';
 }
 
 // Init

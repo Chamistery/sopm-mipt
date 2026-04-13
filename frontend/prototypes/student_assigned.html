@@ -199,8 +199,10 @@
   </main>
 
   <!-- ═══ Modal: Task ═══ -->
+  <div id="save-toast" class="save-toast"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Изменения сохранены</div>
+
   <div id="student-task-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;background:rgba(0,0,0,0.45);align-items:center;justify-content:center" onclick="if(event.target===this)closeTaskModal()">
-    <div style="background:var(--card);border-radius:12px;width:460px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.2)" onclick="event.stopPropagation()">
+    <div id="task-modal-card" class="task-modal-card" onclick="event.stopPropagation()">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <h3 id="task-modal-title" style="font-size:17px;font-weight:700;color:var(--text);margin:0">Задача</h3>
         <span id="task-save-indicator" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--success);font-weight:600">
@@ -250,9 +252,11 @@
         <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Описание выполненной работы</label>
         <textarea id="st-work" class="modal-field" style="width:100%;min-height:60px;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none" placeholder="Что было сделано по задаче..."></textarea>
       </div>
-      <div id="st-buttons" style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;border-top:1px solid var(--border-light)">
-        <button id="st-cancel-btn" onclick="closeTaskModal()" style="padding:9px 20px;border:1px solid var(--border);border-radius:7px;background:var(--white);color:var(--text-secondary);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Отмена</button>
-        <button id="st-submit-btn" onclick="saveStudentTask()" style="padding:9px 24px;border:none;border-radius:7px;background:var(--primary);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Сохранить</button>
+      <div id="st-buttons" style="display:flex;justify-content:flex-end;gap:10px;padding-top:12px;border-top:1px solid var(--border-light)">
+        <button id="st-submit-btn" style="padding:10px 24px;border:none;border-radius:7px;background:var(--purple);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Отправить на ревью
+        </button>
       </div>
     </div>
   </div>
@@ -277,13 +281,25 @@ function showProjectTab(id, btn) {
   btn.classList.add('active');
 }
 
-function openTaskModal(idx, forceReadonly) {
+let _taskOriginRect = null;
+let _taskDirty = false;
+
+function openTaskModal(idx) {
   editingTaskIdx = idx;
+  _taskDirty = false;
   const isEdit = idx >= 0;
   const t = isEdit ? sTasks[idx] : null;
-  const isLocked = forceReadonly || (isEdit && (t.status === 'review' || t.status === 'done'));
+  const isLocked = isEdit && (t.status === 'review' || t.status === 'done' || t.status === 'rejected');
+  const ds = isEdit ? calcTaskStatus(t) : null;
+  const isInProgress = isEdit && (ds === 'progress' || ds === 'overdue' || ds === 'returned');
 
-  document.getElementById('task-modal-title').textContent = isEdit ? t.name : 'Новая задача';
+  // Find source element for fly animation
+  _taskOriginRect = null;
+  const row = document.querySelector('[data-task-idx="' + idx + '"]');
+  if (row) { const nameEl = row.querySelector('.task-name-text') || row.querySelector('.col-task'); if (nameEl) _taskOriginRect = nameEl.getBoundingClientRect(); }
+
+  const overdueHtml = (isEdit && t.wasOverdue) ? ' <span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;background:var(--danger-bg);color:var(--danger);vertical-align:middle">Просрочена</span>' : '';
+  document.getElementById('task-modal-title').innerHTML = (isEdit ? t.name : 'Новая задача') + overdueHtml;
   document.getElementById('task-save-indicator').style.display = 'none';
   document.getElementById('st-name').value = isEdit ? t.name : '';
   document.getElementById('st-name').readOnly = isLocked;
@@ -297,10 +313,9 @@ function openTaskModal(idx, forceReadonly) {
   if (isEdit && ed) ed.setDate(ed.getDate() + t.start + t.dur - 1);
   document.getElementById('st-date-start').value = isEdit ? sd.toISOString().slice(0,10) : '';
   document.getElementById('st-date-end').value = isEdit ? ed.toISOString().slice(0,10) : '';
-  document.getElementById('st-date-start').readOnly = isLocked;
-  document.getElementById('st-date-end').readOnly = isLocked;
-  document.getElementById('st-status-wrap').style.display = isEdit ? '' : 'none';
-  if (isEdit) { document.getElementById('st-status').value = t.status; document.getElementById('st-status').disabled = isLocked; }
+  document.getElementById('st-date-start').readOnly = true; // студент не меняет даты
+  document.getElementById('st-date-end').readOnly = true;
+  document.getElementById('st-status-wrap').style.display = 'none'; // статус не руками
   document.getElementById('st-mr-wrap').style.display = isEdit ? '' : 'none';
   document.getElementById('st-work-wrap').style.display = isEdit ? '' : 'none';
   if (isEdit) {
@@ -309,44 +324,139 @@ function openTaskModal(idx, forceReadonly) {
     document.getElementById('st-work').value = t.workDesc || '';
     document.getElementById('st-work').readOnly = isLocked;
   }
-  // Buttons
-  document.getElementById('st-cancel-btn').style.display = isLocked ? 'none' : '';
+  // Button: "Отправить на ревью" только если задача В работе, иначе скрыть
+  const btnWrap = document.getElementById('st-buttons');
   const btn = document.getElementById('st-submit-btn');
-  btn.textContent = isLocked ? 'Закрыть' : (isEdit ? 'Сохранить' : 'Создать задачу');
-  btn.onclick = isLocked ? closeTaskModal : saveStudentTask;
-  document.getElementById('student-task-modal').style.display = 'flex';
+  if (isLocked) {
+    btnWrap.style.display = 'none';
+  } else if (isInProgress && isEdit) {
+    btnWrap.style.display = 'flex';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Отправить на ревью';
+    btn.style.background = 'var(--purple)';
+    btn.onclick = sendToReview;
+  } else if (ds === 'pending_approval' && isEdit) {
+    btnWrap.style.display = 'flex';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Отменить задачу';
+    btn.style.background = 'var(--danger)';
+    btn.onclick = function() { cancelTask(editingTaskIdx); };
+  } else if (!isEdit) {
+    btnWrap.style.display = 'flex';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Создать задачу';
+    btn.style.background = 'var(--primary)';
+    btn.onclick = createNewTask;
+  } else {
+    btnWrap.style.display = 'none';
+  }
+
+  const overlay = document.getElementById('student-task-modal');
+  const card = document.getElementById('task-modal-card');
+
+  // 1. Show overlay + card at full size invisibly to measure position
+  card.style.transition = 'none';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(1)';
+  overlay.style.display = 'flex';
+  void card.offsetHeight; // force layout
+
+  // 2. Calculate transform-origin pointing at task name
+  if (_taskOriginRect) {
+    const cr = card.getBoundingClientRect();
+    const ox = _taskOriginRect.left + _taskOriginRect.width / 2 - cr.left;
+    const oy = _taskOriginRect.top + _taskOriginRect.height / 2 - cr.top;
+    card.style.transformOrigin = ox + 'px ' + oy + 'px';
+  } else {
+    card.style.transformOrigin = 'center center';
+  }
+
+  // 3. Snap to tiny scale, then animate open
+  card.style.transform = 'scale(0.05)';
+  void card.offsetHeight;
+  card.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease';
+  card.style.opacity = '1';
+  card.style.transform = 'scale(1)';
 }
 
 function closeTaskModal() {
-  document.getElementById('student-task-modal').style.display = 'none';
-  editingTaskIdx = -1;
+  const card = document.getElementById('task-modal-card');
+  const overlay = document.getElementById('student-task-modal');
+  const changed = autoSaveFields();
+
+  // Animate out: same transform-origin is still set from open
+  card.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(0.05)';
+
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    card.style.transition = 'none';
+    card.style.transform = '';
+    card.style.opacity = '';
+    editingTaskIdx = -1;
+    refreshViews();
+    if (changed) showSaveToast();
+  }, 320);
 }
 
-function saveStudentTask() {
+function autoSaveFields() {
+  if (editingTaskIdx < 0) return false;
+  const t = sTasks[editingTaskIdx];
+  if (!t || document.getElementById('st-name').readOnly) return false;
+  const name = document.getElementById('st-name').value.trim();
+  if (!name) return false;
+  let changed = false;
+  const desc = document.getElementById('st-desc').value.trim() || null;
+  const mr = document.getElementById('st-mr').value.trim() || null;
+  const work = document.getElementById('st-work').value.trim() || null;
+  const hours = parseInt(document.getElementById('st-hours').value) || t.hours;
+  if (t.name !== name || t.desc !== desc || t.mr !== mr || t.workDesc !== work || t.hours !== hours) changed = true;
+  t.name = name; t.desc = desc; t.mr = mr; t.workDesc = work; t.hours = hours;
+  return changed;
+}
+
+function sendToReview() {
+  if (editingTaskIdx < 0) return;
+  autoSaveFields();
+  const t = sTasks[editingTaskIdx];
+  if (!t.workDesc && !t.mr) { alert('Заполните описание работы или прикрепите MR перед отправкой'); return; }
+  t.status = 'review';
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+  refreshViews();
+}
+
+function createNewTask() {
   const name = document.getElementById('st-name').value.trim();
   const hours = parseInt(document.getElementById('st-hours').value) || 8;
   const ds = document.getElementById('st-date-start').value;
   const de = document.getElementById('st-date-end').value;
   if (!name) { alert('Введите название задачи'); return; }
   if (!ds || !de) { alert('Укажите даты'); return; }
-  const startDate = new Date(ds);
-  const endDate = new Date(de);
-  const startDay = Math.round((startDate - SPRINT2_START) / 86400000);
-  const dur = Math.round((endDate - startDate) / 86400000) + 1;
+  const startDay = Math.round((new Date(ds) - SPRINT2_START) / 86400000);
+  const dur = Math.round((new Date(de) - new Date(ds)) / 86400000) + 1;
   if (startDay < 0 || dur < 1) { alert('Проверьте даты'); return; }
-  const desc = document.getElementById('st-desc').value.trim();
-  if (editingTaskIdx >= 0) {
-    const t = sTasks[editingTaskIdx];
-    t.name = name; t.hours = hours; t.start = startDay; t.dur = dur; t.desc = desc;
-    t.status = document.getElementById('st-status').value;
-    t.mr = document.getElementById('st-mr').value.trim() || null;
-    t.workDesc = document.getElementById('st-work').value.trim() || null;
-  } else {
-    sTasks.push({sprint: 2, person: currentUser, name: name, status: 'new', priority: 'medium', hours: hours, start: startDay, dur: dur, mr: null, desc: desc, workDesc: null});
-  }
-  closeTaskModal();
+  sTasks.push({sprint:2, person:currentUser, name:name, status:'new', priority:'medium', hours:hours, start:startDay, dur:dur, mr:null, desc:document.getElementById('st-desc').value.trim()||null, workDesc:null});
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+  refreshViews();
+}
+
+function cancelTask(idx) {
+  if (!confirm('Отменить создание задачи? Она будет удалена.')) return;
+  sTasks.splice(idx, 1);
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+  refreshViews();
+}
+
+function refreshViews() {
   buildGantt('student-gantt-sprints', currentUser, {canEdit: true});
   renderPersonalReports('personal-reports-container', currentUser, 2);
+}
+
+function showSaveToast() {
+  const toast = document.getElementById('save-toast');
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 1500);
 }
   </script>
 </body>

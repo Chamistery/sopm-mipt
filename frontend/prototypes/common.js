@@ -4,7 +4,6 @@
 const ROLE_PAGES = {
   student: 'student.html',
   student_assigned: 'student_assigned.html',
-  teamlead: 'teamlead.html',
   teamlead_assigned: 'teamlead_assigned.html',
   mentor: 'mentor.html',
   admin: 'admin.html'
@@ -39,28 +38,36 @@ const teamMembers = [
 
 const SPRINT2_START = new Date(2025, 2, 17);
 const SPRINT2_DAYS = 28;
-const TODAY = new Date();
+const TODAY = new Date(2025, 2, 31); // Demo: 31 марта 2025 (внутри спринта 2)
 
 const sTasks = [
-  {sprint:2,person:"Стародубов А.",name:"API управления проектами",status:"done",priority:"high",hours:12,start:0,dur:7,mr:"!42"},
-  {sprint:2,person:"Стародубов А.",name:"Интеграция с OAuth МФТИ",status:"review",priority:"medium",hours:8,start:7,dur:6,mr:"!45"},
-  {sprint:2,person:"Стародубов А.",name:"Ролевая модель (backend)",status:"progress",priority:"high",hours:16,start:13,dur:10,mr:null},
-  {sprint:2,person:"Стародубов А.",name:"Миграции БД v2",status:"new",priority:"medium",hours:6,start:23,dur:5,mr:null},
-  {sprint:2,person:"Кузнецов М.",name:"Макет дашборда ментора",status:"done",priority:"high",hours:14,start:0,dur:10,mr:"!46"},
-  {sprint:2,person:"Кузнецов М.",name:"Компонент формы заявки",status:"progress",priority:"medium",hours:10,start:10,dur:9,mr:null},
-  {sprint:2,person:"Кузнецов М.",name:"Страница команды (UI)",status:"new",priority:"high",hours:12,start:19,dur:9,mr:null},
-  {sprint:2,person:"Лебедева Н.",name:"Спецификация API (Swagger)",status:"done",priority:"medium",hours:8,start:0,dur:8,mr:null},
-  {sprint:2,person:"Лебедева Н.",name:"Сценарии использования v2",status:"review",priority:"low",hours:6,start:8,dur:7,mr:null},
-  {sprint:2,person:"Лебедева Н.",name:"Документация ролевой модели",status:"progress",priority:"medium",hours:8,start:15,dur:8,mr:null},
-  {sprint:2,person:"Волков Д.",name:"Unit-тесты для Auth",status:"done",priority:"medium",hours:8,start:0,dur:7,mr:"!43"},
-  {sprint:2,person:"Волков Д.",name:"Тест-план для Sprint 2",status:"done",priority:"low",hours:6,start:7,dur:6,mr:null},
-  {sprint:2,person:"Волков Д.",name:"Настройка CI/CD",status:"progress",priority:"high",hours:10,start:13,dur:8,mr:null},
-  {sprint:2,person:"Волков Д.",name:"Интеграционные тесты API",status:"new",priority:"high",hours:8,start:21,dur:7,mr:null},
-  {sprint:1,person:"Стародубов А.",name:"Структура проекта Django",status:"done",priority:"high",hours:8,start:0,dur:8,mr:"!1"},
-  {sprint:1,person:"Стародубов А.",name:"Доменные модели",status:"done",priority:"high",hours:12,start:8,dur:10,mr:"!5"},
-  {sprint:1,person:"Кузнецов М.",name:"Прототип UI (Figma)",status:"done",priority:"medium",hours:10,start:0,dur:14,mr:null},
-  {sprint:1,person:"Лебедева Н.",name:"Анализ требований",status:"done",priority:"high",hours:10,start:0,dur:10,mr:null},
-  {sprint:1,person:"Волков Д.",name:"Docker Compose окружение",status:"done",priority:"medium",hours:6,start:0,dur:7,mr:"!3"},
+  // Sprint 2
+  {sprint:2,person:"Стародубов А.",name:"API управления проектами",status:"done",priority:"high",hours:12,start:0,dur:7,mr:"!42",desc:"Реализовать CRUD-операции для сущности Project: создание, чтение, обновление, удаление. REST API на Django REST Framework.",workDesc:"Реализовал 7 эндпоинтов (GET/POST/PUT/DELETE для проектов, GET list с фильтрацией). Написал сериализаторы и viewsets. Покрытие тестами 85%.",mentor_comments:[{action:"Аппрув",text:"Задача понятная и важная. Приступай."},{action:"Принятие",text:"Отличная работа. Чистый код, хорошая структура. Рекомендую добавить пагинацию в list-эндпоинт."}],history:[{day:5,event:"review"},{day:6,event:"accepted"}]},
+  {sprint:2,person:"Стародубов А.",name:"Интеграция с OAuth МФТИ",status:"review",priority:"medium",hours:8,start:7,dur:6,mr:"!45",desc:"Подключить авторизацию через OAuth2 провайдер МФТИ. Получение токена, валидация, сохранение сессии.",workDesc:"Настроил OAuth2 flow с redirect. Получение и обновление токенов работает. Добавил middleware для проверки авторизации.",mentor_comments:[{action:"Аппрув",text:"Критически важная задача. Используй библиотеку django-oauth-toolkit."}],history:[{day:12,event:"review"}]},
+  {sprint:2,person:"Стародубов А.",name:"Ролевая модель (backend)",status:"progress",priority:"high",hours:16,start:13,dur:10,mr:null,desc:"Реализовать систему ролей: студент, тимлид, ментор, координатор. Декораторы для проверки прав на эндпоинтах.",mentor_comments:[{action:"Аппрув",text:"Утверждено. Посмотри как реализованы permissions в DRF."}]},
+  {sprint:2,person:"Стародубов А.",name:"Миграции БД v2",status:"approved",priority:"medium",hours:6,start:23,dur:5,mr:null,desc:"Обновить схему БД: добавить таблицы teams, sprints, tasks. Написать миграции и seed-данные.",mentor_comments:[{action:"Аппрув",text:"Обрати внимание на обратную совместимость миграций."}]},
+  {sprint:2,person:"Кузнецов М.",name:"Макет дашборда ментора",status:"done",priority:"high",hours:14,start:0,dur:10,mr:"!46",desc:"Вёрстка дашборда ментора: карточки проектов, блок уведомлений, квадратики спринтов, навигация.",workDesc:"Сверстал полный дашборд с адаптивной сеткой проектов, интерактивными карточками команд, блоком «Требует внимания».",mentor_comments:[{action:"Аппрув",text:"Бери за основу прототип. Главное — адаптивность."},{action:"Принятие",text:"Качественная вёрстка, хороший UX. На мобильных карточки слипаются — поправь в следующем спринте."}]},
+  {sprint:2,person:"Кузнецов М.",name:"Компонент формы заявки",status:"progress",priority:"medium",hours:10,start:10,dur:9,mr:null,desc:"React-компонент формы создания проекта: 4 шага, валидация, настройка спринтов с автоматическим расчётом дат.",mentor_comments:[{action:"Аппрув",text:"Важно реализовать переключение режимов спринтов (одинаковая/индивидуальная длительность)."}]},
+  {sprint:2,person:"Кузнецов М.",name:"Страница команды (UI)",status:"approved",priority:"high",hours:12,start:19,dur:9,mr:null,desc:"Вёрстка страницы команды: диаграмма Ганта, вкладки отчётов и встреч, список участников.",mentor_comments:[{action:"Аппрув",text:"Бери за основу макет из прототипа supp_prototype.html."}]},
+  {sprint:2,person:"Лебедева Н.",name:"Спецификация API (Swagger)",status:"done",priority:"medium",hours:8,start:0,dur:8,mr:null,desc:"Написать OpenAPI 3.0 спецификацию для всех эндпоинтов проекта: projects, teams, tasks, applications, users.",workDesc:"Написала полную Swagger-документацию (1100 строк). Все эндпоинты задокументированы с примерами запросов и ответов.",mentor_comments:[{action:"Аппрув",text:"Согласовано. Используй формат OpenAPI 3.0."},{action:"Принятие",text:"Полная и аккуратная документация. Добавь описания ошибок (4xx/5xx)."}]},
+  {sprint:2,person:"Лебедева Н.",name:"Сценарии использования v2",status:"review",priority:"low",hours:6,start:8,dur:7,mr:null,desc:"Обновить сценарии использования с учётом новых ролей и процесса распределения (5 приоритетов, приглашения).",workDesc:"Обновила 12 use-case диаграмм. Добавила сценарии для аппрува задач, распределения с приглашениями, запуска команд.",mentor_comments:[{action:"Аппрув",text:"Обязательно учти новый ДКА статусов заявок."}],history:[{day:14,event:"review"}]},
+  {sprint:2,person:"Лебедева Н.",name:"Документация ролевой модели",status:"progress",priority:"medium",hours:8,start:15,dur:8,mr:null,desc:"Описать права доступа для каждой роли: что может видеть/редактировать студент, тимлид, ментор, координатор.",mentor_comments:[{action:"Аппрув",text:"Используй таблицу прав из architecture.md как основу."}]},
+  {sprint:2,person:"Волков Д.",name:"Unit-тесты для Auth",status:"done",priority:"medium",hours:8,start:0,dur:7,mr:"!43",desc:"Написать unit-тесты для модуля авторизации: регистрация, логин, OAuth flow, проверка токенов, refresh.",workDesc:"Написал 28 тестов. Покрытие модуля auth — 92%. Все тесты проходят в CI.",mentor_comments:[{action:"Аппрув",text:"Покрытие должно быть не ниже 80%."},{action:"Возврат",text:"Не хватает тестов на OAuth flow. Добавь минимум 5 тестов."},{action:"Принятие",text:"Отлично, 92% — выше цели. Добавь edge-case тест для expired refresh token."}],history:[{day:4,event:"review"},{day:4,event:"returned"},{day:6,event:"review"},{day:6,event:"accepted"}]},
+  {sprint:2,person:"Стародубов А.",name:"Валидация входных данных API",status:"done",priority:"high",hours:10,start:3,dur:11,mr:"!48",desc:"Добавить валидацию всех входных данных: проверка типов, длины строк, допустимых значений. Защита от SQL injection и XSS.",workDesc:"Реализовал валидаторы для всех эндпоинтов. Добавил sanitize для текстовых полей. Тесты на 15 edge-cases.",mentor_comments:[{action:"Аппрув",text:"Критически важная задача для безопасности."},{action:"Возврат",text:"Не покрыты числовые поля (priority, hours). Добавь проверку диапазонов."},{action:"Возврат",text:"Лучше, но пропущена валидация дат — start_date не может быть позже end_date."},{action:"Принятие",text:"Теперь полная валидация. Хорошая работа, спасибо за терпение с доработками."}],history:[{day:8,event:"review"},{day:9,event:"returned"},{day:10,event:"review"},{day:11,event:"returned"},{day:13,event:"review"},{day:13,event:"accepted"}]},
+  {sprint:2,person:"Волков Д.",name:"Тест-план для Sprint 2",status:"done",priority:"low",hours:6,start:7,dur:6,mr:null,desc:"Составить тест-план для спринта 2: определить критические пути, написать чек-листы для ручного тестирования.",workDesc:"Составил тест-план из 45 пунктов. Покрывает авторизацию, CRUD проектов, формы создания, навигацию.",mentor_comments:[{action:"Аппрув",text:"Согласовано."},{action:"Принятие",text:"Хороший план, принято."}]},
+  {sprint:2,person:"Волков Д.",name:"Настройка CI/CD",status:"progress",priority:"high",hours:10,start:13,dur:8,mr:null,desc:"Настроить GitLab CI/CD: автоматический запуск тестов на MR, линтеры, сборка Docker-образа, деплой на стейджинг.",mentor_comments:[{action:"Аппрув",text:"Начни с lint + test. Деплой на стейджинг — после получения доступа к VDI."}]},
+  {sprint:2,person:"Волков Д.",name:"Интеграционные тесты API",status:"approved",priority:"high",hours:8,start:21,dur:7,mr:null,desc:"Написать интеграционные тесты для REST API: создание проекта → добавление команды → создание задачи → полный цикл.",mentor_comments:[{action:"Аппрув",text:"Используй testcontainers для PostgreSQL."}]},
+  {sprint:2,person:"Лебедева Н.",name:"Аналитика пользовательских сценариев",status:"pending_approval",priority:"low",hours:6,start:24,dur:4,mr:null,desc:"Провести анализ пользовательских сценариев для модуля оценивания: как ментор ставит оценки, как формируется итоговый балл."},
+  {sprint:2,person:"Кузнецов М.",name:"Рефакторинг компонентов",status:"returned",priority:"medium",hours:8,start:10,dur:5,mr:null,desc:"Разбить монолитные React-компоненты дашборда на переиспользуемые: ProjectCard, TeamRow, AttentionItem, SprintBar.",workDesc:"Выделил ProjectCard и TeamRow. Остальные компоненты пока в одном файле.",mentor_comments:[{action:"Аппрув",text:"Хорошая инициатива, утверждаю."},{action:"Возврат",text:"Нужно разбить на более мелкие компоненты. AttentionItem и SprintBar тоже должны быть отдельными."}]},
+  {sprint:2,person:"Стародубов А.",name:"Кеширование запросов",status:"rejected",priority:"low",hours:4,start:20,dur:3,mr:null,desc:"Добавить Redis-кеширование для GET-запросов к API проектов.",mentor_comments:[{action:"Отклонение",text:"Преждевременная оптимизация. Нет проблем с производительностью. Сфокусируйся на ролевой модели."}]},
+  {sprint:2,person:"Лебедева Н.",name:"Обновление диаграмм UML",status:"progress",priority:"medium",hours:6,start:4,dur:7,mr:null,wasOverdue:true,desc:"Обновить UML-диаграммы классов и последовательностей с учётом новой архитектуры (таблицы teams, tasks, sprints).",mentor_comments:[{action:"Аппрув",text:"Утверждено. Диаграммы нужны для документации."}]},
+  {sprint:2,person:"Волков Д.",name:"Нагрузочное тестирование",status:"progress",priority:"high",hours:10,start:2,dur:10,mr:null,wasOverdue:true,desc:"Провести нагрузочное тестирование API: определить пропускную способность, найти узкие места. Инструмент: k6 или locust.",mentor_comments:[{action:"Аппрув",text:"Важно для понимания производительности. Используй locust."}]},
+  // Sprint 1
+  {sprint:1,person:"Стародубов А.",name:"Структура проекта Django",status:"done",priority:"high",hours:8,start:0,dur:8,mr:"!1",desc:"Создать структуру Django-проекта: приложения, настройки, подключение PostgreSQL, базовые модели.",workDesc:"Создал проект с 4 приложениями (users, projects, teams, tasks). Настроил PostgreSQL, Docker Compose для разработки.",mentor_comments:[{action:"Аппрув",text:"Приступай."},{action:"Принятие",text:"Правильная структура. SOLID соблюдён."}]},
+  {sprint:1,person:"Стародубов А.",name:"Доменные модели",status:"done",priority:"high",hours:12,start:8,dur:10,mr:"!5",desc:"Реализовать доменные модели: User, Project, Team, Application. Миграции, связи между моделями.",workDesc:"Реализовал 6 моделей с полями из ТЗ. Миграции проходят. Написал fixtures для тестовых данных.",mentor_comments:[{action:"Аппрув",text:"Утверждено."},{action:"Принятие",text:"Хорошая работа. Добавь индексы на часто используемые поля (status, mentor_id)."}]},
+  {sprint:1,person:"Кузнецов М.",name:"Прототип UI (Figma)",status:"done",priority:"medium",hours:10,start:0,dur:14,mr:null,desc:"Создать прототип интерфейса в Figma: экраны дашборда, каталога проектов, страницы команды, профиля.",workDesc:"Создал 15 экранов в Figma. UI-кит с компонентами: кнопки, карточки, формы, таблицы в МФТИ-стиле.",mentor_comments:[{action:"Аппрув",text:"Согласовано. Стиль — строгий, МФТИ."},{action:"Принятие",text:"Консистентный дизайн. Переиспользуемые компоненты — молодец."}]},
+  {sprint:1,person:"Лебедева Н.",name:"Анализ требований",status:"done",priority:"high",hours:10,start:0,dur:10,mr:null,desc:"Провести анализ Положения о ПП: выделить роли, процессы, сущности. Составить карту пользовательских историй.",workDesc:"Проанализировала Положение. Выделила 6 ролей, 13 полей заявки, формулу оценки. Составила 24 user stories.",mentor_comments:[{action:"Аппрув",text:"Очень важная задача. Положение — основной документ."},{action:"Принятие",text:"Полный и структурированный анализ."}]},
+  {sprint:1,person:"Волков Д.",name:"Docker Compose окружение",status:"done",priority:"medium",hours:6,start:0,dur:7,mr:"!3",desc:"Настроить Docker Compose для локальной разработки: PostgreSQL, Redis, Django dev-сервер с hot-reload.",workDesc:"Настроил docker-compose.yml с 3 сервисами. Hot-reload работает через volume mount.",mentor_comments:[{action:"Аппрув",text:"Приоритетная задача для всей команды."},{action:"Принятие",text:"Рабочее окружение, всё поднимается одной командой. Добавь healthcheck для PostgreSQL."}]},
 ];
 
 const sAvatarColors = {"Стародубов А.":"var(--accent)","Кузнецов М.":"var(--success)","Лебедева Н.":"var(--warning)","Волков Д.":"var(--purple)"};
@@ -93,8 +100,7 @@ function roleSwitcherHtml(currentRole) {
   const roles = [
     {value:'student', label:'Студент'},
     {value:'student_assigned', label:'Студент (распределён)'},
-    {value:'teamlead', label:'Тимлид'},
-    {value:'teamlead_assigned', label:'Тимлид (распределён)'},
+    {value:'teamlead_assigned', label:'Тимлид'},
     {value:'mentor', label:'Ментор'},
     {value:'admin', label:'Администратор'}
   ];
@@ -105,33 +111,47 @@ function roleSwitcherHtml(currentRole) {
 
 // ─── Gantt builder ───
 function calcTaskStatus(task) {
-  if (task.status === 'review' || task.status === 'done') return task.status;
+  // Статусы, не зависящие от дат:
+  if (task.status === 'pending_approval') return 'pending_approval';
+  if (task.status === 'rejected') return 'rejected';
+  if (task.status === 'review') return 'review';
+  if (task.status === 'returned') return 'returned';
+  if (task.status === 'done') return task.status;
+
   const taskEndDate = new Date(SPRINT2_START);
   taskEndDate.setDate(taskEndDate.getDate() + task.start + task.dur);
   const taskStartDate = new Date(SPRINT2_START);
   taskStartDate.setDate(taskStartDate.getDate() + task.start);
+
+  // Overdue flag
+  if (TODAY >= taskEndDate && task.status !== 'review' && task.status !== 'done') {
+    task.wasOverdue = true;
+  }
+
   if (TODAY >= taskEndDate) return 'overdue';
-  if (TODAY < taskStartDate) return 'new';
-  return task.status === 'new' ? 'progress' : task.status;
+  // approved = назначена, ждёт start_date
+  if (task.status === 'approved' && TODAY < taskStartDate) return 'approved';
+  if (TODAY < taskStartDate) return 'pending_approval';
+  return 'progress';
 }
 
 function buildGantt(containerId, currentUser, options) {
   options = options || {};
   const canEdit = options.canEdit || false;
   const canEditAll = options.canEditAll || false;
+  const mentorActions = options.mentorActions || false;
   const container = document.getElementById(containerId);
   if (!container) return;
 
-  const today = new Date();
+  const today = TODAY;
   const months = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
   const MIN_PX = 28;
   const sprintConfigs = [
     {num:2, label:'Спринт 2 (текущий)', start:new Date(2025,2,17), days:28},
     {num:1, label:'Спринт 1 (завершён)', start:new Date(2025,1,24), days:21},
   ];
-  const dsMap = {new:'Новая', progress:'В работе', review:'Ревью', done:'Готово', overdue:'Истекла'};
-  const dsClass = {new:'status-new', progress:'status-progress', review:'status-review', done:'status-done', overdue:'status-overdue'};
-  const dsBar = {new:'status-bar-new', progress:'status-bar-progress', review:'status-bar-review', done:'status-bar-done', overdue:'status-bar-overdue'};
+  const dsMap = {pending_approval:'Ожидает аппрува', approved:'Назначена', progress:'В работе', review:'На ревью', returned:'Возвращена', done:'Готово', rejected:'Отклонена', overdue:'В работе'};
+  const dsBar = {pending_approval:'status-bar-new', approved:'status-bar-approved', progress:'status-bar-progress', review:'status-bar-review', returned:'status-bar-progress', done:'status-bar-done', rejected:'status-bar-overdue', overdue:'status-bar-progress'};
 
   function fmtR(s, d) {
     const e = new Date(s); e.setDate(e.getDate() + d - 1);
@@ -153,7 +173,7 @@ function buildGantt(containerId, currentUser, options) {
 
   let html = '';
   for (const sp of sprintConfigs) {
-    const st = sTasks.filter(t => t.sprint === sp.num);
+    const st = sTasks.filter(t => t.sprint === sp.num && t.status !== 'rejected');
     if (!st.length) continue;
     const persons = [...new Set(st.map(t => t.person))];
     const minBW = sp.days * MIN_PX;
@@ -161,8 +181,8 @@ function buildGantt(containerId, currentUser, options) {
     const addBtnHtml = (canEdit && sp.num === 2) ? '<button onclick="openTaskModal(-1)" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border:none;border-radius:6px;background:var(--primary);color:#fff;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer"><svg width="12" height="12" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Добавить задачу</button>' : '';
     html += '<div class="gantt-sprint-label" style="display:flex;align-items:center">' + sp.label + ' \u00b7 ' + fmtR(sp.start, sp.days) + ' \u00b7 ' + sp.days + ' дн.' + addBtnHtml + '</div>';
     html += '<div class="gantt-sprint-scroll">';
-    html += '<table class="gantt-table" style="min-width:' + (345 + minBW) + 'px">';
-    html += '<thead><tr><th class="col-task">Задача</th><th class="col-status">Статус</th><th class="col-hours">Ч.</th><th class="col-bars"><div class="gantt-timeline-header">' + makeH(sp.start, sp.days) + '</div></th></tr></thead><tbody>';
+    html += '<table class="gantt-table" style="min-width:' + (300 + minBW) + 'px">';
+    html += '<thead><tr><th class="col-task">Задача</th><th class="col-status"></th><th class="col-hours">Ч.</th><th class="col-bars"><div class="gantt-timeline-header">' + makeH(sp.start, sp.days) + '</div></th></tr></thead><tbody>';
     for (const person of persons) {
       const pt = st.filter(t => t.person === person);
       const isYou = person === currentUser;
@@ -178,19 +198,30 @@ function buildGantt(containerId, currentUser, options) {
         // All tasks clickable: own => editable modal, others => readonly modal
         const rowClick = isOwn
           ? ' onclick="openTaskModal(' + globalIdx + ')" style="cursor:pointer"'
-          : ' onclick="showTaskDetail(' + globalIdx + ')" style="cursor:pointer"';
+          : ' onclick="showTaskDetail(' + globalIdx + (mentorActions ? ',{mentorActions:true}' : '') + ')" style="cursor:pointer"';
 
         const iconSlot = isOwn
           ? '<svg class="edit-icon" width="12" height="12" fill="none" viewBox="0 0 16 16" style="flex-shrink:0;width:14px"><path d="M11.5 1.5l3 3-9 9H2.5v-3l9-9z" stroke="currentColor" stroke-width="1.3"/></svg>'
           : '<span style="display:inline-block;width:14px;flex-shrink:0"></span>';
 
-        html += '<tr class="gantt-task-row"' + rowClick + '>';
+        html += '<tr class="gantt-task-row" data-task-idx="' + globalIdx + '"' + rowClick + '>';
         html += '<td class="col-task"><div class="task-name">' + iconSlot;
         html += '<span class="task-name-text">' + task.name + '</span>';
         html += '</div></td>';
-        html += '<td class="col-status"><span class="status-pill ' + dsClass[ds] + '">' + dsMap[ds] + '</span></td>';
+        const overdueRing = task.wasOverdue ? ';outline:2px solid var(--danger);outline-offset:-1px' : '';
+        html += '<td class="col-status"><span class="status-dot ' + dsBar[ds] + '" style="display:inline-block;width:12px;height:12px;border-radius:3px' + overdueRing + '" title="' + dsMap[ds] + '"></span></td>';
         html += '<td class="col-hours hours-cell">' + task.hours + 'ч</td>';
-        html += '<td class="col-bars"><div class="gantt-bars-cell"><div class="gantt-bar ' + dsBar[ds] + '" style="left:' + left + '%;width:' + width + '%"></div></div></td>';
+        // Bar with history markers
+        var markersHtml = '';
+        if (task.history && task.history.length) {
+          var evColors = {review:'var(--purple)',returned:'var(--warning)',accepted:'var(--success)'};
+          var evTitles = {review:'Отправлено на ревью',returned:'Возвращено',accepted:'Принято'};
+          task.history.forEach(function(h) {
+            var mPct = (h.day / sp.days * 100).toFixed(1);
+            markersHtml += '<div style="position:absolute;left:' + mPct + '%;top:0;bottom:0;width:2px;background:' + (evColors[h.event]||'var(--text-muted)') + ';z-index:1;opacity:0.8" title="День ' + (h.day+1) + ': ' + (evTitles[h.event]||h.event) + '"></div>';
+          });
+        }
+        html += '<td class="col-bars"><div class="gantt-bars-cell"><div class="gantt-bar ' + dsBar[ds] + '" style="left:' + left + '%;width:' + width + '%"></div>' + markersHtml + '</div></td>';
         html += '</tr>';
       }
     }
@@ -200,10 +231,35 @@ function buildGantt(containerId, currentUser, options) {
   }
   container.innerHTML = html;
   initScrollbars(containerId);
+  initTodayLines(containerId);
+}
+
+function initTodayLines(containerId) {
+  document.querySelectorAll('#' + containerId + ' .gantt-sprint-block').forEach(block => {
+    const todayCell = block.querySelector('.gantt-timeline-day.today');
+    if (!todayCell) return;
+    const scroll = block.querySelector('.gantt-sprint-scroll');
+    if (!scroll) return;
+
+    const line = document.createElement('div');
+    line.className = 'gantt-today-line';
+    scroll.appendChild(line);
+
+    function position() {
+      const cellRect = todayCell.getBoundingClientRect();
+      const scrollRect = scroll.getBoundingClientRect();
+      line.style.left = (cellRect.left - scrollRect.left + scroll.scrollLeft + cellRect.width / 2) + 'px';
+    }
+    position();
+    scroll.addEventListener('scroll', position);
+    window.addEventListener('resize', position);
+  });
 }
 
 // ─── Readonly task detail popup ───
-function showTaskDetail(idx) {
+function showTaskDetail(idx, options) {
+  options = options || {};
+  const mentorActions = options.mentorActions || false;
   const t = sTasks[idx];
   if (!t) return;
   const sprintStart = t.sprint === 2 ? SPRINT2_START : new Date(2025,1,24);
@@ -212,9 +268,9 @@ function showTaskDetail(idx) {
   const mons = ['янв','фев','мар','апр','мая','июн'];
   const dateStr = sd.getDate() + ' ' + mons[sd.getMonth()] + ' — ' + ed.getDate() + ' ' + mons[ed.getMonth()];
   const ds = t.sprint === 2 ? calcTaskStatus(t) : t.status;
-  const dsLabels = {new:'Новая', progress:'В работе', review:'Ревью', done:'Готово', overdue:'Истекла'};
-  const dsBg = {new:'var(--surface-alt)', progress:'#e8eef6', review:'var(--purple-bg)', done:'var(--success-bg)', overdue:'var(--danger-bg)'};
-  const dsClr = {new:'var(--text-muted)', progress:'var(--accent)', review:'var(--purple)', done:'var(--success)', overdue:'var(--danger)'};
+  const dsLabels = {pending_approval:'Ожидает аппрува', approved:'Назначена', progress:'В работе', review:'На ревью', returned:'Возвращена', done:'Готово', rejected:'Отклонена', overdue:'В работе'};
+  const dsBg = {pending_approval:'var(--surface-alt)', approved:'var(--surface-alt)', progress:'#dbeafe', review:'var(--purple-bg)', returned:'var(--warning-bg)', done:'var(--success-bg)', rejected:'var(--danger-bg)', overdue:'#dbeafe'};
+  const dsClr = {pending_approval:'var(--text-muted)', approved:'var(--text-muted)', progress:'var(--accent)', review:'var(--purple)', returned:'var(--warning)', done:'var(--success)', rejected:'var(--danger)', overdue:'var(--accent)'};
   const member = teamMembers.find(m => m.name === t.person);
   const avatarColor = member ? member.color : 'var(--border)';
   const initials = member ? member.initials : '??';
@@ -236,6 +292,7 @@ function showTaskDetail(idx) {
   html += '<div style="flex:1"><div style="font-size:17px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:8px">' + t.name + '</div>';
   html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
   html += '<span style="display:inline-block;padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:' + dsBg[ds] + ';color:' + dsClr[ds] + '">' + dsLabels[ds] + '</span>';
+  if (t.wasOverdue) html += '<span style="display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;background:var(--danger-bg);color:var(--danger)">Просрочена</span>';
   html += '<span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary)">';
   html += '<span style="width:20px;height:20px;border-radius:50%;background:' + avatarColor + ';display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff">' + initials + '</span>';
   html += t.person + '</span>';
@@ -262,10 +319,142 @@ function showTaskDetail(idx) {
     html += '<div class="task-detail-block"><div class="task-detail-block-title">Merge Request</div>';
     html += '<div style="font-size:13px"><a href="#" style="color:var(--accent);text-decoration:none;font-weight:600">' + t.mr + '</a></div></div>';
   }
+  // Mentor comment (if returned/rejected)
+  if (t.mentor_comments && t.mentor_comments.length) {
+    html += '<div class="task-detail-block"><div class="task-detail-block-title">Комментарии ментора</div>';
+    t.mentor_comments.forEach(function(c) {
+      var color = c.action === 'Отклонение' || c.action === 'Возврат' ? 'var(--danger)' : c.action === 'Принятие' ? 'var(--success)' : 'var(--accent)';
+      html += '<div style="margin-bottom:8px;padding:8px 12px;background:var(--surface);border-radius:7px;border-left:3px solid ' + color + ';font-size:13px;color:var(--text-secondary);line-height:1.6">';
+      html += '<span style="font-size:11px;font-weight:700;color:' + color + ';text-transform:uppercase;letter-spacing:0.03em">' + c.action + '</span><br>';
+      html += c.text + '</div>';
+    });
+    html += '</div>';
+  }
+  // Mentor action buttons
+  if (mentorActions && (ds === 'pending_approval' || ds === 'review')) {
+    var approveLabel = ds === 'pending_approval' ? 'Аппрувить' : 'Принять';
+    var rejectLabel = ds === 'pending_approval' ? 'Отклонить' : 'Вернуть';
+    var approveAction = ds === 'pending_approval' ? 'approve' : 'accept';
+    var rejectAction = ds === 'pending_approval' ? 'reject' : 'return';
+    var rejectColor = ds === 'pending_approval' ? 'var(--danger)' : 'var(--warning)';
+
+    html += '<div style="padding-top:16px;border-top:1px solid var(--border-light)">';
+    // Two choice buttons
+    html += '<div id="mentor-action-buttons" style="display:flex;gap:10px;margin-bottom:0">';
+    html += '<button id="mentor-btn-approve" onclick="mentorSelectAction(\'' + approveAction + '\',' + idx + ')" style="flex:1;padding:10px;border:2px solid var(--success);border-radius:8px;background:var(--white);color:var(--success);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> ' + approveLabel + '</button>';
+    html += '<button id="mentor-btn-reject" data-reject-color="' + rejectColor + '" onclick="mentorSelectAction(\'' + rejectAction + '\',' + idx + ')" style="flex:1;padding:10px;border:2px solid ' + rejectColor + ';border-radius:8px;background:var(--white);color:' + rejectColor + ';font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> ' + rejectLabel + '</button>';
+    html += '</div>';
+    // Comment area (hidden until action selected)
+    html += '<div id="mentor-comment-area" style="display:none;margin-top:12px">';
+    html += '<div id="mentor-comment-label" style="font-size:12px;font-weight:600;margin-bottom:6px"></div>';
+    html += '<textarea id="mentor-comment-input" style="width:100%;min-height:70px;padding:10px 12px;border:2px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none;transition:border-color 0.15s" placeholder=""></textarea>';
+    html += '<button id="mentor-confirm-btn" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"></button>';
+    html += '</div>';
+    html += '</div>';
+  }
   html += '</div>';
 
   document.getElementById('task-detail-content').innerHTML = html;
   overlay.classList.add('open');
+}
+
+// ─── Mentor task actions ───
+var _mentorAction = null;
+var _mentorTaskIdx = -1;
+
+function mentorSelectAction(action, idx) {
+  _mentorAction = action;
+  _mentorTaskIdx = idx;
+
+  var approveBtn = document.getElementById('mentor-btn-approve');
+  var rejectBtn = document.getElementById('mentor-btn-reject');
+  var commentArea = document.getElementById('mentor-comment-area');
+  var commentLabel = document.getElementById('mentor-comment-label');
+  var commentInput = document.getElementById('mentor-comment-input');
+  var confirmBtn = document.getElementById('mentor-confirm-btn');
+
+  // Reset both buttons to outline
+  approveBtn.style.background = 'var(--white)';
+  rejectBtn.style.background = 'var(--white)';
+
+  commentArea.style.display = 'block';
+
+  // Reset both buttons to outline state
+  approveBtn.style.background = 'var(--white)';
+  approveBtn.style.color = 'var(--success)';
+  rejectBtn.style.background = 'var(--white)';
+  rejectBtn.style.color = rejectBtn.dataset.rejectColor || 'var(--danger)';
+
+  if (action === 'approve') {
+    approveBtn.style.background = 'var(--success)';
+    approveBtn.style.color = '#fff';
+    commentLabel.style.color = 'var(--success)';
+    commentLabel.textContent = 'Комментарий (необязательно):';
+    commentInput.placeholder = 'Пожелания, рекомендации к выполнению...';
+    commentInput.style.borderColor = 'var(--success)';
+    confirmBtn.style.background = 'var(--success)';
+    confirmBtn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Подтвердить аппрув';
+  } else if (action === 'reject') {
+    rejectBtn.style.background = 'var(--danger)';
+    rejectBtn.style.color = '#fff';
+    commentLabel.style.color = 'var(--danger)';
+    commentLabel.textContent = 'Причина отклонения *:';
+    commentInput.placeholder = 'Опишите почему задача отклонена...';
+    commentInput.style.borderColor = 'var(--danger)';
+    confirmBtn.style.background = 'var(--danger)';
+    confirmBtn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Подтвердить отклонение';
+  } else if (action === 'accept') {
+    approveBtn.style.background = 'var(--success)';
+    approveBtn.style.color = '#fff';
+    commentLabel.style.color = 'var(--success)';
+    commentLabel.textContent = 'Комментарий (что сделано хорошо, замечания):';
+    commentInput.placeholder = 'Задача выполнена качественно...';
+    commentInput.style.borderColor = 'var(--success)';
+    confirmBtn.style.background = 'var(--success)';
+    confirmBtn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M3 8l4 4 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Подтвердить принятие';
+  } else if (action === 'return') {
+    rejectBtn.style.background = 'var(--warning)';
+    rejectBtn.style.color = '#fff';
+    commentLabel.style.color = 'var(--warning)';
+    commentLabel.textContent = 'Что нужно доработать *:';
+    commentInput.placeholder = 'Опишите замечания к работе...';
+    commentInput.style.borderColor = 'var(--warning)';
+    confirmBtn.style.background = 'var(--warning)';
+    confirmBtn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M4 8h8M8 4l-4 4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Подтвердить возврат';
+  }
+
+  confirmBtn.onclick = mentorConfirmAction;
+  commentInput.value = '';
+  commentInput.focus();
+}
+
+function mentorConfirmAction() {
+  var comment = document.getElementById('mentor-comment-input').value.trim();
+  var t = sTasks[_mentorTaskIdx];
+
+  if (!t.mentor_comments) t.mentor_comments = [];
+  var actionLabels = {approve:'Аппрув', reject:'Отклонение', accept:'Принятие', return:'Возврат'};
+
+  if (_mentorAction === 'approve') {
+    t.status = 'approved';
+    if (comment) t.mentor_comments.push({action:actionLabels[_mentorAction], text:comment});
+  } else if (_mentorAction === 'reject') {
+    if (!comment) { alert('Укажите причину отклонения'); return; }
+    t.status = 'rejected';
+    t.mentor_comments.push({action:actionLabels[_mentorAction], text:comment});
+  } else if (_mentorAction === 'accept') {
+    t.status = 'done';
+    if (comment) t.mentor_comments.push({action:actionLabels[_mentorAction], text:comment});
+  } else if (_mentorAction === 'return') {
+    if (!comment) { alert('Укажите что нужно доработать'); return; }
+    t.status = 'returned';
+    t.mentor_comments.push({action:actionLabels[_mentorAction], text:comment});
+  }
+
+  document.getElementById('task-detail-overlay').classList.remove('open');
+  _mentorAction = null;
+  _mentorTaskIdx = -1;
+  if (typeof initTeamView === 'function') initTeamView();
 }
 
 function initScrollbars(containerId) {
@@ -312,9 +501,9 @@ function renderEvidence(currentUser) {
   const el = document.getElementById('evidence-list');
   if (!el) return;
   const myTasks = sTasks.filter(t => t.sprint === 2 && t.person === currentUser);
-  const statusLabels = {new:'Новая', progress:'В работе', review:'Ревью', done:'Готово', overdue:'Истекла'};
-  const statusBg = {new:'var(--surface-alt)', progress:'#e8eef6', review:'var(--purple-bg)', done:'var(--success-bg)', overdue:'var(--danger-bg)'};
-  const statusColor = {new:'var(--text-muted)', progress:'var(--accent)', review:'var(--purple)', done:'var(--success)', overdue:'var(--danger)'};
+  const statusLabels = {pending_approval:'Ожидает аппрува', approved:'Назначена', progress:'В работе', review:'На ревью', returned:'Возвращена', done:'Готово', rejected:'Отклонена', overdue:'В работе'};
+  const statusBg = {pending_approval:'var(--surface-alt)', approved:'var(--surface-alt)', progress:'#dbeafe', review:'var(--purple-bg)', returned:'var(--warning-bg)', done:'var(--success-bg)', rejected:'var(--danger-bg)', overdue:'#dbeafe'};
+  const statusColor = {pending_approval:'var(--text-muted)', approved:'var(--text-muted)', progress:'var(--accent)', review:'var(--purple)', returned:'var(--warning)', done:'var(--success)', rejected:'var(--danger)', overdue:'var(--accent)'};
   let html = '';
   myTasks.forEach(t => {
     const ds = calcTaskStatus(t);
@@ -482,9 +671,9 @@ const memberReports = {
 function renderMemberTasks(person, sprintNum, editable) {
   const tasks = sTasks.filter(t => t.person === person && t.sprint === sprintNum);
   if (!tasks.length) return '<div style="font-size:12px;color:var(--text-muted);padding:6px 0">Нет задач в этом спринте</div>';
-  const dsMap = {new:'Новая', progress:'В работе', review:'Ревью', done:'Готово', overdue:'Истекла'};
-  const dsBg = {new:'var(--surface-alt)', progress:'#e8eef6', review:'var(--purple-bg)', done:'var(--success-bg)', overdue:'var(--danger-bg)'};
-  const dsColor = {new:'var(--text-muted)', progress:'var(--accent)', review:'var(--purple)', done:'var(--success)', overdue:'var(--danger)'};
+  const dsMap = {pending_approval:'Ожидает аппрува', approved:'Назначена', progress:'В работе', review:'На ревью', returned:'Возвращена', done:'Готово', rejected:'Отклонена', overdue:'В работе'};
+  const dsBg = {pending_approval:'var(--surface-alt)', approved:'var(--surface-alt)', progress:'#dbeafe', review:'var(--purple-bg)', returned:'var(--warning-bg)', done:'var(--success-bg)', rejected:'var(--danger-bg)', overdue:'#dbeafe'};
+  const dsColor = {pending_approval:'var(--text-muted)', approved:'var(--text-muted)', progress:'var(--accent)', review:'var(--purple)', returned:'var(--warning)', done:'var(--success)', rejected:'var(--danger)', overdue:'var(--accent)'};
 
   let html = '';
   tasks.forEach(t => {
@@ -494,7 +683,8 @@ function renderMemberTasks(person, sprintNum, editable) {
     const clickFn = editable ? 'openTaskModal(' + globalIdx + ')' : 'showTaskDetail(' + globalIdx + ')';
 
     html += '<div onclick="' + clickFn + '" style="border:1px solid var(--border-light);border-radius:6px;margin-bottom:4px;display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:12px;transition:background 0.1s" onmouseover="this.style.background=\'var(--surface)\'" onmouseout="this.style.background=\'\'">';
-    html += '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:' + dsBg[ds] + ';color:' + dsColor[ds] + ';white-space:nowrap;flex-shrink:0">' + dsMap[ds] + '</span>';
+    const rptOverdueRing = t.wasOverdue ? ';outline:1px solid var(--danger);outline-offset:0px' : '';
+    html += '<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:' + dsBg[ds] + ';color:' + dsColor[ds] + ';white-space:nowrap;flex-shrink:0' + rptOverdueRing + '">' + dsMap[ds] + '</span>';
     html += '<span style="font-weight:500;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + t.name + '</span>';
     html += mrHtml;
     html += '<span style="color:var(--text-muted);font-size:11px;flex-shrink:0">' + t.hours + 'ч</span>';
