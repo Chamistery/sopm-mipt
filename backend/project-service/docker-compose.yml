@@ -31,8 +31,13 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: sopm
       DB_SSLMODE: disable
+      STORAGE_DIR: /app/storage
+      MAX_APPLICATION_CHOICES: "5"
+      MAX_UPLOAD_BYTES: "10485760"
     expose:
       - "8080"
+    volumes:
+      - project_storage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,3 +56,4 @@ services:
 
 volumes:
   postgres_data:
+  project_storage:
