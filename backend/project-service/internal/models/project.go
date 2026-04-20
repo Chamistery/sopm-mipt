@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql/driver"
-	"encoding/json"
 	"time"
 )
 
@@ -12,58 +11,83 @@ const (
 	ProjectStatusDraft     ProjectStatus = "Черновик"
 	ProjectStatusPublished ProjectStatus = "Опубликован"
 	ProjectStatusActive    ProjectStatus = "Активный"
-	ProjectStatusCompleted ProjectStatus = "Завершен"
+	ProjectStatusCompleted ProjectStatus = "Завершён"
 	ProjectStatusArchived  ProjectStatus = "Архивный"
 )
 
-type FieldValue struct {
-	FieldID string `json:"fieldId"`
-	Value   string `json:"value"`
+type StringList []string
+
+func (s StringList) Value() (driver.Value, error) {
+	return marshalJSONValue(s)
 }
 
-type FieldValues []FieldValue
-
-func (fv FieldValues) Value() (driver.Value, error) {
-	return json.Marshal(fv)
+func (s *StringList) Scan(value interface{}) error {
+	*s = StringList{}
+	return scanJSONValue(value, s)
 }
 
-func (fv *FieldValues) Scan(value interface{}) error {
-	if value == nil {
-		*fv = FieldValues{}
-		return nil
-	}
-
-	bytes, ok := value.([]byte)
-	if !ok {
-		return nil
-	}
-
-	return json.Unmarshal(bytes, fv)
-}
+type IntList []int
 
 type Project struct {
-	ID          int           `json:"id"`
-	Title       string        `json:"title"`
-	TemplateID  string        `json:"templateId"`
-	FieldValues FieldValues   `json:"fieldValues"`
-	Status      ProjectStatus `json:"status"`
-	MentorID    int           `json:"mentorId"`
-	CreatorID   int           `json:"creatorId"`
-	MaxSlots    int           `json:"maxSlots"`
-	Company     string        `json:"company"`
-	Course      string        `json:"course"`
-	CreatedAt   time.Time     `json:"createdAt"`
-	UpdatedAt   time.Time     `json:"updatedAt"`
+	ID                 int           `json:"id"`
+	Title              string        `json:"title"`
+	Status             ProjectStatus `json:"status"`
+	MentorID           int           `json:"mentorId"`
+	Company            string        `json:"company"`
+	Courses            []int         `json:"courses"`
+	Description        string        `json:"description"`
+	FullDescription    string        `json:"fullDescription"`
+	Technologies       StringList    `json:"technologies"`
+	TeamSizeMin        int           `json:"teamSizeMin"`
+	TeamSizeMax        int           `json:"teamSizeMax"`
+	NumTeams           int           `json:"numTeams"`
+	MinGPA             float64       `json:"minGpa"`
+	EduResult          string        `json:"eduResult"`
+	AcceptanceCriteria string        `json:"acceptanceCriteria"`
+	Goal               string        `json:"goal"`
+	ExpectedResult     string        `json:"expectedResult"`
+	Competencies       string        `json:"competencies"`
+	Resources          string        `json:"resources"`
+	DurationSemesters  int           `json:"durationSemesters"`
+	SubmittedAt        *time.Time    `json:"submittedAt,omitempty"`
+	CreatedAt          time.Time     `json:"createdAt"`
+	UpdatedAt          time.Time     `json:"updatedAt"`
+}
+
+func (l IntList) Value() (driver.Value, error) {
+	return marshalJSONValue(l)
+}
+
+func (l *IntList) Scan(value interface{}) error {
+	*l = IntList{}
+	return scanJSONValue(value, l)
 }
 
 type ProjectListItem struct {
-	ID          int           `json:"id"`
-	Title       string        `json:"title"`
-	Status      ProjectStatus `json:"status"`
-	MentorID    int           `json:"mentorId"`
-	Company     string        `json:"company"`
-	Course      string        `json:"course"`
-	MaxSlots    int           `json:"maxSlots"`
-	FilledSlots int           `json:"filledSlots"`
-	CreatedAt   time.Time     `json:"createdAt"`
+	ID             int           `json:"id"`
+	Title          string        `json:"title"`
+	Status         ProjectStatus `json:"status"`
+	MentorID       int           `json:"mentorId"`
+	Company        string        `json:"company"`
+	Courses        []int         `json:"courses"`
+	TeamSizeMin    int           `json:"teamSizeMin"`
+	TeamSizeMax    int           `json:"teamSizeMax"`
+	NumTeams       int           `json:"numTeams"`
+	FilledTeams    int           `json:"filledTeams"`
+	AcceptedCount  int           `json:"acceptedCount"`
+	SubmittedAt    *time.Time    `json:"submittedAt,omitempty"`
+	CreatedAt      time.Time     `json:"createdAt"`
+	UpdatedAt      time.Time     `json:"updatedAt"`
+	Description    string        `json:"description"`
+	Technologies   StringList    `json:"technologies"`
+	MinGPA         float64       `json:"minGpa"`
+	CurrentSprint  *Sprint       `json:"currentSprint,omitempty"`
+	Mentor         *UserSummary  `json:"mentor,omitempty"`
+	AvailableSlots int           `json:"availableSlots"`
+}
+
+type ProjectFull struct {
+	Project Project  `json:"project"`
+	Sprints []Sprint `json:"sprints"`
+	Teams   []Team   `json:"teams"`
 }
