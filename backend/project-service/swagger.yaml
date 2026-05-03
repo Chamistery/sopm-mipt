@@ -1,12 +1,18 @@
 openapi: 3.0.3
 info:
   title: SOPM Project Service API
-  version: 2.0.0
-  description: API для полного цикла проектной работы: проекты, команды, спринты, задачи, отчёты, встречи, профили, файлы, уведомления и распределение.
+  version: 2.1.0
+  description: |
+    API для системы управления проектным практикумом ВШПИ МФТИ.
+    Покрывает полный цикл: проекты, команды, спринты, задачи, отчёты, встречи, профили, файлы, уведомления и распределение.
+
+    **Авторизация (dev-режим):** передавайте `X-User-Id` и `X-User-Role` в заголовках.
+
+    **Формат ответа:** все успешные ответы обёрнуты в `{"data": ...}`, ошибки в `{"error": "..."}`.
 
 servers:
   - url: http://localhost:8080
-    description: Local development server
+    description: Docker Compose (default)
 
 tags:
   - name: Health
@@ -38,11 +44,11 @@ paths:
   /api/projects:
     get:
       tags: [Projects]
-      summary: Получить список проектов
+      summary: Список проектов (с фильтрацией и пагинацией)
       parameters:
         - in: query
           name: limit
-          schema: { type: integer, default: 20 }
+          schema: { type: integer, default: 20, maximum: 200 }
         - in: query
           name: offset
           schema: { type: integer, default: 0 }
@@ -52,93 +58,134 @@ paths:
         - in: query
           name: course
           schema: { type: string }
+          description: Фильтр по курсу (число)
         - in: query
           name: status
           schema: { $ref: '#/components/schemas/ProjectStatus' }
       responses:
         '200':
-          description: Project list
+          description: Paginated project list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Envelope'
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      projects:
+                        type: array
+                        items: { $ref: '#/components/schemas/ProjectListItem' }
+                      total: { type: integer }
+                      limit: { type: integer }
+                      offset: { type: integer }
     post:
       tags: [Projects]
       summary: Создать проект
+      description: "Роли: mentor, coordinator, admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Project'
+            schema: { $ref: '#/components/schemas/ProjectInput' }
       responses:
         '201':
           description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Project' }
 
   /api/projects/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Projects]
-      summary: Получить проект
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Детали проекта
       responses:
-        '200': { description: Project found }
+        '200':
+          description: Project found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Project' }
     put:
       tags: [Projects]
       summary: Обновить проект
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      description: "Роли: mentor, coordinator, admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Project'
+            schema: { $ref: '#/components/schemas/ProjectInput' }
       responses:
-        '200': { description: Updated }
+        '200':
+          description: Updated
     delete:
       tags: [Projects]
       summary: Удалить проект
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      description: "Роли: coordinator, admin"
       responses:
         '204': { description: Deleted }
 
   /api/projects/{id}/full:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Projects]
-      summary: Проект со спринтами и командами
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Проект + спринты + команды
       responses:
         '200':
           description: Expanded project
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ProjectFull' }
 
   /api/projects/{id}/applicants:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Projects]
-      summary: Все заявки на проект с группировкой по требованиям и приоритетам
-      parameters:
-        - $ref: '#/components/parameters/ProjectId'
+      summary: Все заявки с группировкой по приоритетам и требованиям
+      description: "Роли: mentor, coordinator, admin"
       responses:
         '200':
-          description: Project applicants
+          description: Applicants grouped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/ApplicantsResponse' }
 
   /api/applications:
     post:
       tags: [Applications]
-      summary: Создать заявку
+      summary: Подать заявку на проект
+      description: "Роли: student. Priority 1-5, все 5 обязательны."
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Application'
+              type: object
+              required: [projectId, studentId, priority]
+              properties:
+                projectId: { type: integer }
+                studentId: { type: integer }
+                priority: { type: integer, minimum: 1, maximum: 5 }
       responses:
         '201': { description: Created }
     get:
       tags: [Applications]
-      summary: Получить заявки студента
+      summary: Заявки студента
       parameters:
         - in: query
           name: studentId
@@ -150,7 +197,7 @@ paths:
   /api/applications/project:
     get:
       tags: [Applications]
-      summary: Получить заявки на проект
+      summary: Заявки на проект
       parameters:
         - in: query
           name: projectId
@@ -160,27 +207,26 @@ paths:
         '200': { description: Project applications }
 
   /api/applications/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Applications]
-      summary: Получить заявку
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      summary: Детали заявки
       responses:
         '200': { description: Application found }
     delete:
       tags: [Applications]
       summary: Удалить заявку
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
       responses:
         '204': { description: Deleted }
 
   /api/applications/{id}/recommend:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Applications]
       summary: Рекомендовать в команду
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      description: "Роли: mentor. Переход: Ожидает/Не рекомендован/Не подходит → Рекомендован"
       requestBody:
         required: true
         content:
@@ -194,47 +240,52 @@ paths:
         '200': { description: Updated }
 
   /api/applications/{id}/unrecommend:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Applications]
       summary: Убрать из команды
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      description: "Роли: mentor. Переход: Рекомендован → Не рекомендован"
       responses:
         '200': { description: Updated }
 
   /api/applications/{id}/invite:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Applications]
-      summary: Пригласить студента
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      summary: Пригласить студента (ментор нажал ✓)
+      description: "Роли: mentor. Переход: Рекомендован → Принято ментором"
       responses:
         '200': { description: Updated }
 
   /api/applications/{id}/accept:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Applications]
-      summary: Принять приглашение
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      summary: Студент принимает приглашение
+      description: "Роли: student. Переход: Принято ментором → Принят. Каскадное отклонение остальных приглашений."
       responses:
         '200': { description: Updated }
 
   /api/applications/{id}/decline:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Applications]
-      summary: Отклонить приглашение
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      summary: Студент отклоняет приглашение (окончательно)
+      description: "Роли: student. Переход: Принято ментором → Студент отклонил"
       responses:
         '200': { description: Updated }
 
   /api/applications/{id}/exclude:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Applications]
-      summary: Исключить из проекта
-      parameters:
-        - $ref: '#/components/parameters/ApplicationId'
+      summary: Исключить студента из проекта
+      description: "Роли: coordinator, admin. Переход: Принят → Исключён. Также удаляет из team_members."
       responses:
         '200': { description: Updated }
 
@@ -242,17 +293,23 @@ paths:
     post:
       tags: [Teams]
       summary: Создать команду
+      description: "Роли: coordinator, admin"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Team'
+              type: object
+              required: [projectId, name]
+              properties:
+                projectId: { type: integer }
+                name: { type: string }
+                leaderId: { type: integer }
       responses:
         '201': { description: Created }
     get:
       tags: [Teams]
-      summary: Список команд проекта
+      summary: Команды проекта
       parameters:
         - in: query
           name: projectId
@@ -262,99 +319,128 @@ paths:
         '200': { description: Teams list }
 
   /api/teams/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Teams]
-      summary: Детали команды
-      parameters:
-        - $ref: '#/components/parameters/TeamId'
+      summary: Детали команды (с участниками и текущим спринтом)
       responses:
-        '200': { description: Team found }
+        '200':
+          description: Team with members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Team' }
     put:
       tags: [Teams]
-      summary: Обновить команду
-      parameters:
-        - $ref: '#/components/parameters/TeamId'
+      summary: Обновить команду (сменить лидера)
+      description: "Роли: coordinator, admin"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Team'
+              type: object
+              properties:
+                name: { type: string }
+                leaderId: { type: integer }
       responses:
         '200': { description: Updated }
     delete:
       tags: [Teams]
       summary: Удалить команду
-      parameters:
-        - $ref: '#/components/parameters/TeamId'
+      description: "Роли: coordinator, admin"
       responses:
         '204': { description: Deleted }
 
   /api/teams/{id}/members:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     post:
       tags: [Teams]
       summary: Добавить участника
-      parameters:
-        - $ref: '#/components/parameters/TeamId'
+      description: "Роли: coordinator, mentor, admin"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamMember'
+              type: object
+              required: [userId]
+              properties:
+                userId: { type: integer }
+                roleInTeam: { type: string }
       responses:
-        '201': { description: Created }
+        '201': { description: Added }
 
   /api/teams/{teamId}/members/{userId}:
+    parameters:
+      - in: path
+        name: teamId
+        required: true
+        schema: { type: integer }
+      - in: path
+        name: userId
+        required: true
+        schema: { type: integer }
     delete:
       tags: [Teams]
-      summary: Удалить участника
-      parameters:
-        - $ref: '#/components/parameters/TeamIdPath'
-        - $ref: '#/components/parameters/UserIdPath'
+      summary: Удалить участника из команды
+      description: "Роли: coordinator, mentor, admin"
       responses:
-        '204': { description: Deleted }
+        '204': { description: Removed }
 
   /api/teams/{id}/gantt:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
-      tags: [Tasks]
-      summary: Получить данные для диаграммы Ганта
+      tags: [Teams]
+      summary: Данные для диаграммы Ганта
       parameters:
-        - $ref: '#/components/parameters/TeamId'
         - in: query
           name: sprintId
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Gantt data }
+        '200':
+          description: Gantt data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/GanttResponse' }
 
   /api/sprints:
     post:
       tags: [Sprints]
       summary: Создать спринт
+      description: "Роли: mentor, admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Sprint'
+            schema: { $ref: '#/components/schemas/SprintInput' }
       responses:
         '201': { description: Created }
     get:
       tags: [Sprints]
-      summary: Список спринтов проекта
+      summary: Спринты проекта
       parameters:
         - in: query
           name: projectId
           required: true
           schema: { type: integer }
       responses:
-        '200': { description: Sprint list }
+        '200': { description: Sprints list }
 
   /api/sprints/batch:
     post:
       tags: [Sprints]
       summary: Batch-создание спринтов
+      description: "Роли: mentor, admin"
       requestBody:
         required: true
         content:
@@ -366,48 +452,47 @@ paths:
                 projectId: { type: integer }
                 sprints:
                   type: array
-                  items:
-                    $ref: '#/components/schemas/Sprint'
+                  items: { $ref: '#/components/schemas/SprintInput' }
       responses:
         '201': { description: Created }
 
   /api/sprints/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Sprints]
-      summary: Получить спринт
-      parameters:
-        - $ref: '#/components/parameters/SprintId'
+      summary: Детали спринта
       responses:
         '200': { description: Sprint found }
     put:
       tags: [Sprints]
       summary: Обновить спринт
-      parameters:
-        - $ref: '#/components/parameters/SprintId'
+      description: "Роли: mentor, admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Sprint'
+            schema: { $ref: '#/components/schemas/SprintInput' }
       responses:
         '200': { description: Updated }
 
   /api/tasks:
     post:
       tags: [Tasks]
-      summary: Создать задачу
+      summary: Создать задачу (статус → Ожидает аппрува)
+      description: |
+        Студент создаёт задачу только себе. Тимлид — любому в своей команде.
+        Даты должны быть в пределах спринта.
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Task'
+            schema: { $ref: '#/components/schemas/TaskInput' }
       responses:
         '201': { description: Created }
     get:
       tags: [Tasks]
-      summary: Получить задачи
+      summary: Список задач (фильтры)
       parameters:
         - in: query
           name: sprintId
@@ -419,117 +504,152 @@ paths:
           name: assigneeId
           schema: { type: integer }
       responses:
-        '200': { description: Task list }
+        '200':
+          description: Tasks list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      tasks:
+                        type: array
+                        items: { $ref: '#/components/schemas/Task' }
 
   /api/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Tasks]
-      summary: Получить задачу
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
+      summary: Детали задачи
       responses:
-        '200': { description: Task found }
+        '200':
+          description: Task found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Task' }
     put:
       tags: [Tasks]
       summary: Обновить задачу
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
+      description: |
+        Ограничения по статусу:
+        - Ожидает аппрува: name, description, hoursEstimate
+        - Назначена: name, description, hoursEstimate (даты — только ментор)
+        - В работе: workDescription, mrLink (даты — только ментор)
+        - Возвращена: workDescription, mrLink
+        - На ревью / Готово / Отклонена: нередактируема
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Task'
+            schema: { $ref: '#/components/schemas/TaskInput' }
       responses:
         '200': { description: Updated }
     delete:
       tags: [Tasks]
-      summary: Отменить задачу
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
+      summary: Отменить задачу (soft-delete, только до аппрува)
+      description: "Только автор задачи может отменить, пока статус = Ожидает аппрува"
       responses:
         '204': { description: Deleted }
 
   /api/tasks/{id}/approve:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Tasks]
-      summary: Аппрув задачи
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
+      summary: Аппрувить задачу (→ Назначена)
+      description: "Роли: mentor. Комментарий опционален."
       requestBody:
-        required: false
         content:
           application/json:
             schema: { $ref: '#/components/schemas/CommentPayload' }
       responses:
-        '200': { description: Updated }
+        '200': { description: Approved }
 
   /api/tasks/{id}/reject:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Tasks]
-      summary: Отклонить задачу
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CommentPayload' }
-      responses:
-        '200': { description: Updated }
-
-  /api/tasks/{id}/submit-review:
-    put:
-      tags: [Tasks]
-      summary: Отправить задачу на ревью
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-      responses:
-        '200': { description: Updated }
-
-  /api/tasks/{id}/accept:
-    put:
-      tags: [Tasks]
-      summary: Принять задачу
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CommentPayload' }
-      responses:
-        '200': { description: Updated }
-
-  /api/tasks/{id}/return:
-    put:
-      tags: [Tasks]
-      summary: Вернуть задачу
-      parameters:
-        - $ref: '#/components/parameters/TaskId'
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CommentPayload' }
-      responses:
-        '200': { description: Updated }
-
-  /api/team-reports:
-    post:
-      tags: [TeamReports]
-      summary: Создать отчёт
+      summary: Отклонить задачу (→ Отклонена)
+      description: "Роли: mentor. **Комментарий обязателен.**"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamReport'
+              type: object
+              required: [comment]
+              properties:
+                comment: { type: string, minLength: 1 }
+      responses:
+        '200': { description: Rejected }
+        '400': { description: Comment is required }
+
+  /api/tasks/{id}/submit-review:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    put:
+      tags: [Tasks]
+      summary: Отправить на ревью (→ На ревью)
+      description: "Только assignee. Допустимые исходные статусы: В работе, Возвращена."
+      responses:
+        '200': { description: Submitted }
+
+  /api/tasks/{id}/accept:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    put:
+      tags: [Tasks]
+      summary: Принять задачу с ревью (→ Готово)
+      description: "Роли: mentor. Комментарий опционален."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentPayload' }
+      responses:
+        '200': { description: Accepted }
+
+  /api/tasks/{id}/return:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+    put:
+      tags: [Tasks]
+      summary: Вернуть задачу на доработку (→ Возвращена)
+      description: "Роли: mentor. **Комментарий обязателен.**"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [comment]
+              properties:
+                comment: { type: string, minLength: 1 }
+      responses:
+        '200': { description: Returned }
+        '400': { description: Comment is required }
+
+  /api/team-reports:
+    post:
+      tags: [TeamReports]
+      summary: Создать командный отчёт
+      description: "Роли: teamlead, admin"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeamReportInput' }
       responses:
         '201': { description: Created }
     get:
       tags: [TeamReports]
-      summary: Получить отчёты команды
+      summary: Отчёты команды
       parameters:
         - in: query
           name: teamId
@@ -538,53 +658,58 @@ paths:
         - in: query
           name: sprintId
           schema: { type: integer }
+          description: Если указан — вернёт один отчёт за конкретный спринт
       responses:
-        '200': { description: Reports list }
+        '200': { description: Reports }
 
   /api/team-reports/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [TeamReports]
-      summary: Обновить отчёт
-      parameters:
-        - $ref: '#/components/parameters/ReportId'
+      summary: Обновить отчёт (черновик/отправить)
+      description: "Роли: teamlead, admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/TeamReport'
+            schema: { $ref: '#/components/schemas/TeamReportInput' }
       responses:
         '200': { description: Updated }
 
   /api/team-reports/{id}/review:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [TeamReports]
-      summary: Проверить отчёт
-      parameters:
-        - $ref: '#/components/parameters/ReportId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/ReviewPayload' }
-      responses:
-        '200': { description: Updated }
-
-  /api/sprint-scores:
-    post:
-      tags: [SprintScores]
-      summary: Поставить оценку
+      summary: Проверить отчёт (ментор)
+      description: "Роли: mentor, admin. Ставит status=Проверен и mentorComment."
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SprintScore'
+              type: object
+              properties:
+                mentorComment: { type: string }
+      responses:
+        '200': { description: Reviewed }
+
+  /api/sprint-scores:
+    post:
+      tags: [SprintScores]
+      summary: Поставить оценку студенту за спринт
+      description: "Роли: mentor, admin. Оценка 0-10."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SprintScoreInput' }
       responses:
         '201': { description: Created }
     get:
       tags: [SprintScores]
-      summary: Получить оценки
+      summary: Оценки (по спринту+команде или по студенту)
       parameters:
         - in: query
           name: sprintId
@@ -599,17 +724,21 @@ paths:
         '200': { description: Scores list }
 
   /api/sprint-scores/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [SprintScores]
       summary: Изменить оценку
-      parameters:
-        - $ref: '#/components/parameters/ScoreId'
+      description: "Роли: mentor, admin"
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SprintScore'
+              type: object
+              properties:
+                score: { type: integer, minimum: 0, maximum: 10 }
+                comment: { type: string }
       responses:
         '200': { description: Updated }
 
@@ -617,17 +746,20 @@ paths:
     post:
       tags: [Meetings]
       summary: Создать встречу
+      description: |
+        Роли: mentor, teamlead, admin.
+        Если создаёт ментор — автоматически подтверждена.
+        Если создаёт тимлид — статус "Ожидает подтверждения".
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Meeting'
+            schema: { $ref: '#/components/schemas/MeetingInput' }
       responses:
         '201': { description: Created }
     get:
       tags: [Meetings]
-      summary: Список встреч команды
+      summary: Встречи команды
       parameters:
         - in: query
           name: teamId
@@ -636,28 +768,30 @@ paths:
         - in: query
           name: upcoming
           schema: { type: boolean }
+          description: "true — только предстоящие (meeting_date >= today)"
       responses:
         '200': { description: Meetings list }
 
   /api/meetings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     put:
       tags: [Meetings]
-      summary: Обновить встречу
-      parameters:
-        - $ref: '#/components/parameters/MeetingId'
+      summary: Обновить встречу (подтвердить/отклонить/добавить итоги)
+      description: |
+        Ментор может выставить mentorConfirmed=true/false.
+        Тимлид может обновить описание, итоги.
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/Meeting'
+            schema: { $ref: '#/components/schemas/MeetingInput' }
       responses:
         '200': { description: Updated }
     delete:
       tags: [Meetings]
       summary: Удалить встречу
-      parameters:
-        - $ref: '#/components/parameters/MeetingId'
+      description: "Только автор или admin"
       responses:
         '204': { description: Deleted }
 
@@ -665,66 +799,73 @@ paths:
     post:
       tags: [Users]
       summary: Создать пользователя
+      description: "Роли: coordinator, mentor, admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/User'
+            schema: { $ref: '#/components/schemas/UserInput' }
       responses:
         '201': { description: Created }
     get:
       tags: [Users]
-      summary: Получить список пользователей
+      summary: Список всех пользователей
       responses:
         '200': { description: Users list }
 
   /api/users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Users]
-      summary: Получить пользователя
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Детали пользователя
       responses:
         '200': { description: User found }
 
   /api/users/{id}/team:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Users]
-      summary: Получить текущую команду пользователя
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Команда пользователя (текущий проект)
       responses:
         '200': { description: Team found }
+        '404': { description: User not in any team }
 
   /api/users/{id}/profile:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Users]
-      summary: Получить расширенный профиль
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Расширенный профиль
       responses:
-        '200': { description: Profile found }
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserProfile' }
     put:
       tags: [Users]
-      summary: Обновить расширенный профиль
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Обновить профиль
+      description: "Только свой или admin"
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/UserProfile'
+            schema: { $ref: '#/components/schemas/UserProfile' }
       responses:
         '200': { description: Updated }
 
   /api/users/{id}/files:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     post:
       tags: [Users]
-      summary: Загрузить файл пользователя
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Загрузить файл (только pdf/docx, max 10MB)
+      description: "Только свой или admin"
       requestBody:
         required: true
         content:
@@ -737,203 +878,132 @@ paths:
                   type: string
                   format: binary
       responses:
-        '201': { description: Uploaded }
+        '201':
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserFile' }
     get:
       tags: [Users]
-      summary: Получить файлы пользователя
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Список файлов пользователя
       responses:
         '200': { description: Files list }
 
   /api/users/{id}/files/{fileId}:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
+      - in: path
+        name: fileId
+        required: true
+        schema: { type: integer }
     delete:
       tags: [Users]
-      summary: Удалить файл пользователя
-      parameters:
-        - $ref: '#/components/parameters/UserId'
-        - $ref: '#/components/parameters/FileId'
+      summary: Удалить файл
+      description: "Только свой или admin"
       responses:
         '204': { description: Deleted }
 
   /api/users/{id}/notifications:
+    parameters:
+      - $ref: '#/components/parameters/PathId'
     get:
       tags: [Users]
-      summary: Получить уведомления пользователя
-      parameters:
-        - $ref: '#/components/parameters/UserId'
+      summary: Уведомления пользователя
+      description: |
+        Формируются на лету из таблиц tasks, applications, meetings, team_reports, projects.
+        После запроса notifications_seen_at обновляется (уведомления помечаются прочитанными).
       responses:
-        '200': { description: Notification list }
+        '200':
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
 
   /api/distribution/generate:
     post:
       tags: [Distribution]
       summary: Запустить черновое распределение
+      description: "Роли: coordinator, admin. Создаёт команды (если их меньше numTeams) и распределяет студентов."
       responses:
-        '200': { description: Started }
+        '200':
+          description: Started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      status: { type: string, example: started }
 
   /api/distribution/status:
     get:
       tags: [Distribution]
-      summary: Получить статус распределения
+      summary: Статус распределения
       responses:
-        '200': { description: Current status }
+        '200':
+          description: Current status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/DistributionStatus' }
 
 components:
   parameters:
-    ProjectId:
+    PathId:
       in: path
       name: id
       required: true
       schema: { type: integer }
-    ApplicationId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    TeamId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    TeamIdPath:
-      in: path
-      name: teamId
-      required: true
-      schema: { type: integer }
-    UserId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    UserIdPath:
-      in: path
-      name: userId
-      required: true
-      schema: { type: integer }
-    SprintId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    TaskId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    ReportId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    ScoreId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    MeetingId:
-      in: path
-      name: id
-      required: true
-      schema: { type: integer }
-    FileId:
-      in: path
-      name: fileId
-      required: true
-      schema: { type: integer }
+
   schemas:
-    Envelope:
-      type: object
-      properties:
-        data:
-          nullable: true
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: string
     ProjectStatus:
       type: string
       enum: [Черновик, Опубликован, Активный, Завершён, Архивный]
+
     ApplicationStatus:
       type: string
       enum: [Ожидает, Не подходит, Не рекомендован, Рекомендован, Принято ментором, Принят, Студент отклонил, Авто-отклонено, Исключён]
+
     SprintStatus:
       type: string
       enum: [Запланирован, Активный, Завершён]
+
     TaskStatus:
       type: string
       enum: [Ожидает аппрува, Назначена, Отклонена, В работе, На ревью, Возвращена, Готово]
+
     TeamReportStatus:
       type: string
       enum: [Черновик, Отправлен, Проверен]
+
     MeetingStatus:
       type: string
       enum: [Ожидает подтверждения, Подтверждена, Отклонена, Состоялась, Отменена]
-    User:
-      type: object
-      properties:
-        id: { type: integer }
-        firstName: { type: string }
-        lastName: { type: string }
-        middleName: { type: string }
-        email: { type: string, format: email }
-        role: { type: string }
-        company: { type: string }
-        course: { type: string }
-        group: { type: string }
-        avatar: { type: string }
-        gpa: { type: number }
-        direction: { type: string }
-    TeamMember:
-      type: object
-      properties:
-        id: { type: integer }
-        teamId: { type: integer }
-        userId: { type: integer }
-        roleInTeam: { type: string }
-        isLeader: { type: boolean }
-        joinedAt: { type: string, format: date-time }
-        user:
-          $ref: '#/components/schemas/User'
-    Team:
-      type: object
-      properties:
-        id: { type: integer }
-        projectId: { type: integer }
-        name: { type: string }
-        leaderId: { type: integer }
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/TeamMember'
-    Sprint:
-      type: object
-      properties:
-        id: { type: integer }
-        projectId: { type: integer }
-        number: { type: integer }
-        startDate: { type: string, format: date }
-        endDate: { type: string, format: date }
-        status:
-          $ref: '#/components/schemas/SprintStatus'
+
     Project:
       type: object
       properties:
         id: { type: integer }
         title: { type: string }
-        status:
-          $ref: '#/components/schemas/ProjectStatus'
+        status: { $ref: '#/components/schemas/ProjectStatus' }
         mentorId: { type: integer }
         company: { type: string }
-        courses:
-          type: array
-          items: { type: integer }
+        courses: { type: array, items: { type: integer } }
         description: { type: string }
         fullDescription: { type: string }
-        technologies:
-          type: array
-          items: { type: string }
+        technologies: { type: array, items: { type: string } }
         teamSizeMin: { type: integer }
         teamSizeMax: { type: integer }
         numTeams: { type: integer }
@@ -945,20 +1015,149 @@ components:
         competencies: { type: string }
         resources: { type: string }
         durationSemesters: { type: integer }
-        submittedAt: { type: string, format: date-time }
-    Application:
+        submittedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProjectInput:
+      type: object
+      required: [title, mentorId]
+      properties:
+        title: { type: string }
+        status: { $ref: '#/components/schemas/ProjectStatus' }
+        mentorId: { type: integer }
+        company: { type: string }
+        courses: { type: array, items: { type: integer } }
+        description: { type: string }
+        fullDescription: { type: string }
+        technologies: { type: array, items: { type: string } }
+        teamSizeMin: { type: integer, default: 3 }
+        teamSizeMax: { type: integer, default: 5 }
+        numTeams: { type: integer, default: 1 }
+        minGpa: { type: number }
+        goal: { type: string }
+        expectedResult: { type: string }
+        competencies: { type: string }
+        resources: { type: string }
+        durationSemesters: { type: integer, default: 1 }
+
+    ProjectListItem:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status: { $ref: '#/components/schemas/ProjectStatus' }
+        mentorId: { type: integer }
+        company: { type: string }
+        courses: { type: array, items: { type: integer } }
+        teamSizeMin: { type: integer }
+        teamSizeMax: { type: integer }
+        numTeams: { type: integer }
+        filledTeams: { type: integer }
+        acceptedCount: { type: integer }
+        availableSlots: { type: integer }
+        description: { type: string }
+        technologies: { type: array, items: { type: string } }
+        minGpa: { type: number }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    ProjectFull:
+      type: object
+      properties:
+        project: { $ref: '#/components/schemas/Project' }
+        sprints: { type: array, items: { $ref: '#/components/schemas/Sprint' } }
+        teams: { type: array, items: { $ref: '#/components/schemas/Team' } }
+
+    ApplicantsResponse:
+      type: object
+      properties:
+        projectId: { type: integer }
+        requirements:
+          type: object
+          properties:
+            minCourse: { type: integer }
+            minGpa: { type: number }
+        qualified: { $ref: '#/components/schemas/PriorityBuckets' }
+        unqualified: { $ref: '#/components/schemas/PriorityBuckets' }
+        teams:
+          type: array
+          items:
+            type: object
+            properties:
+              teamId: { type: integer }
+              name: { type: string }
+              maxSize: { type: integer }
+              members: { type: array, items: { type: object } }
+
+    PriorityBuckets:
+      type: object
+      properties:
+        priority1: { type: array, items: { type: object } }
+        priority2: { type: array, items: { type: object } }
+        priority3: { type: array, items: { type: object } }
+        priority4: { type: array, items: { type: object } }
+        priority5: { type: array, items: { type: object } }
+
+    Team:
       type: object
       properties:
         id: { type: integer }
         projectId: { type: integer }
-        studentId: { type: integer }
+        name: { type: string }
+        leaderId: { type: integer, nullable: true }
+        leader:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            firstName: { type: string }
+            lastName: { type: string }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/TeamMember' }
+        currentSprint: { $ref: '#/components/schemas/Sprint' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TeamMember:
+      type: object
+      properties:
+        id: { type: integer }
         teamId: { type: integer }
-        priority: { type: integer }
-        status:
-          $ref: '#/components/schemas/ApplicationStatus'
-        statusChangedAt: { type: string, format: date-time }
-        invitedAt: { type: string, format: date-time }
-        respondedAt: { type: string, format: date-time }
+        userId: { type: integer }
+        roleInTeam: { type: string }
+        isLeader: { type: boolean }
+        joinedAt: { type: string, format: date-time }
+        user:
+          type: object
+          properties:
+            id: { type: integer }
+            firstName: { type: string }
+            lastName: { type: string }
+
+    Sprint:
+      type: object
+      properties:
+        id: { type: integer }
+        projectId: { type: integer }
+        number: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { $ref: '#/components/schemas/SprintStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    SprintInput:
+      type: object
+      required: [number, startDate, endDate]
+      properties:
+        projectId: { type: integer }
+        number: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { $ref: '#/components/schemas/SprintStatus' }
+
     Task:
       type: object
       properties:
@@ -966,11 +1165,13 @@ components:
         sprintId: { type: integer }
         teamId: { type: integer }
         assigneeId: { type: integer }
+        assigneeName: { type: string }
         createdById: { type: integer }
         name: { type: string }
         description: { type: string }
-        status:
-          $ref: '#/components/schemas/TaskStatus'
+        status: { $ref: '#/components/schemas/TaskStatus' }
+        statusChangedAt: { type: string, format: date-time }
+        wasOverdue: { type: boolean }
         hoursEstimate: { type: integer }
         startDate: { type: string, format: date }
         endDate: { type: string, format: date }
@@ -978,53 +1179,119 @@ components:
         workDescription: { type: string }
         mentorComments:
           type: array
-          items:
-            type: object
+          items: { $ref: '#/components/schemas/MentorComment' }
         history:
+          type: array
+          items: { $ref: '#/components/schemas/TaskHistoryItem' }
+        deletedAt: { type: string, format: date-time, nullable: true }
+        deletedById: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    TaskInput:
+      type: object
+      required: [sprintId, teamId, assigneeId, name, startDate, endDate]
+      properties:
+        sprintId: { type: integer }
+        teamId: { type: integer }
+        assigneeId: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        hoursEstimate: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        mrLink: { type: string }
+        workDescription: { type: string }
+
+    MentorComment:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [Аппрув, Отклонение, Принятие, Возврат]
+        text: { type: string }
+        createdAt: { type: string, format: date-time }
+
+    TaskHistoryItem:
+      type: object
+      properties:
+        day:
+          type: integer
+          description: "День от начала спринта"
+        event:
+          type: string
+          enum: [review, returned, accepted]
+
+    GanttResponse:
+      type: object
+      properties:
+        sprint: { $ref: '#/components/schemas/Sprint' }
+        members:
           type: array
           items:
             type: object
-    TeamReport:
+            properties:
+              userId: { type: integer }
+              name: { type: string }
+              roleInTeam: { type: string }
+              isLeader: { type: boolean }
+        tasks:
+          type: array
+          items: { $ref: '#/components/schemas/Task' }
+
+    TeamReportInput:
       type: object
+      required: [sprintId, teamId]
       properties:
-        id: { type: integer }
         sprintId: { type: integer }
         teamId: { type: integer }
         summary: { type: string }
         problems: { type: string }
         nextPlan: { type: string }
-        status:
-          $ref: '#/components/schemas/TeamReportStatus'
-        mentorComment: { type: string }
-    SprintScore:
+        status: { $ref: '#/components/schemas/TeamReportStatus' }
+
+    SprintScoreInput:
       type: object
+      required: [sprintId, teamId, studentId, score]
       properties:
-        id: { type: integer }
         sprintId: { type: integer }
         teamId: { type: integer }
         studentId: { type: integer }
-        score: { type: integer }
+        score: { type: integer, minimum: 0, maximum: 10 }
         comment: { type: string }
-        scoredById: { type: integer }
-    Meeting:
+
+    MeetingInput:
       type: object
+      required: [teamId, title, meetingDate, startTime]
       properties:
-        id: { type: integer }
         teamId: { type: integer }
         sprintId: { type: integer }
         title: { type: string }
         description: { type: string }
         meetingDate: { type: string, format: date }
-        startTime: { type: string }
-        durationMinutes: { type: integer }
+        startTime: { type: string, example: "16:00" }
+        durationMinutes: { type: integer, default: 60 }
         conferenceLink: { type: string }
-        createdById: { type: integer }
-        mentorConfirmed: { type: boolean }
+        mentorConfirmed: { type: boolean, nullable: true }
         mentorDeclineReason: { type: string }
-        confirmedAt: { type: string, format: date-time }
         summary: { type: string }
-        status:
-          $ref: '#/components/schemas/MeetingStatus'
+        status: { $ref: '#/components/schemas/MeetingStatus' }
+
+    UserInput:
+      type: object
+      required: [firstName, lastName, email, role]
+      properties:
+        firstName: { type: string }
+        lastName: { type: string }
+        middleName: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [student, teamlead, mentor, coordinator, admin] }
+        company: { type: string }
+        course: { type: string }
+        group: { type: string }
+        gpa: { type: number }
+        direction: { type: string }
+
     UserProfile:
       type: object
       properties:
@@ -1032,21 +1299,46 @@ components:
         telegram: { type: string }
         phone: { type: string }
         about: { type: string }
-        skills:
-          type: array
-          items: { type: string }
+        skills: { type: array, items: { type: string } }
         links:
           type: array
           items:
             type: object
             properties:
-              type: { type: string }
-              url: { type: string }
+              type: { type: string, example: GitHub }
+              url: { type: string, format: uri }
+
+    UserFile:
+      type: object
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        fileName: { type: string }
+        fileSize: { type: integer }
+        fileType: { type: string, enum: [pdf, docx] }
+        storagePath: { type: string }
+        uploadedAt: { type: string, format: date-time }
+
+    Notification:
+      type: object
+      properties:
+        code: { type: string, description: "Тип уведомления (например task_approved, meeting_scheduled)" }
+        title: { type: string }
+        message: { type: string }
+        entity: { type: string, description: "Тип связанного объекта (task, application, meeting, team_report, project)" }
+        entityId: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    DistributionStatus:
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [не начато, в процессе, завершено, ошибка]
+        lastRunAt: { type: string, format: date-time }
+        lastMessage: { type: string }
+
     CommentPayload:
       type: object
       properties:
         comment: { type: string }
-    ReviewPayload:
-      type: object
-      properties:
-        mentorComment: { type: string }

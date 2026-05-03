@@ -42,7 +42,7 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 
 func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, error) {
 	query := `
-		SELECT id, first_name, last_name, middle_name, email, role, company, course, "group", avatar, COALESCE(gpa, 0), direction
+		SELECT id, first_name, last_name, COALESCE(middle_name,''), email, role, COALESCE(company,''), COALESCE(course,''), COALESCE("group",''), COALESCE(avatar,''), COALESCE(gpa, 0), COALESCE(direction,'')
 		FROM users
 		WHERE id = $1
 	`
@@ -74,7 +74,7 @@ func (r *UserRepository) GetByID(ctx context.Context, id int) (*models.User, err
 
 func (r *UserRepository) GetAll(ctx context.Context) ([]models.User, error) {
 	query := `
-		SELECT id, first_name, last_name, middle_name, email, role, company, course, "group", avatar, COALESCE(gpa, 0), direction
+		SELECT id, first_name, last_name, COALESCE(middle_name,''), email, role, COALESCE(company,''), COALESCE(course,''), COALESCE("group",''), COALESCE(avatar,''), COALESCE(gpa, 0), COALESCE(direction,'')
 		FROM users
 		ORDER BY id
 	`

@@ -144,9 +144,10 @@ func baseApplicationSelect() string {
 	return `
 		SELECT a.id, a.project_id, a.student_id, a.team_id, a.priority, a.status, a.status_changed_at,
 		       a.invited_at, a.responded_at, a.created_at, a.updated_at,
-		       p.title, p.company, COALESCE(array_to_json(p.courses)::text, '[]'),
-		       u.id, u.first_name, u.last_name, u.middle_name, u.email, u.role, u.company,
-		       u.course, u."group", u.avatar, COALESCE(u.gpa, 0), COALESCE(u.direction, '')
+		       p.title, COALESCE(p.company, ''), COALESCE(array_to_json(p.courses)::text, '[]'),
+		       u.id, u.first_name, u.last_name, COALESCE(u.middle_name, ''), COALESCE(u.email, ''), COALESCE(u.role, ''),
+		       COALESCE(u.company, ''), COALESCE(u.course, ''), COALESCE(u."group", ''), COALESCE(u.avatar, ''),
+		       COALESCE(u.gpa, 0), COALESCE(u.direction, '')
 		FROM applications a
 		JOIN projects p ON p.id = a.project_id
 		JOIN users u ON u.id = a.student_id

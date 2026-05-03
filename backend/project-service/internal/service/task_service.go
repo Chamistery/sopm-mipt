@@ -105,6 +105,9 @@ func (s *TaskService) List(ctx context.Context, user *auth.CurrentUser, filters 
 }
 
 func (s *TaskService) Update(ctx context.Context, user *auth.CurrentUser, update *models.Task) (*models.Task, error) {
+	if err := s.sync(ctx); err != nil {
+		return nil, err
+	}
 	task, err := s.tasks.GetByID(ctx, update.ID)
 	if err != nil {
 		return nil, err
@@ -123,6 +126,7 @@ func (s *TaskService) Update(ctx context.Context, user *auth.CurrentUser, update
 		}
 	}
 
+	// Mentor can always change dates
 	if isMentorEditor {
 		if update.StartDate != "" {
 			task.StartDate = update.StartDate
@@ -130,26 +134,41 @@ func (s *TaskService) Update(ctx context.Context, user *auth.CurrentUser, update
 		if update.EndDate != "" {
 			task.EndDate = update.EndDate
 		}
-	} else {
-		update.StartDate = task.StartDate
-		update.EndDate = task.EndDate
 	}
-	if update.Name != "" {
-		task.Name = update.Name
-	}
-	task.Description = update.Description
-	task.HoursEstimate = update.HoursEstimate
-	task.MRLink = update.MRLink
-	task.WorkDescription = update.WorkDescription
-	if update.AssigneeID > 0 {
-		if !isMentorEditor && user.HasAnyRole(auth.RoleStudent) && update.AssigneeID != task.AssigneeID {
-			return nil, ErrForbidden
+
+	// Field restrictions by status
+	switch task.Status {
+	case models.TaskStatusPendingApproval:
+		// Author can edit: name, description, hours
+		if update.Name != "" {
+			task.Name = update.Name
 		}
+		task.Description = update.Description
+		task.HoursEstimate = update.HoursEstimate
+	case models.TaskStatusAssigned:
+		// Name, description, hours editable. Dates — only mentor (handled above)
+		if update.Name != "" {
+			task.Name = update.Name
+		}
+		task.Description = update.Description
+		task.HoursEstimate = update.HoursEstimate
+	case models.TaskStatusInProgress:
+		// Only work_description and MR link. Dates — only mentor (handled above)
+		task.WorkDescription = update.WorkDescription
+		task.MRLink = update.MRLink
+	case models.TaskStatusReturned:
+		// Only work_description and MR link
+		task.WorkDescription = update.WorkDescription
+		task.MRLink = update.MRLink
+	}
+
+	if update.AssigneeID > 0 && isMentorEditor {
 		if err := s.ensureAssigneeBelongsToTeam(ctx, task.TeamID, update.AssigneeID); err != nil {
 			return nil, err
 		}
 		task.AssigneeID = update.AssigneeID
 	}
+
 	if err := s.ensureTaskDates(ctx, task); err != nil {
 		return nil, err
 	}
@@ -164,10 +183,16 @@ func (s *TaskService) Approve(ctx context.Context, user *auth.CurrentUser, id in
 }
 
 func (s *TaskService) Reject(ctx context.Context, user *auth.CurrentUser, id int, comment string) (*models.Task, error) {
+	if comment == "" {
+		return nil, WrapStateError("comment is required for rejection")
+	}
 	return s.transitionTask(ctx, user, id, models.TaskStatusPendingApproval, models.TaskStatusRejected, models.MentorCommentReject, comment, "")
 }
 
 func (s *TaskService) SubmitReview(ctx context.Context, user *auth.CurrentUser, id int) (*models.Task, error) {
+	if err := s.sync(ctx); err != nil {
+		return nil, err
+	}
 	task, err := s.tasks.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -194,6 +219,9 @@ func (s *TaskService) Accept(ctx context.Context, user *auth.CurrentUser, id int
 }
 
 func (s *TaskService) Return(ctx context.Context, user *auth.CurrentUser, id int, comment string) (*models.Task, error) {
+	if comment == "" {
+		return nil, WrapStateError("comment is required for returning task")
+	}
 	return s.transitionTask(ctx, user, id, models.TaskStatusInReview, models.TaskStatusReturned, models.MentorCommentReturn, comment, string(models.TaskHistoryReturned))
 }
 
@@ -221,6 +249,9 @@ func (s *TaskService) transitionTask(
 	comment string,
 	historyEvent string,
 ) (*models.Task, error) {
+	if err := s.sync(ctx); err != nil {
+		return nil, err
+	}
 	task, err := s.tasks.GetByID(ctx, id)
 	if err != nil {
 		return nil, err

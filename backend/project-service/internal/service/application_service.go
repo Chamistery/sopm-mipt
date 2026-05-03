@@ -217,6 +217,10 @@ func (s *ApplicationService) Exclude(ctx context.Context, user *auth.CurrentUser
 	if app.Status != models.ApplicationStatusAccepted {
 		return nil, WrapStateError("application cannot be excluded from status %s", app.Status)
 	}
+	// Remove from team_members
+	if app.TeamID != nil {
+		_ = s.teams.RemoveMember(ctx, *app.TeamID, app.StudentID)
+	}
 	app.Status = models.ApplicationStatusExcluded
 	app.TeamID = nil
 	if err := s.applications.Update(ctx, app); err != nil {
