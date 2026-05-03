@@ -4,6 +4,7 @@ import { RequireAuth } from '@/auth/RequireAuth';
 import { AppShell } from '@/layout/AppShell';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
+import { StudentCatalogPage } from '@/features/student-catalog';
 import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { PlaceholderPage } from '@/features/errors/PlaceholderPage';
 import { redirectByRole } from '@/auth/redirectByRole';
@@ -23,10 +24,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to={redirectByRole()} replace /> },
       { path: 'profile', element: <ProfilePage /> },
-      {
-        path: 'student',
-        element: <PlaceholderPage feature="Каталог проектов студента" branch="student-catalog" />,
-      },
+      { path: 'student', element: <StudentCatalogPage /> },
       {
         path: 'student/project',
         element: (
