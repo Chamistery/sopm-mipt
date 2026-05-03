@@ -57,12 +57,55 @@ func (h *ProjectHandler) GetList(w http.ResponseWriter, r *http.Request) {
 		offset = 0
 	}
 
+	mentorID := httputil.ParseQueryInt(r, "mentorId", 0)
+	if mentorID < 0 {
+		mentorID = 0
+	}
+
 	projects, total, err := h.repo.GetList(r.Context(), repository.ProjectListFilters{
-		Company: httputil.ParseQueryString(r, "company"),
-		Course:  httputil.ParseQueryString(r, "course"),
-		Status:  httputil.ParseQueryString(r, "status"),
-		Limit:   limit,
-		Offset:  offset,
+		Company:  httputil.ParseQueryString(r, "company"),
+		Course:   httputil.ParseQueryString(r, "course"),
+		Status:   httputil.ParseQueryString(r, "status"),
+		MentorID: mentorID,
+		Limit:    limit,
+		Offset:   offset,
+	})
+	if err != nil {
+		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httputil.RespondSuccess(w, http.StatusOK, map[string]interface{}{
+		"projects": projects,
+		"total":    total,
+		"limit":    limit,
+		"offset":   offset,
+	})
+}
+
+func (h *ProjectHandler) GetMentorArchive(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.HasAnyRole(auth.RoleMentor) {
+		httputil.RespondError(w, http.StatusForbidden, "mentors only")
+		return
+	}
+
+	limit := httputil.ParseQueryInt(r, "limit", 50)
+	offset := httputil.ParseQueryInt(r, "offset", 0)
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	projects, total, err := h.repo.GetList(r.Context(), repository.ProjectListFilters{
+		MentorID: user.ID,
+		Status:   string(models.ProjectStatusCompleted),
+		Limit:    limit,
+		Offset:   offset,
 	})
 	if err != nil {
 		httputil.RespondError(w, http.StatusInternalServerError, err.Error())
@@ -102,6 +145,29 @@ func (h *ProjectHandler) GetFull(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.RespondSuccess(w, http.StatusOK, project)
+}
+
+func (h *ProjectHandler) GetPredecessor(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.IsAuthenticated() {
+		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	predecessor, err := h.repo.GetPredecessor(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+
+	// predecessor == nil here means the project exists but has no predecessor.
+	httputil.RespondSuccess(w, http.StatusOK, predecessor)
 }
 
 func (h *ProjectHandler) GetApplicants(w http.ResponseWriter, r *http.Request) {
