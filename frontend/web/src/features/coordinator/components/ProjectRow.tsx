@@ -11,6 +11,7 @@ export interface ProjectRowProps {
 const STATUS_TONE: Record<string, string> = {
   Активный: styles.statusActive,
   Опубликован: styles.statusActive,
+  Утверждён: styles.statusActive,
   Черновик: styles.statusDraft,
   Завершен: styles.statusDone,
   Архивный: styles.statusMuted,

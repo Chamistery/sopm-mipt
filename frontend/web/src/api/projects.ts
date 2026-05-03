@@ -19,9 +19,14 @@ export const PROJECT_STATUS_OFFICIAL = [
 
 /** Status that the brief mentions for projects waiting coordinator approval. */
 export const PROJECT_STATUS_PENDING = 'На утверждении' as const;
+/** Status the coordinator sets when they approve a project. Coordinator-only. */
+export const PROJECT_STATUS_APPROVED = 'Утверждён' as const;
 
 export type ProjectStatusOfficial = (typeof PROJECT_STATUS_OFFICIAL)[number];
-export type ProjectStatus = ProjectStatusOfficial | typeof PROJECT_STATUS_PENDING;
+export type ProjectStatus =
+  | ProjectStatusOfficial
+  | typeof PROJECT_STATUS_PENDING
+  | typeof PROJECT_STATUS_APPROVED;
 
 export interface ProjectListItem {
   id: number;
