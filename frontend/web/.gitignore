@@ -1,0 +1,38 @@
+# Build outputs
+dist
+storybook-static
+
+# Test outputs
+coverage
+playwright-report
+test-results
+.vitest-cache
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+.DS_Store
+
+# Generated API types (run `npm run gen:api`)
+src/api/generated/
