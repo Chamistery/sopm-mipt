@@ -11,13 +11,12 @@ import { useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
 
 import {
-  getApplicationsByStudent,
+  getApplicationsByStudentExpanded,
   getProject,
   listProjects,
   type ApplicationWithProject,
   type Project,
-  type ProjectListItem,
-} from '@/api/projects';
+} from '@/api';
 import { fullName, listUsers, type UserSummary } from '@/api/users';
 import { useRequireUser } from '@/auth/useCurrentUser';
 
@@ -51,7 +50,7 @@ export function useCatalog(): CatalogData {
 
   const applicationsQuery = useQuery({
     queryKey: ['applications', 'student', me.userId],
-    queryFn: () => getApplicationsByStudent(me.userId),
+    queryFn: () => getApplicationsByStudentExpanded(me.userId),
     staleTime: 30_000,
   });
 
@@ -60,7 +59,7 @@ export function useCatalog(): CatalogData {
   }, [usersQuery.data, me.userId]);
 
   const projects = useMemo<CatalogProject[]>(() => {
-    const list = projectsQuery.data?.projects ?? [];
+    const list = projectsQuery.data?.items ?? [];
     const mentorById = indexById(usersQuery.data ?? []);
     return list.map((p) => enrichProject(p, mentorById, studentCourse));
   }, [projectsQuery.data, usersQuery.data, studentCourse]);
@@ -131,17 +130,29 @@ function indexById(users: readonly UserSummary[]): Map<number, UserSummary> {
 }
 
 function enrichProject(
-  p: ProjectListItem,
+  p: Project,
   mentorById: Map<number, UserSummary>,
   studentCourse: string | null,
 ): CatalogProject {
-  const mentor = mentorById.get(p.mentorId);
-  const mentorName = mentor ? fullName(mentor) : `Ментор #${p.mentorId}`;
-  const qualified = isQualified(studentCourse, p.course);
+  const mentor = p.mentorId !== undefined ? mentorById.get(p.mentorId) : undefined;
+  const mentorName = mentor ? fullName(mentor) : p.mentorId ? `Ментор #${p.mentorId}` : 'Ментор';
+  const projectCourse = projectFirstCourse(p.courses);
+  const qualified = isQualified(studentCourse, projectCourse);
+  const numTeams = p.numTeams ?? 1;
+  const teamSizeMax = p.teamSizeMax ?? 0;
   return {
     ...p,
+    id: p.id ?? 0,
+    title: p.title ?? '',
     mentorName,
     unqualified: !qualified,
-    unqualifiedReason: qualified ? '' : describeUnqualifiedReason(studentCourse, p.course),
+    unqualifiedReason: qualified ? '' : describeUnqualifiedReason(studentCourse, projectCourse),
+    course: projectCourse,
+    maxSlots: numTeams * teamSizeMax,
   };
+}
+
+function projectFirstCourse(courses: number[] | undefined): string | null {
+  if (!courses || courses.length === 0) return null;
+  return String(courses[0]);
 }

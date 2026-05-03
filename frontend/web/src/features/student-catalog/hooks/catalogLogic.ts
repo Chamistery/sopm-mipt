@@ -6,7 +6,6 @@
 
 import type { CatalogProject, PrioritySlots } from '../types';
 import { SLOT_COUNT, SLOT_INDICES } from '../types';
-import type { ProjectListItem } from '@/api/projects';
 
 export interface CatalogFilters {
   search: string;
@@ -37,7 +36,9 @@ export function filterProjects(
   });
 }
 
-export function uniqueCompanies(projects: readonly ProjectListItem[]): string[] {
+export function uniqueCompanies(
+  projects: readonly { company?: string | null }[],
+): string[] {
   const set = new Set<string>();
   for (const p of projects) {
     const c = (p.company ?? '').trim();
@@ -155,13 +156,14 @@ export function moveSlot(
  * if older data exists from a different schema.
  */
 export function slotsFromApplications(
-  apps: ReadonlyArray<{ projectId: number; priority?: number | null }>,
+  apps: ReadonlyArray<{ projectId?: number | null; priority?: number | null }>,
 ): PrioritySlots {
   const out: PrioritySlots = {};
   for (const app of apps) {
     const p = app.priority ?? 0;
-    if (p >= 1 && p <= SLOT_COUNT) {
-      out[p] = app.projectId;
+    const pid = app.projectId;
+    if (p >= 1 && p <= SLOT_COUNT && typeof pid === 'number') {
+      out[p] = pid;
     }
   }
   return out;

@@ -24,7 +24,10 @@ export default defineConfig({
   plugins: [
     {
       name: '@hey-api/typescript',
-      enums: 'typescript',
+      // Don't emit TS `enum`s — strings on the wire don't need a wrapper,
+      // and string-literal unions let feature code write `status: 'Черновик'`
+      // directly instead of `ProjectStatus.ЧЕРНОВИК`.
+      enums: false,
     },
   ],
 });

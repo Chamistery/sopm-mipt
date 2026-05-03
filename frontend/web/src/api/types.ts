@@ -8,16 +8,13 @@
  * locally, import the generated one instead.
  */
 
-export {
+export type {
   ProjectStatus,
   ApplicationStatus,
   SprintStatus,
   TaskStatus,
   TeamReportStatus,
   MeetingStatus,
-} from './generated/types.gen';
-
-export type {
   Envelope,
   ErrorResponse,
   User,

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { ApiError } from '@/api/client';
-import { createApplication } from '@/api/projects';
+import { ApiError, submitApplication } from '@/api';
 import { useRequireUser } from '@/auth/useCurrentUser';
 
 import { ProjectCard } from './components/ProjectCard';
@@ -75,7 +74,7 @@ export function StudentCatalogPage(): JSX.Element {
       });
       const results = await Promise.allSettled(
         entries.map(({ projectId, priority }) =>
-          createApplication({ projectId, studentId: me.userId, priority }),
+          submitApplication({ projectId, studentId: me.userId, priority }),
         ),
       );
       const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
