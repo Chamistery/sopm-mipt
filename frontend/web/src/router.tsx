@@ -5,6 +5,7 @@ import { AppShell } from '@/layout/AppShell';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
 import { StudentCatalogPage } from '@/features/student-catalog';
+import { StudentProjectPage } from '@/features/student-project';
 import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { PlaceholderPage } from '@/features/errors/PlaceholderPage';
 import { redirectByRole } from '@/auth/redirectByRole';
@@ -27,9 +28,7 @@ export const router = createBrowserRouter([
       { path: 'student', element: <StudentCatalogPage /> },
       {
         path: 'student/project',
-        element: (
-          <PlaceholderPage feature="Текущий проект студента/тимлида" branch="student-project" />
-        ),
+        element: <StudentProjectPage />,
       },
       {
         path: 'mentor',

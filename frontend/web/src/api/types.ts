@@ -12,8 +12,6 @@ export type {
   ProjectStatus,
   ApplicationStatus,
   SprintStatus,
-  TaskStatus,
-  TeamReportStatus,
   MeetingStatus,
   Envelope,
   ErrorResponse,
@@ -23,13 +21,15 @@ export type {
   Sprint,
   Project,
   Application,
-  Task,
-  TeamReport,
   SprintScore,
   Meeting,
   CommentPayload,
   ReviewPayload,
 } from './generated/types.gen';
+
+// NB: `TaskStatus`, `Task`, `TeamReport`, `TeamReportStatus` are intentionally
+// re-exported by `teams.ts` (richer hand-written shape until swagger covers
+// `wasOverdue`, `history`, `mentorComments`, `whatDone`, etc.) — see ADR 0001.
 
 // NB: `UserProfile` is intentionally re-exported by `users.ts` (extended
 // hand-written shape with `notificationsSeenAt`), not from generated.

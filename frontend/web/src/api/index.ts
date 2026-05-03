@@ -12,8 +12,6 @@ export * from './types';
 export * from './projects';
 export * from './applications';
 export * from './teams';
-export * from './tasks';
-export * from './teamReports';
 export * from './sprintScores';
 export * from './distribution';
 export * from './meetings';
