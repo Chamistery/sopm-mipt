@@ -10,37 +10,95 @@ import (
 	"github.com/hsse/project-service/internal/handlers"
 	"github.com/hsse/project-service/internal/middleware"
 	"github.com/hsse/project-service/internal/repository"
+	"github.com/hsse/project-service/internal/service"
 )
 
 func setupRoutes(
 	mux *http.ServeMux,
-	templateHandler *handlers.TemplateHandler,
 	projectHandler *handlers.ProjectHandler,
 	applicationHandler *handlers.ApplicationHandler,
 	userHandler *handlers.UserHandler,
+	teamHandler *handlers.TeamHandler,
+	sprintHandler *handlers.SprintHandler,
+	taskHandler *handlers.TaskHandler,
+	teamReportHandler *handlers.TeamReportHandler,
+	sprintScoreHandler *handlers.SprintScoreHandler,
+	meetingHandler *handlers.MeetingHandler,
+	distributionHandler *handlers.DistributionHandler,
 ) {
-	mux.HandleFunc("POST /api/templates", templateHandler.Create)
-	mux.HandleFunc("GET /api/templates", templateHandler.GetAll)
-	mux.HandleFunc("GET /api/templates/{id}", templateHandler.GetByID)
-	mux.HandleFunc("PUT /api/templates/{id}", templateHandler.Update)
-	mux.HandleFunc("DELETE /api/templates/{id}", templateHandler.Delete)
-
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
+	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
+	mux.HandleFunc("GET /api/projects/{id}/applicants", projectHandler.GetApplicants)
 	mux.HandleFunc("PUT /api/projects/{id}", projectHandler.Update)
 	mux.HandleFunc("DELETE /api/projects/{id}", projectHandler.Delete)
 
 	mux.HandleFunc("POST /api/applications", applicationHandler.Create)
 	mux.HandleFunc("GET /api/applications", applicationHandler.GetByStudentID)
 	mux.HandleFunc("GET /api/applications/project", applicationHandler.GetByProjectID)
-	mux.HandleFunc("PUT /api/applications/{id}", applicationHandler.Update)
-	mux.HandleFunc("PUT /api/applications/priorities", applicationHandler.UpdatePriorities)
+	mux.HandleFunc("GET /api/applications/{id}", applicationHandler.GetByID)
+	mux.HandleFunc("PUT /api/applications/{id}/recommend", applicationHandler.Recommend)
+	mux.HandleFunc("PUT /api/applications/{id}/unrecommend", applicationHandler.Unrecommend)
+	mux.HandleFunc("PUT /api/applications/{id}/invite", applicationHandler.Invite)
+	mux.HandleFunc("PUT /api/applications/{id}/accept", applicationHandler.Accept)
+	mux.HandleFunc("PUT /api/applications/{id}/decline", applicationHandler.Decline)
+	mux.HandleFunc("PUT /api/applications/{id}/exclude", applicationHandler.Exclude)
 	mux.HandleFunc("DELETE /api/applications/{id}", applicationHandler.Delete)
 
 	mux.HandleFunc("POST /api/users", userHandler.Create)
 	mux.HandleFunc("GET /api/users", userHandler.GetAll)
 	mux.HandleFunc("GET /api/users/{id}", userHandler.GetByID)
+	mux.HandleFunc("GET /api/users/{id}/team", userHandler.GetTeam)
+	mux.HandleFunc("GET /api/users/{id}/profile", userHandler.GetProfile)
+	mux.HandleFunc("PUT /api/users/{id}/profile", userHandler.UpdateProfile)
+	mux.HandleFunc("POST /api/users/{id}/files", userHandler.UploadFile)
+	mux.HandleFunc("GET /api/users/{id}/files", userHandler.ListFiles)
+	mux.HandleFunc("DELETE /api/users/{id}/files/{fileId}", userHandler.DeleteFile)
+	mux.HandleFunc("GET /api/users/{id}/notifications", userHandler.Notifications)
+
+	mux.HandleFunc("POST /api/teams", teamHandler.Create)
+	mux.HandleFunc("GET /api/teams", teamHandler.GetList)
+	mux.HandleFunc("GET /api/teams/{id}", teamHandler.GetByID)
+	mux.HandleFunc("PUT /api/teams/{id}", teamHandler.Update)
+	mux.HandleFunc("DELETE /api/teams/{id}", teamHandler.Delete)
+	mux.HandleFunc("POST /api/teams/{id}/members", teamHandler.AddMember)
+	mux.HandleFunc("DELETE /api/teams/{teamId}/members/{userId}", teamHandler.RemoveMember)
+	mux.HandleFunc("GET /api/teams/{id}/gantt", taskHandler.Gantt)
+
+	mux.HandleFunc("POST /api/sprints", sprintHandler.Create)
+	mux.HandleFunc("POST /api/sprints/batch", sprintHandler.CreateBatch)
+	mux.HandleFunc("GET /api/sprints", sprintHandler.GetList)
+	mux.HandleFunc("GET /api/sprints/{id}", sprintHandler.GetByID)
+	mux.HandleFunc("PUT /api/sprints/{id}", sprintHandler.Update)
+
+	mux.HandleFunc("POST /api/tasks", taskHandler.Create)
+	mux.HandleFunc("GET /api/tasks", taskHandler.GetList)
+	mux.HandleFunc("GET /api/tasks/{id}", taskHandler.GetByID)
+	mux.HandleFunc("PUT /api/tasks/{id}", taskHandler.Update)
+	mux.HandleFunc("PUT /api/tasks/{id}/approve", taskHandler.Approve)
+	mux.HandleFunc("PUT /api/tasks/{id}/reject", taskHandler.Reject)
+	mux.HandleFunc("PUT /api/tasks/{id}/submit-review", taskHandler.SubmitReview)
+	mux.HandleFunc("PUT /api/tasks/{id}/accept", taskHandler.Accept)
+	mux.HandleFunc("PUT /api/tasks/{id}/return", taskHandler.Return)
+	mux.HandleFunc("DELETE /api/tasks/{id}", taskHandler.Delete)
+
+	mux.HandleFunc("POST /api/team-reports", teamReportHandler.Create)
+	mux.HandleFunc("GET /api/team-reports", teamReportHandler.GetList)
+	mux.HandleFunc("PUT /api/team-reports/{id}", teamReportHandler.Update)
+	mux.HandleFunc("PUT /api/team-reports/{id}/review", teamReportHandler.Review)
+
+	mux.HandleFunc("POST /api/sprint-scores", sprintScoreHandler.Create)
+	mux.HandleFunc("GET /api/sprint-scores", sprintScoreHandler.GetList)
+	mux.HandleFunc("PUT /api/sprint-scores/{id}", sprintScoreHandler.Update)
+
+	mux.HandleFunc("POST /api/meetings", meetingHandler.Create)
+	mux.HandleFunc("GET /api/meetings", meetingHandler.GetList)
+	mux.HandleFunc("PUT /api/meetings/{id}", meetingHandler.Update)
+	mux.HandleFunc("DELETE /api/meetings/{id}", meetingHandler.Delete)
+
+	mux.HandleFunc("POST /api/distribution/generate", distributionHandler.Generate)
+	mux.HandleFunc("GET /api/distribution/status", distributionHandler.Status)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -70,17 +128,55 @@ func main() {
 	}
 
 	defer db.Close()
-	templateRepo := repository.NewTemplateRepository(db.Pool)
 	projectRepo := repository.NewProjectRepository(db.Pool)
 	applicationRepo := repository.NewApplicationRepository(db.Pool)
 	userRepo := repository.NewUserRepository(db.Pool)
-	templateHandler := handlers.NewTemplateHandler(templateRepo)
+	teamRepo := repository.NewTeamRepository(db.Pool)
+	sprintRepo := repository.NewSprintRepository(db.Pool)
+	taskRepo := repository.NewTaskRepository(db.Pool)
+	teamReportRepo := repository.NewTeamReportRepository(db.Pool)
+	sprintScoreRepo := repository.NewSprintScoreRepository(db.Pool)
+	meetingRepo := repository.NewMeetingRepository(db.Pool)
+	userProfileRepo := repository.NewUserProfileRepository(db.Pool)
+	userFileRepo := repository.NewUserFileRepository(db.Pool)
+
+	applicationService := service.NewApplicationService(
+		applicationRepo,
+		projectRepo,
+		userRepo,
+		teamRepo,
+		cfg.App.MaxApplicationChoices,
+	)
+	taskService := service.NewTaskService(taskRepo, sprintRepo, teamRepo, projectRepo)
+	notificationService := service.NewNotificationService(db.Pool, userProfileRepo)
+	distributionService := service.NewDistributionService(projectRepo, applicationRepo, teamRepo)
+	fileStorage := service.NewLocalFileStorage(cfg.App.StorageDir)
+
 	projectHandler := handlers.NewProjectHandler(projectRepo)
-	applicationHandler := handlers.NewApplicationHandler(applicationRepo)
-	userHandler := handlers.NewUserHandler(userRepo)
+	applicationHandler := handlers.NewApplicationHandler(applicationRepo, applicationService)
+	userHandler := handlers.NewUserHandler(userRepo, userProfileRepo, userFileRepo, notificationService, fileStorage, cfg.App.MaxUploadBytes)
+	teamHandler := handlers.NewTeamHandler(teamRepo)
+	sprintHandler := handlers.NewSprintHandler(sprintRepo)
+	taskHandler := handlers.NewTaskHandler(taskService, teamRepo, sprintRepo)
+	teamReportHandler := handlers.NewTeamReportHandler(teamReportRepo)
+	sprintScoreHandler := handlers.NewSprintScoreHandler(sprintScoreRepo)
+	meetingHandler := handlers.NewMeetingHandler(meetingRepo, teamRepo, projectRepo)
+	distributionHandler := handlers.NewDistributionHandler(distributionService)
 	mux := http.NewServeMux()
-	setupRoutes(mux, templateHandler, projectHandler, applicationHandler, userHandler)
-	handler := middleware.Logger(middleware.CORS(mux))
+	setupRoutes(
+		mux,
+		projectHandler,
+		applicationHandler,
+		userHandler,
+		teamHandler,
+		sprintHandler,
+		taskHandler,
+		teamReportHandler,
+		sprintScoreHandler,
+		meetingHandler,
+		distributionHandler,
+	)
+	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
 	server := createServer(addr, handler)
 	log.Printf("Starting server on %s", addr)

@@ -202,32 +202,32 @@ func TestParseQueryInt(t *testing.T) {
 
 func TestParseQueryString(t *testing.T) {
 	tests := []struct {
-		name        string
-		queryParam  string
-		queryValue  string
-		key         string
-		want        string
+		name       string
+		queryParam string
+		queryValue string
+		key        string
+		want       string
 	}{
 		{
-			name:        "valid string",
-			queryParam:  "company",
-			queryValue:  "Яндекс",
-			key:         "company",
-			want:        "Яндекс",
+			name:       "valid string",
+			queryParam: "company",
+			queryValue: "Яндекс",
+			key:        "company",
+			want:       "Яндекс",
 		},
 		{
-			name:        "empty value",
-			queryParam:  "",
-			queryValue:  "",
-			key:         "company",
-			want:        "",
+			name:       "empty value",
+			queryParam: "",
+			queryValue: "",
+			key:        "company",
+			want:       "",
 		},
 		{
-			name:        "missing parameter",
-			queryParam:  "other",
-			queryValue:  "value",
-			key:         "company",
-			want:        "",
+			name:       "missing parameter",
+			queryParam: "other",
+			queryValue: "value",
+			key:        "company",
+			want:       "",
 		},
 	}
 

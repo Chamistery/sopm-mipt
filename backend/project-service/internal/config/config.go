@@ -8,6 +8,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	App      AppConfig
 }
 
 type ServerConfig struct {
@@ -24,6 +25,12 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+type AppConfig struct {
+	StorageDir            string
+	MaxApplicationChoices int
+	MaxUploadBytes        int64
+}
+
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
@@ -37,6 +44,11 @@ func Load() *Config {
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			DBName:   getEnv("DB_NAME", "sopm"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		App: AppConfig{
+			StorageDir:            getEnv("STORAGE_DIR", "./storage"),
+			MaxApplicationChoices: getEnvInt("MAX_APPLICATION_CHOICES", 5),
+			MaxUploadBytes:        int64(getEnvInt("MAX_UPLOAD_BYTES", 10*1024*1024)),
 		},
 	}
 }
@@ -54,4 +66,18 @@ func getEnv(key, defaultValue string) string {
 	}
 
 	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+
+	var parsed int
+	if _, err := fmt.Sscanf(value, "%d", &parsed); err != nil {
+		return defaultValue
+	}
+
+	return parsed
 }

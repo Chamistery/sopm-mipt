@@ -1,22 +1,54 @@
--- Drop triggers
+DROP TRIGGER IF EXISTS applications_status_changed ON applications;
+DROP TRIGGER IF EXISTS tasks_status_changed ON tasks;
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON user_profiles;
+DROP TRIGGER IF EXISTS update_meetings_updated_at ON meetings;
+DROP TRIGGER IF EXISTS update_sprint_scores_updated_at ON sprint_scores;
+DROP TRIGGER IF EXISTS update_team_reports_updated_at ON team_reports;
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
 DROP TRIGGER IF EXISTS update_applications_updated_at ON applications;
+DROP TRIGGER IF EXISTS update_sprints_updated_at ON sprints;
+DROP TRIGGER IF EXISTS update_teams_updated_at ON teams;
 DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
-DROP TRIGGER IF EXISTS update_templates_updated_at ON templates;
 
--- Drop function
+DROP FUNCTION IF EXISTS update_status_changed_at();
 DROP FUNCTION IF EXISTS update_updated_at_column();
 
--- Drop indexes
+DROP INDEX IF EXISTS idx_user_files_user_id;
+DROP INDEX IF EXISTS idx_meetings_meeting_date;
+DROP INDEX IF EXISTS idx_meetings_sprint_id;
+DROP INDEX IF EXISTS idx_meetings_team_id;
+DROP INDEX IF EXISTS idx_sprint_scores_team_id;
+DROP INDEX IF EXISTS idx_sprint_scores_student_id;
+DROP INDEX IF EXISTS idx_sprint_scores_sprint_id;
+DROP INDEX IF EXISTS idx_team_reports_status;
+DROP INDEX IF EXISTS idx_team_reports_team_id;
+DROP INDEX IF EXISTS idx_team_reports_sprint_id;
+DROP INDEX IF EXISTS idx_tasks_status;
+DROP INDEX IF EXISTS idx_tasks_assignee_id;
+DROP INDEX IF EXISTS idx_tasks_team_id;
+DROP INDEX IF EXISTS idx_tasks_sprint_id;
 DROP INDEX IF EXISTS idx_applications_status;
 DROP INDEX IF EXISTS idx_applications_project_id;
 DROP INDEX IF EXISTS idx_applications_student_id;
-DROP INDEX IF EXISTS idx_projects_course;
+DROP INDEX IF EXISTS idx_sprints_status;
+DROP INDEX IF EXISTS idx_sprints_project_id;
+DROP INDEX IF EXISTS idx_team_members_user_id;
+DROP INDEX IF EXISTS idx_team_members_team_id;
+DROP INDEX IF EXISTS idx_teams_project_id;
+DROP INDEX IF EXISTS idx_projects_courses;
 DROP INDEX IF EXISTS idx_projects_company;
-DROP INDEX IF EXISTS idx_projects_creator_id;
 DROP INDEX IF EXISTS idx_projects_mentor_id;
 DROP INDEX IF EXISTS idx_projects_status;
 
--- Drop tables
+DROP TABLE IF EXISTS user_files;
+DROP TABLE IF EXISTS user_profiles;
+DROP TABLE IF EXISTS meetings;
+DROP TABLE IF EXISTS sprint_scores;
+DROP TABLE IF EXISTS team_reports;
+DROP TABLE IF EXISTS tasks;
 DROP TABLE IF EXISTS applications;
+DROP TABLE IF EXISTS sprints;
+DROP TABLE IF EXISTS team_members;
+DROP TABLE IF EXISTS teams;
 DROP TABLE IF EXISTS projects;
-DROP TABLE IF EXISTS templates;
+DROP TABLE IF EXISTS users;

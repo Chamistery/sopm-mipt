@@ -3,84 +3,105 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strconv"
 
-	"github.com/doug-martin/goqu/v9"
-	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/hsse/project-service/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type ProjectRepository struct {
-	db      *pgxpool.Pool
-	dialect goqu.DialectWrapper
+	db *pgxpool.Pool
 }
 
 func NewProjectRepository(db *pgxpool.Pool) *ProjectRepository {
-	return &ProjectRepository{
-		db:      db,
-		dialect: goqu.Dialect("postgres"),
-	}
+	return &ProjectRepository{db: db}
 }
 
 func (r *ProjectRepository) Create(ctx context.Context, project *models.Project) error {
-	sql, args, err := r.dialect.Insert("projects").
-		Rows(goqu.Record{
-			"title":        project.Title,
-			"template_id":  project.TemplateID,
-			"field_values": project.FieldValues,
-			"status":       project.Status,
-			"mentor_id":    project.MentorID,
-			"creator_id":   project.CreatorID,
-			"max_slots":    project.MaxSlots,
-			"company":      project.Company,
-			"course":       project.Course,
-			"created_at":   project.CreatedAt,
-			"updated_at":   project.UpdatedAt,
-		}).
-		Returning("id").
-		ToSQL()
-	if err != nil {
-		return fmt.Errorf("failed to build insert query: %w", err)
-	}
+	query := `
+		INSERT INTO projects (
+			title, status, mentor_id, company, courses, description, full_description, technologies,
+			team_size_min, team_size_max, num_teams, min_gpa, edu_result, acceptance_criteria,
+			goal, expected_result, competencies, resources, duration_semesters, submitted_at
+		)
+		VALUES ($1,$2,$3,$4,$5::int[],$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+		RETURNING id, created_at, updated_at
+	`
 
-	return r.db.QueryRow(ctx, sql, args...).Scan(&project.ID)
+	return r.db.QueryRow(
+		ctx,
+		query,
+		project.Title,
+		project.Status,
+		project.MentorID,
+		project.Company,
+		formatIntArray(project.Courses),
+		project.Description,
+		project.FullDescription,
+		project.Technologies,
+		project.TeamSizeMin,
+		project.TeamSizeMax,
+		project.NumTeams,
+		project.MinGPA,
+		project.EduResult,
+		project.AcceptanceCriteria,
+		project.Goal,
+		project.ExpectedResult,
+		project.Competencies,
+		project.Resources,
+		project.DurationSemesters,
+		project.SubmittedAt,
+	).Scan(&project.ID, &project.CreatedAt, &project.UpdatedAt)
 }
 
 func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Project, error) {
-	sql, args, err := r.dialect.From("projects").
-		Select(
-			"id", "title", "template_id", "field_values", "status",
-			"mentor_id", "creator_id", "max_slots", "company", "course",
-			"created_at", "updated_at",
-		).
-		Where(goqu.C("id").Eq(id)).
-		ToSQL()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build select query: %w", err)
-	}
+	query := `
+		SELECT id, title, status, mentor_id, company,
+		       COALESCE(array_to_json(courses)::text, '[]'),
+		       COALESCE(description, ''), COALESCE(full_description, ''), technologies,
+		       team_size_min, team_size_max, num_teams, COALESCE(min_gpa, 0),
+		       COALESCE(edu_result, ''), COALESCE(acceptance_criteria, ''), COALESCE(goal, ''),
+		       COALESCE(expected_result, ''), COALESCE(competencies, ''), COALESCE(resources, ''),
+		       duration_semesters, submitted_at, created_at, updated_at
+		FROM projects
+		WHERE id = $1
+	`
 
 	project := &models.Project{}
-
+	var courses models.IntList
 	scanFunc := func(s Scanner) error {
 		return s.Scan(
 			&project.ID,
 			&project.Title,
-			&project.TemplateID,
-			&project.FieldValues,
 			&project.Status,
 			&project.MentorID,
-			&project.CreatorID,
-			&project.MaxSlots,
 			&project.Company,
-			&project.Course,
+			&courses,
+			&project.Description,
+			&project.FullDescription,
+			&project.Technologies,
+			&project.TeamSizeMin,
+			&project.TeamSizeMax,
+			&project.NumTeams,
+			&project.MinGPA,
+			&project.EduResult,
+			&project.AcceptanceCriteria,
+			&project.Goal,
+			&project.ExpectedResult,
+			&project.Competencies,
+			&project.Resources,
+			&project.DurationSemesters,
+			&project.SubmittedAt,
 			&project.CreatedAt,
 			&project.UpdatedAt,
 		)
 	}
 
-	if err := ScanOne(r.db.QueryRow(ctx, sql, args...), scanFunc, "project"); err != nil {
+	if err := ScanOne(r.db.QueryRow(ctx, query, id), scanFunc, "project"); err != nil {
 		return nil, err
 	}
+	project.Courses = []int(courses)
 
 	return project, nil
 }
@@ -93,98 +114,80 @@ type ProjectListFilters struct {
 	Offset  int
 }
 
-func (r *ProjectRepository) buildProjectListQuery(filters ProjectListFilters) *goqu.SelectDataset {
-	ds := r.dialect.From("projects")
-	if filters.Company != "" {
-		ds = ds.Where(goqu.C("company").Eq(filters.Company))
-	}
-
-	if filters.Course != "" {
-		ds = ds.Where(goqu.C("course").Eq(filters.Course))
-	}
-
-	if filters.Status != "" {
-		ds = ds.Where(goqu.C("status").Eq(filters.Status))
-	}
-
-	return ds
-}
-
-func (r *ProjectRepository) countProjects(ctx context.Context, ds *goqu.SelectDataset) (int, error) {
-	countSQL, countArgs, err := ds.Select(goqu.COUNT("*")).ToSQL()
-	if err != nil {
-		return 0, fmt.Errorf("failed to build count query: %w", err)
-	}
-
-	var total int
-	err = r.db.QueryRow(ctx, countSQL, countArgs...).Scan(&total)
-
-	return total, err
-}
-
-func toUintSafe(val int) uint {
-	if val < 0 {
-		return 0
-	}
-
-	return uint(val)
-}
-
-func (r *ProjectRepository) fetchProjectList(
-	ctx context.Context,
-	ds *goqu.SelectDataset,
-	limit, offset int,
-) ([]models.ProjectListItem, error) {
-	listSQL, listArgs, err := ds.
-		Select(
-			"id",
-			"title",
-			"status",
-			"mentor_id",
-			"company",
-			"course",
-			"max_slots",
-			goqu.L(
-				"COALESCE((SELECT COUNT(*) FROM applications WHERE project_id = projects.id AND status = 'Принято'), 0)",
-			).As("filled_slots"),
-			"created_at",
-		).
-		Order(goqu.C("created_at").Desc()).
-		Limit(toUintSafe(limit)).
-		Offset(toUintSafe(offset)).
-		ToSQL()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build select query: %w", err)
-	}
-
-	scanFunc := func(s Scanner) (models.ProjectListItem, error) {
-		var project models.ProjectListItem
-		err := s.Scan(
-			&project.ID,
-			&project.Title,
-			&project.Status,
-			&project.MentorID,
-			&project.Company,
-			&project.Course,
-			&project.MaxSlots,
-			&project.FilledSlots,
-			&project.CreatedAt,
-		)
-		return project, err
-	}
-
-	return ScanAll(ctx, r.db, listSQL, listArgs, scanFunc)
-}
-
 func (r *ProjectRepository) GetList(ctx context.Context, filters ProjectListFilters) ([]models.ProjectListItem, int, error) {
-	ds := r.buildProjectListQuery(filters)
+	where := "WHERE 1=1"
+	args := []interface{}{}
+	argPos := 1
+	if filters.Company != "" {
+		where += fmt.Sprintf(" AND company = $%d", argPos)
+		args = append(args, filters.Company)
+		argPos++
+	}
+	if filters.Status != "" {
+		where += fmt.Sprintf(" AND status = $%d", argPos)
+		args = append(args, filters.Status)
+		argPos++
+	}
+	if filters.Course != "" {
+		where += fmt.Sprintf(" AND $%d::int = ANY(courses)", argPos)
+		args = append(args, filters.Course)
+		argPos++
+	}
 
-	total, err := r.countProjects(ctx, ds)
-	if err != nil {
+	countQuery := "SELECT COUNT(*) FROM projects " + where
+	var total int
+	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	projects, err := r.fetchProjectList(ctx, ds, filters.Limit, filters.Offset)
+	query := fmt.Sprintf(`
+		SELECT p.id, p.title, p.status, p.mentor_id, p.company,
+		       COALESCE(array_to_json(p.courses)::text, '[]'),
+		       p.team_size_min, p.team_size_max, p.num_teams,
+		       COALESCE(COUNT(DISTINCT CASE WHEN a.team_id IS NOT NULL THEN a.team_id END), 0) AS filled_teams,
+		       COALESCE(COUNT(*) FILTER (WHERE a.status = 'Принят'), 0) AS accepted_count,
+		       p.submitted_at, p.created_at, p.updated_at,
+		       COALESCE(p.description, ''), p.technologies, COALESCE(p.min_gpa, 0)
+		FROM projects p
+		LEFT JOIN applications a ON a.project_id = p.id
+		%s
+		GROUP BY p.id
+		ORDER BY p.created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, where, argPos, argPos+1)
+	args = append(args, filters.Limit, filters.Offset)
+
+	scanFunc := func(s Scanner) (models.ProjectListItem, error) {
+		var item models.ProjectListItem
+		var courses models.IntList
+		err := s.Scan(
+			&item.ID,
+			&item.Title,
+			&item.Status,
+			&item.MentorID,
+			&item.Company,
+			&courses,
+			&item.TeamSizeMin,
+			&item.TeamSizeMax,
+			&item.NumTeams,
+			&item.FilledTeams,
+			&item.AcceptedCount,
+			&item.SubmittedAt,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.Description,
+			&item.Technologies,
+			&item.MinGPA,
+		)
+		item.Courses = []int(courses)
+		item.AvailableSlots = item.NumTeams*item.TeamSizeMax - item.AcceptedCount
+		if item.AvailableSlots < 0 {
+			item.AvailableSlots = 0
+		}
+		return item, err
+	}
+
+	projects, err := ScanAll(ctx, r.db, query, args, scanFunc)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -193,22 +196,56 @@ func (r *ProjectRepository) GetList(ctx context.Context, filters ProjectListFilt
 }
 
 func (r *ProjectRepository) Update(ctx context.Context, project *models.Project) error {
-	sql, args, err := r.dialect.Update("projects").
-		Set(goqu.Record{
-			"title":        project.Title,
-			"field_values": project.FieldValues,
-			"status":       project.Status,
-			"max_slots":    project.MaxSlots,
-			"company":      project.Company,
-			"course":       project.Course,
-		}).
-		Where(goqu.C("id").Eq(project.ID)).
-		ToSQL()
-	if err != nil {
-		return fmt.Errorf("failed to build update query: %w", err)
-	}
+	query := `
+		UPDATE projects
+		SET title = $2,
+		    status = $3,
+		    mentor_id = $4,
+		    company = $5,
+		    courses = $6::int[],
+		    description = $7,
+		    full_description = $8,
+		    technologies = $9,
+		    team_size_min = $10,
+		    team_size_max = $11,
+		    num_teams = $12,
+		    min_gpa = $13,
+		    edu_result = $14,
+		    acceptance_criteria = $15,
+		    goal = $16,
+		    expected_result = $17,
+		    competencies = $18,
+		    resources = $19,
+		    duration_semesters = $20,
+		    submitted_at = $21
+		WHERE id = $1
+	`
 
-	result, err := r.db.Exec(ctx, sql, args...)
+	result, err := r.db.Exec(
+		ctx,
+		query,
+		project.ID,
+		project.Title,
+		project.Status,
+		project.MentorID,
+		project.Company,
+		formatIntArray(project.Courses),
+		project.Description,
+		project.FullDescription,
+		project.Technologies,
+		project.TeamSizeMin,
+		project.TeamSizeMax,
+		project.NumTeams,
+		project.MinGPA,
+		project.EduResult,
+		project.AcceptanceCriteria,
+		project.Goal,
+		project.ExpectedResult,
+		project.Competencies,
+		project.Resources,
+		project.DurationSemesters,
+		project.SubmittedAt,
+	)
 	if err != nil {
 		return err
 	}
@@ -217,17 +254,134 @@ func (r *ProjectRepository) Update(ctx context.Context, project *models.Project)
 }
 
 func (r *ProjectRepository) Delete(ctx context.Context, id int) error {
-	sql, args, err := r.dialect.Delete("projects").
-		Where(goqu.C("id").Eq(id)).
-		ToSQL()
-	if err != nil {
-		return fmt.Errorf("failed to build delete query: %w", err)
-	}
-
-	result, err := r.db.Exec(ctx, sql, args...)
+	result, err := r.db.Exec(ctx, "DELETE FROM projects WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
 
 	return CheckRowsAffected(result, "project")
+}
+
+func (r *ProjectRepository) GetFull(ctx context.Context, id int) (*models.ProjectFull, error) {
+	project, err := r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	sprints, err := NewSprintRepository(r.db).GetByProjectID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	teams, err := NewTeamRepository(r.db).GetByProjectID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.ProjectFull{
+		Project: *project,
+		Sprints: sprints,
+		Teams:   teams,
+	}, nil
+}
+
+func (r *ProjectRepository) GetApplicants(ctx context.Context, id int) (*models.ProjectApplicantsResponse, error) {
+	project, err := r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	apps, err := NewApplicationRepository(r.db).GetByProjectID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	teams, err := NewTeamRepository(r.db).GetByProjectID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	minCourse := 0
+	if len(project.Courses) > 0 {
+		sorted := append([]int(nil), project.Courses...)
+		sort.Ints(sorted)
+		minCourse = sorted[0]
+	}
+
+	resp := &models.ProjectApplicantsResponse{
+		ProjectID: id,
+		Requirements: models.ApplicantRequirements{
+			MinCourse: minCourse,
+			MinGPA:    project.MinGPA,
+		},
+	}
+
+	teamByID := make(map[int]*models.ApplicantTeamBucket, len(teams))
+	for _, team := range teams {
+		bucket := models.ApplicantTeamBucket{
+			TeamID:  team.ID,
+			Name:    team.Name,
+			MaxSize: project.TeamSizeMax,
+		}
+		resp.Teams = append(resp.Teams, bucket)
+		teamByID[team.ID] = &resp.Teams[len(resp.Teams)-1]
+	}
+
+	for _, app := range apps {
+		course, _ := strconv.Atoi(app.Student.Course)
+		item := models.ApplicantItem{
+			ApplicationID: app.ID,
+			StudentID:     app.StudentID,
+			Name:          app.Student.FirstName + " " + app.Student.LastName,
+			Course:        course,
+			GPA:           app.Student.GPA,
+			Status:        app.Status,
+			TeamID:        app.TeamID,
+		}
+		qualified := containsInt(project.Courses, course) && app.Student.GPA >= project.MinGPA
+		if app.Status == models.ApplicationStatusUnqualified {
+			qualified = false
+		}
+		addApplicantByPriority(&resp.Qualified, &resp.Unqualified, qualified, app.Priority, item)
+
+		if app.TeamID != nil {
+			if bucket, ok := teamByID[*app.TeamID]; ok {
+				bucket.Members = append(bucket.Members, models.ApplicantTeamMember{
+					ApplicationID: app.ID,
+					StudentID:     app.StudentID,
+					Name:          item.Name,
+					Status:        app.Status,
+				})
+			}
+		}
+	}
+
+	return resp, nil
+}
+
+func addApplicantByPriority(qualified, unqualified *models.ApplicantPriorityBuckets, isQualified bool, priority int, item models.ApplicantItem) {
+	target := unqualified
+	if isQualified {
+		target = qualified
+	}
+
+	switch priority {
+	case 1:
+		target.Priority1 = append(target.Priority1, item)
+	case 2:
+		target.Priority2 = append(target.Priority2, item)
+	case 3:
+		target.Priority3 = append(target.Priority3, item)
+	case 4:
+		target.Priority4 = append(target.Priority4, item)
+	case 5:
+		target.Priority5 = append(target.Priority5, item)
+	}
+}
+
+func containsInt(values []int, target int) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }

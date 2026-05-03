@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -59,4 +61,17 @@ func CheckRowsAffected(tag pgconn.CommandTag, entityName string) error {
 		return fmt.Errorf("%s not found", entityName)
 	}
 	return nil
+}
+
+func formatIntArray(values []int) string {
+	if len(values) == 0 {
+		return "{}"
+	}
+
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		parts = append(parts, strconv.Itoa(value))
+	}
+
+	return "{" + strings.Join(parts, ",") + "}"
 }
