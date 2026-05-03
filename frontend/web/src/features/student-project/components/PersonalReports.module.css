@@ -1,0 +1,167 @@
+.wrapper {
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.dateRange {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 12px 0;
+}
+
+.memberCard {
+  margin-bottom: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+}
+
+.memberCardOwn {
+  border: 2px solid var(--color-accent);
+}
+
+.memberHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.memberAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.memberName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.memberRole {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.badgeYou {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+.badgeLeader {
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 3px;
+}
+
+.hours {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.tasksHint {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.taskList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.taskRow {
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  background: var(--color-card);
+}
+
+.taskRow:hover {
+  background: var(--color-surface);
+}
+
+.statusChip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.taskName {
+  font-weight: 500;
+  color: var(--color-text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mr {
+  color: var(--color-accent);
+  font-weight: 600;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.taskHours {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.noTasks {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+}
