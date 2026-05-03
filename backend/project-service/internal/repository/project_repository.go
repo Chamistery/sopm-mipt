@@ -268,6 +268,27 @@ func (r *ProjectRepository) Delete(ctx context.Context, id int) error {
 	return CheckRowsAffected(result, "project")
 }
 
+// GetPredecessor returns the project referenced by predecessor_project_id of
+// the given project. Returns (nil, nil) if the project exists but has no
+// predecessor set. Returns (nil, error) with a "project not found" error when
+// the project itself does not exist.
+func (r *ProjectRepository) GetPredecessor(ctx context.Context, id int) (*models.Project, error) {
+	var predecessorID *int
+	scanFunc := func(s Scanner) error {
+		return s.Scan(&predecessorID)
+	}
+
+	row := r.db.QueryRow(ctx, "SELECT predecessor_project_id FROM projects WHERE id = $1", id)
+	if err := ScanOne(row, scanFunc, "project"); err != nil {
+		return nil, err
+	}
+	if predecessorID == nil {
+		return nil, nil
+	}
+
+	return r.GetByID(ctx, *predecessorID)
+}
+
 func (r *ProjectRepository) GetFull(ctx context.Context, id int) (*models.ProjectFull, error) {
 	project, err := r.GetByID(ctx, id)
 	if err != nil {

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,10 +16,13 @@ import (
 // stubProjectRepo captures the last filters passed to GetList and returns
 // configurable canned responses for the methods exercised by handler tests.
 type stubProjectRepo struct {
-	lastFilters  repository.ProjectListFilters
-	listProjects []models.ProjectListItem
-	listTotal    int
-	listErr      error
+	lastFilters         repository.ProjectListFilters
+	listProjects        []models.ProjectListItem
+	listTotal           int
+	listErr             error
+	predecessor         *models.Project
+	predecessorErr      error
+	predecessorCalledID int
 }
 
 func (s *stubProjectRepo) Create(context.Context, *models.Project) error { return nil }
@@ -33,6 +37,10 @@ func (s *stubProjectRepo) GetByID(context.Context, int) (*models.Project, error)
 func (s *stubProjectRepo) GetFull(context.Context, int) (*models.ProjectFull, error) { return nil, nil }
 func (s *stubProjectRepo) GetApplicants(context.Context, int) (*models.ProjectApplicantsResponse, error) {
 	return nil, nil
+}
+func (s *stubProjectRepo) GetPredecessor(_ context.Context, id int) (*models.Project, error) {
+	s.predecessorCalledID = id
+	return s.predecessor, s.predecessorErr
 }
 func (s *stubProjectRepo) Update(context.Context, *models.Project) error { return nil }
 func (s *stubProjectRepo) Delete(context.Context, int) error             { return nil }
@@ -135,6 +143,89 @@ func TestProjectHandler_GetMentorArchive_FiltersByCurrentMentorAndCompletedStatu
 	}
 	if body.Data.Total != 1 || len(body.Data.Projects) != 1 || body.Data.Projects[0].ID != 7 {
 		t.Fatalf("unexpected body: %s", w.Body.String())
+	}
+}
+
+func TestProjectHandler_GetPredecessor_ReturnsProject(t *testing.T) {
+	predecessor := &models.Project{ID: 5, Title: "Прошлый проект"}
+	repo := &stubProjectRepo{predecessor: predecessor}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 1, Role: auth.RoleStudent}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/predecessor", user)
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetPredecessor(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.predecessorCalledID != 12 {
+		t.Fatalf("expected repo called with id=12, got %d", repo.predecessorCalledID)
+	}
+
+	var body struct {
+		Data *models.Project `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Data == nil || body.Data.ID != 5 {
+		t.Fatalf("expected predecessor id=5 in body, got %s", w.Body.String())
+	}
+}
+
+func TestProjectHandler_GetPredecessor_ReturnsNullWhenNoPredecessor(t *testing.T) {
+	repo := &stubProjectRepo{predecessor: nil, predecessorErr: nil}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 1, Role: auth.RoleStudent}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/predecessor", user)
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetPredecessor(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var body struct {
+		Data *models.Project `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Data != nil {
+		t.Fatalf("expected data=null, got %+v", body.Data)
+	}
+}
+
+func TestProjectHandler_GetPredecessor_NotFoundWhenProjectMissing(t *testing.T) {
+	repo := &stubProjectRepo{predecessorErr: errors.New("project not found")}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 1, Role: auth.RoleStudent}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/999/predecessor", user)
+	req.SetPathValue("id", "999")
+	w := httptest.NewRecorder()
+	h.GetPredecessor(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProjectHandler_GetPredecessor_UnauthenticatedRejected(t *testing.T) {
+	repo := &stubProjectRepo{}
+	h := NewProjectHandler(repo)
+
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/predecessor", &auth.CurrentUser{Role: auth.RoleAnonymous})
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetPredecessor(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
 	}
 }
 

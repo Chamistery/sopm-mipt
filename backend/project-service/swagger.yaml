@@ -128,6 +128,32 @@ paths:
         '200':
           description: Project applicants
 
+  /api/projects/{id}/predecessor:
+    get:
+      tags: [Projects]
+      summary: Проект-предшественник
+      description: |
+        Возвращает проект, на который ссылается `predecessorProjectId` указанного проекта.
+        Если предшественник не задан, возвращается `200` с `data: null`.
+        Если самого проекта не существует — `404`.
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Предшественник найден или отсутствует (data может быть null)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    nullable: true
+                    oneOf:
+                      - $ref: '#/components/schemas/Project'
+                      - type: 'null'
+        '401': { description: Требуется аутентификация }
+        '404': { description: Проект не найден }
+
   /api/mentor/projects/archive:
     get:
       tags: [Projects]
@@ -973,6 +999,10 @@ components:
         resources: { type: string }
         durationSemesters: { type: integer }
         submittedAt: { type: string, format: date-time }
+        predecessorProjectId:
+          type: integer
+          nullable: true
+          description: Идентификатор проекта-предшественника (если задан)
     Application:
       type: object
       properties:

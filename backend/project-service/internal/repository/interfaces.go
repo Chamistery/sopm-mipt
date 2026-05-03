@@ -12,6 +12,7 @@ type ProjectRepositoryInterface interface {
 	GetByID(ctx context.Context, id int) (*models.Project, error)
 	GetFull(ctx context.Context, id int) (*models.ProjectFull, error)
 	GetApplicants(ctx context.Context, id int) (*models.ProjectApplicantsResponse, error)
+	GetPredecessor(ctx context.Context, id int) (*models.Project, error)
 	Update(ctx context.Context, project *models.Project) error
 	Delete(ctx context.Context, id int) error
 }

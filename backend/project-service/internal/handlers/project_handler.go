@@ -147,6 +147,29 @@ func (h *ProjectHandler) GetFull(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w, http.StatusOK, project)
 }
 
+func (h *ProjectHandler) GetPredecessor(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.IsAuthenticated() {
+		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	predecessor, err := h.repo.GetPredecessor(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+
+	// predecessor == nil here means the project exists but has no predecessor.
+	httputil.RespondSuccess(w, http.StatusOK, predecessor)
+}
+
 func (h *ProjectHandler) GetApplicants(w http.ResponseWriter, r *http.Request) {
 	id, err := httputil.ParsePathInt(r, "id")
 	if err != nil {
