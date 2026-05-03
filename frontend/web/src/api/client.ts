@@ -46,17 +46,33 @@ export function buildAuthHeaders(): Record<string, string> {
   };
 }
 
+/*
+ * Query value accepts the primitive types that round-trip safely through
+ * URLSearchParams. Use `unknown` at the value level so feature code can
+ * pass typed structures (`type ProjectListQuery = { mentorId?: number }`)
+ * without an index signature — TS strict otherwise refuses to assign
+ * a typed object literal to a Record with named keys.
+ */
+export type QueryValue = string | number | boolean | null | undefined;
+export type QueryRecord = Record<string, QueryValue>;
+
 export interface ApiRequestInit extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  query?: Record<string, string | number | boolean | undefined | null>;
+  query?: QueryRecord | Record<string, unknown>;
 }
 
 function buildQuery(query?: ApiRequestInit['query']): string {
   if (!query) return '';
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(query)) {
-    if (value === undefined || value === null) continue;
-    params.append(key, String(value));
+  for (const [key, raw] of Object.entries(query)) {
+    if (raw === undefined || raw === null) continue;
+    if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
+      params.append(key, String(raw));
+    } else {
+      // Skip nested objects/arrays silently — features should serialise them
+      // before passing in (e.g. join an array, JSON.stringify a struct).
+      continue;
+    }
   }
   const s = params.toString();
   return s ? `?${s}` : '';
