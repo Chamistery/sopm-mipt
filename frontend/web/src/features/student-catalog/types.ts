@@ -39,7 +39,7 @@ export interface CatalogProject extends Partial<Omit<ProjectListItem, 'company' 
   /** Total slots = numTeams × teamSizeMax. */
   maxSlots?: number;
   /** Convenience alias for `acceptedCount`. */
-  filledSlots?: number | null;
+  filledSlots?: number;
 }
 
 export interface PrioritySlots {

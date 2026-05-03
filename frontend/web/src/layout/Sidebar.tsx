@@ -10,6 +10,8 @@ import styles from './Sidebar.module.css';
 interface NavItem {
   to: string;
   label: string;
+  /** When true, the link is highlighted only on an exact path match. */
+  end?: boolean;
 }
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
@@ -27,7 +29,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: '/profile', label: 'Мой профиль' },
   ],
   coordinator: [
-    { to: '/admin', label: 'Координация' },
+    { to: '/admin', label: 'Координация', end: true },
+    { to: '/admin/projects', label: 'Проекты' },
+    { to: '/admin/distribution', label: 'Распределение' },
     { to: '/profile', label: 'Мой профиль' },
   ],
   admin: [
@@ -74,7 +78,7 @@ export function Sidebar(): JSX.Element {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
+            end={item.end ?? item.to === '/'}
             className={({ isActive }) =>
               isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem
             }

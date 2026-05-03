@@ -22,7 +22,26 @@ export const PROJECT_STATUSES = [
   'Архивный',
 ] as const;
 
-export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+/** Alias kept for feature/coordinator imports. */
+export const PROJECT_STATUS_OFFICIAL = PROJECT_STATUSES;
+
+/**
+ * Coordinator workflow uses two extra status values that the backend
+ * doesn't yet declare in swagger.yaml: `'На утверждении'` (waiting for
+ * coordinator approval) and `'Утверждён'` (approved). They're typed as
+ * a union extension so the UI compiles; if the backend rejects the value
+ * the call surfaces as ApiError and the UI handles it.
+ *
+ * TODO(coordinator): add these to backend ProjectStatus enum + swagger.
+ */
+export const PROJECT_STATUS_PENDING = 'На утверждении' as const;
+export const PROJECT_STATUS_APPROVED = 'Утверждён' as const;
+
+export type ProjectStatusOfficial = (typeof PROJECT_STATUSES)[number];
+export type ProjectStatus =
+  | ProjectStatusOfficial
+  | typeof PROJECT_STATUS_PENDING
+  | typeof PROJECT_STATUS_APPROVED;
 
 export interface FieldValue {
   fieldId: string;
@@ -58,6 +77,16 @@ export interface ProjectListItem {
   submittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+
+  /* Legacy aliases used by feature/coordinator. Backend doesn't populate
+   * them; coordinator code should switch to projectMaxSlots(), acceptedCount,
+   * and courses[0] respectively. Optional so list responses still type-check. */
+  /** @deprecated use projectMaxSlots(item) */
+  maxSlots?: number;
+  /** @deprecated use item.acceptedCount */
+  filledSlots?: number;
+  /** @deprecated use item.courses?.[0] */
+  course?: string | null;
 }
 
 export interface Project {
@@ -87,6 +116,35 @@ export interface Project {
   updatedAt: string;
   /** Legacy template field values, used by the catalog detail modal. */
   fieldValues?: FieldValue[];
+  /** @deprecated coord legacy alias for first courses[]. */
+  course?: string | null;
+  /** @deprecated coord legacy alias for projectMaxSlots(). */
+  maxSlots?: number;
+  /** @deprecated coord legacy template id. */
+  templateId?: string;
+  /** @deprecated coord legacy creator id. */
+  creatorId?: number;
+}
+
+/** Coordinator-side trimmed team view for project detail page. */
+export interface ProjectTeamMember {
+  id: number;
+  userId: number;
+  fullName: string;
+  role?: string | null;
+}
+
+export interface ProjectTeam {
+  id: number;
+  name: string;
+  members: ProjectTeamMember[];
+}
+
+export interface ProjectSprintLite {
+  id: number;
+  name: string;
+  startDate: string;
+  endDate: string;
 }
 
 export interface ProjectFull {
@@ -111,6 +169,9 @@ export interface ProjectListQuery {
   /** Filter by mentor (added in feature/backend-gaps). */
   mentorId?: number;
 }
+
+/** Alias kept for feature/coordinator imports. */
+export type ListProjectsParams = ProjectListQuery;
 
 export function listProjects(query: ProjectListQuery = {}): Promise<ProjectListResponse> {
   return apiFetch<ProjectListResponse>('/projects', { query });

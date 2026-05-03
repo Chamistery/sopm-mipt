@@ -11,6 +11,9 @@ const STATUS_CLASS: Record<ProjectStatus, string> = {
   Активный: styles.active,
   Завершён: styles.finished,
   Архивный: styles.archive,
+  // Coord-only extension statuses (see ADR-pending in projects.ts).
+  'На утверждении': styles.draft,
+  Утверждён: styles.published,
 };
 
 export function StatusBadge({ status }: Props): JSX.Element {
