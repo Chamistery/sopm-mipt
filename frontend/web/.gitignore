@@ -1,6 +1,7 @@
 # Build outputs
 dist
 storybook-static
+*.tsbuildinfo
 
 # Test outputs
 coverage

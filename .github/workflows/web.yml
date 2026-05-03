@@ -1,0 +1,93 @@
+name: web
+
+on:
+  push:
+    branches: [main, frontend-react, 'frontend/**']
+    paths:
+      - 'frontend/web/**'
+      - 'backend/project-service/swagger.yaml'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'frontend/web/**'
+      - 'backend/project-service/swagger.yaml'
+      - '.github/workflows/web.yml'
+
+jobs:
+  ci:
+    name: lint / typecheck / test / build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/web/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate API client from swagger
+        run: npm run gen:api || echo "::warning::codegen failed; relying on hand-written types"
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Storybook build
+        run: npm run storybook:build
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storybook-static
+          path: frontend/web/storybook-static
+          retention-days: 7
+
+  e2e:
+    name: playwright e2e
+    runs-on: ubuntu-latest
+    needs: ci
+    defaults:
+      run:
+        working-directory: frontend/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/web/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Playwright
+        run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/web/playwright-report
+          retention-days: 7
