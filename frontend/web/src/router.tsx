@@ -7,6 +7,11 @@ import { ProfilePage } from '@/features/profile/ProfilePage';
 import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { PlaceholderPage } from '@/features/errors/PlaceholderPage';
 import { redirectByRole } from '@/auth/redirectByRole';
+import { CoordinatorLayout } from '@/features/coordinator/CoordinatorLayout';
+import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
+import { ProjectsListPage } from '@/features/coordinator/ProjectsListPage';
+import { ProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
+import { DistributionPage } from '@/features/coordinator/DistributionPage';
 
 export const router = createBrowserRouter([
   {
@@ -39,7 +44,13 @@ export const router = createBrowserRouter([
       },
       {
         path: 'admin',
-        element: <PlaceholderPage feature="Панель координатора" branch="coordinator" />,
+        element: <CoordinatorLayout />,
+        children: [
+          { index: true, element: <CoordinatorDashboardPage /> },
+          { path: 'projects', element: <ProjectsListPage /> },
+          { path: 'projects/:id', element: <ProjectDetailPage /> },
+          { path: 'distribution', element: <DistributionPage /> },
+        ],
       },
     ],
   },
