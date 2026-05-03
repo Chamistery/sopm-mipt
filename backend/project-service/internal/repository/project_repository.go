@@ -107,11 +107,12 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 }
 
 type ProjectListFilters struct {
-	Company string
-	Course  string
-	Status  string
-	Limit   int
-	Offset  int
+	Company  string
+	Course   string
+	Status   string
+	MentorID int
+	Limit    int
+	Offset   int
 }
 
 func (r *ProjectRepository) GetList(ctx context.Context, filters ProjectListFilters) ([]models.ProjectListItem, int, error) {
@@ -131,6 +132,11 @@ func (r *ProjectRepository) GetList(ctx context.Context, filters ProjectListFilt
 	if filters.Course != "" {
 		where += fmt.Sprintf(" AND $%d::int = ANY(courses)", argPos)
 		args = append(args, filters.Course)
+		argPos++
+	}
+	if filters.MentorID > 0 {
+		where += fmt.Sprintf(" AND mentor_id = $%d", argPos)
+		args = append(args, filters.MentorID)
 		argPos++
 	}
 

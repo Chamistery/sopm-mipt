@@ -28,6 +28,7 @@ func setupRoutes(
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
+	mux.HandleFunc("GET /api/mentor/projects/archive", projectHandler.GetMentorArchive)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
 	mux.HandleFunc("GET /api/projects/{id}/applicants", projectHandler.GetApplicants)
