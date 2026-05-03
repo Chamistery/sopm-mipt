@@ -47,31 +47,29 @@ export function buildAuthHeaders(): Record<string, string> {
 }
 
 /*
- * Query value accepts the primitive types that round-trip safely through
- * URLSearchParams. Use `unknown` at the value level so feature code can
- * pass typed structures (`type ProjectListQuery = { mentorId?: number }`)
- * without an index signature — TS strict otherwise refuses to assign
- * a typed object literal to a Record with named keys.
+ * `query` accepts any object — `object` is intentionally weak so feature
+ * code can pass typed structures (`type ProjectListQuery = { mentorId?: number }`)
+ * without an index signature. `Record<string, unknown>` would still require
+ * an index signature on the source type, which named object types lack.
+ *
+ * Values are filtered at runtime: only string/number/boolean make it onto
+ * the wire; null/undefined drop out; nested objects and arrays are skipped
+ * silently (features should pre-serialise them — joined string, JSON, etc).
  */
 export type QueryValue = string | number | boolean | null | undefined;
-export type QueryRecord = Record<string, QueryValue>;
 
 export interface ApiRequestInit extends Omit<RequestInit, 'body'> {
   body?: unknown;
-  query?: QueryRecord | Record<string, unknown>;
+  query?: object;
 }
 
-function buildQuery(query?: ApiRequestInit['query']): string {
+function buildQuery(query?: object): string {
   if (!query) return '';
   const params = new URLSearchParams();
-  for (const [key, raw] of Object.entries(query)) {
+  for (const [key, raw] of Object.entries(query as Record<string, unknown>)) {
     if (raw === undefined || raw === null) continue;
     if (typeof raw === 'string' || typeof raw === 'number' || typeof raw === 'boolean') {
       params.append(key, String(raw));
-    } else {
-      // Skip nested objects/arrays silently — features should serialise them
-      // before passing in (e.g. join an array, JSON.stringify a struct).
-      continue;
     }
   }
   const s = params.toString();
