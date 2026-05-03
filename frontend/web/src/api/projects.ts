@@ -67,3 +67,22 @@ export function listMentorArchive(query: { limit?: number; offset?: number } = {
 export function getProjectPredecessor(id: number): Promise<Project | null> {
   return apiFetch<Project | null>(`/projects/${id}/predecessor`);
 }
+
+/**
+ * Reads a string-valued template field from a Project.
+ *
+ * Carried over from feature/student-catalog for reading legacy template
+ * field values (`fieldValues` was the old project-data shape before
+ * `description`/`technologies`/etc became first-class columns).
+ *
+ * Returns '' when the field is missing so call sites can render directly.
+ */
+export function getFieldValue(
+  project: (Project & { fieldValues?: { fieldId?: string; value?: string }[] }) | null | undefined,
+  fieldId: string,
+): string {
+  const fields = project?.fieldValues;
+  if (!fields) return '';
+  const found = fields.find((f) => f.fieldId === fieldId);
+  return found?.value ?? '';
+}

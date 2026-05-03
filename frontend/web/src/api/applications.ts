@@ -27,6 +27,25 @@ export function getApplicationsByStudent(
   return apiFetch<PaginatedList<Application>>('/applications', { query: { studentId } });
 }
 
+/**
+ * Application enriched with the linked project's display fields.
+ * Returned by `GET /api/applications?studentId=&expand=project` — used by
+ * student-catalog to render priority slots after submission without a
+ * second round-trip per project.
+ */
+export interface ApplicationWithProject extends Application {
+  projectTitle?: string | null;
+  company?: string | null;
+}
+
+export function getApplicationsByStudentExpanded(
+  studentId: number,
+): Promise<ApplicationWithProject[]> {
+  return apiFetch<ApplicationWithProject[]>('/applications', {
+    query: { studentId, expand: 'project' },
+  });
+}
+
 export function getApplicationsByProject(
   projectId: number,
 ): Promise<PaginatedList<Application>> {
