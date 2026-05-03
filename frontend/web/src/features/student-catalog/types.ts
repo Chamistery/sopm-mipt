@@ -1,16 +1,27 @@
 /*
  * Local view-model types for the student catalog feature.
  *
- * The catalog enriches the API Project DTO with derived data (mentor name,
- * applied count, qualification check) so the UI only deals with one shape.
+ * The catalog enriches the API ProjectListItem with derived data (mentor name,
+ * qualification check, derived course/maxSlots) so the UI only deals with
+ * one shape.
  */
 
-import type { Project } from '@/api';
+import type { ProjectListItem, ProjectStatus } from '@/api';
 
-export interface CatalogProject extends Omit<Project, 'company'> {
-  /** Always present in the UI even though the DTO marks them optional. */
+/*
+ * Partial extends so test fixtures can construct minimal CatalogProject
+ * objects without spelling every field of the larger ProjectListItem
+ * (numTeams / teamSizeMax / filledTeams / acceptedCount / availableSlots
+ * / updatedAt). The page wires real data from listProjects() which
+ * already populates them; the tests don't exercise those numeric paths.
+ *
+ * TODO(integration): once tests use a fixture builder, drop Partial<>.
+ */
+export interface CatalogProject extends Partial<Omit<ProjectListItem, 'company' | 'id' | 'title' | 'status' | 'mentorId'>> {
   id: number;
   title: string;
+  status: ProjectStatus;
+  mentorId: number;
 
   /** Allow null in test fixtures where company is absent. */
   company?: string | null;
@@ -22,15 +33,13 @@ export interface CatalogProject extends Omit<Project, 'company'> {
   /** Reason text shown next to the «Не соответствует требованиям» badge. */
   unqualifiedReason: string;
 
-  /* Derived from API for UI convenience — Project DTO uses different fields. */
-  /** First admissible course (Project uses `courses: number[]`). */
+  /* Derived from API for UI convenience — ProjectListItem uses `courses: number[]`. */
+  /** First admissible course label (e.g. "2"). */
   course?: string | null;
   /** Total slots = numTeams × teamSizeMax. */
   maxSlots?: number;
-  /** Currently accepted (computed by backend in some endpoints, may be undefined). */
+  /** Convenience alias for `acceptedCount`. */
   filledSlots?: number | null;
-  /** Backend may include `createdAt`; not in the Project schema yet but used in fixtures. */
-  createdAt?: string;
 }
 
 export interface PrioritySlots {

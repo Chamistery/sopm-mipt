@@ -16,6 +16,7 @@ import {
   listProjects,
   type ApplicationWithProject,
   type Project,
+  type ProjectListItem,
 } from '@/api';
 import { fullName, listUsers, type UserSummary } from '@/api/users';
 import { useRequireUser } from '@/auth/useCurrentUser';
@@ -59,7 +60,7 @@ export function useCatalog(): CatalogData {
   }, [usersQuery.data, me.userId]);
 
   const projects = useMemo<CatalogProject[]>(() => {
-    const list = projectsQuery.data?.items ?? [];
+    const list = projectsQuery.data?.projects ?? [];
     const mentorById = indexById(usersQuery.data ?? []);
     return list.map((p) => enrichProject(p, mentorById, studentCourse));
   }, [projectsQuery.data, usersQuery.data, studentCourse]);
@@ -130,25 +131,24 @@ function indexById(users: readonly UserSummary[]): Map<number, UserSummary> {
 }
 
 function enrichProject(
-  p: Project,
+  p: ProjectListItem,
   mentorById: Map<number, UserSummary>,
   studentCourse: string | null,
 ): CatalogProject {
-  const mentor = p.mentorId !== undefined ? mentorById.get(p.mentorId) : undefined;
-  const mentorName = mentor ? fullName(mentor) : p.mentorId ? `Ментор #${p.mentorId}` : 'Ментор';
+  const mentor = mentorById.get(p.mentorId);
+  const mentorName = mentor ? fullName(mentor) : `Ментор #${p.mentorId}`;
   const projectCourse = projectFirstCourse(p.courses);
   const qualified = isQualified(studentCourse, projectCourse);
-  const numTeams = p.numTeams ?? 1;
-  const teamSizeMax = p.teamSizeMax ?? 0;
+  const numTeams = p.numTeams > 0 ? p.numTeams : 1;
+  const teamSizeMax = p.teamSizeMax > 0 ? p.teamSizeMax : 0;
   return {
     ...p,
-    id: p.id ?? 0,
-    title: p.title ?? '',
     mentorName,
     unqualified: !qualified,
     unqualifiedReason: qualified ? '' : describeUnqualifiedReason(studentCourse, projectCourse),
     course: projectCourse,
     maxSlots: numTeams * teamSizeMax,
+    filledSlots: p.acceptedCount,
   };
 }
 

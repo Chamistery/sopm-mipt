@@ -3,8 +3,11 @@
  * from here, not from individual files — that way refactors inside `src/api/`
  * don't ripple through the rest of the codebase.
  *
- * Example:
- *   import { listProjects, type Project, ProjectStatus } from '@/api';
+ * Two surfaces are deliberately not re-exported here because they
+ * collide on names (`TaskStatus`, `TeamReportStatus` etc.) with the
+ * sibling team helpers — import them directly:
+ *   import { approveTask, type Task } from '@/api/tasks';
+ *   import { reviewTeamReport, type TeamReport } from '@/api/teamReports';
  */
 
 export * from './client';
@@ -16,3 +19,4 @@ export * from './sprintScores';
 export * from './distribution';
 export * from './meetings';
 export * from './users';
+export * from './templates';

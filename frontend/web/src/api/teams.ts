@@ -1,31 +1,87 @@
 /*
- * Teams + sprint + gantt + team-reports + tasks helpers used by
- * feature/student-project.
+ * Teams + sprint + gantt + tasks + team-reports helpers.
  *
- * After integration this file holds two layers:
+ * After integration this file holds two layers of DTOs:
  *
- *   1. The thin generated-DTO wrappers (`getUserTeam`, `getTeamGantt`, …)
- *      that everything new should use.
+ *   1. Standard team / sprint / member shapes used by mentor-dashboard
+ *      and others (`Team`, `Sprint`, `TeamMember`, `GanttResponse`,
+ *      `GanttMember`, `SprintStatus`).
  *   2. The richer hand-written DTOs that the student-project feature was
- *      built against (`TeamContextDto`, `GanttResponseDto`, `TaskDto`, …).
- *      The backend swagger doesn't cover all of these fields yet
- *      (`mentor` block on team context, `wasOverdue`, `history`,
- *      `mentorComments`), so the feature kept its own contract. They live
- *      here for now to avoid touching the feature components — collapse
- *      into (1) once swagger.yaml catches up.
+ *      built against (`TeamContextDto`, `GanttResponseDto`, `TaskDto`,
+ *      `TeamReportDto`). The backend swagger doesn't yet cover the extra
+ *      fields these carry (`mentor` block on team context, `wasOverdue`,
+ *      `history`, `mentorComments`, `whatDone`, etc.) — keep them here
+ *      until swagger.yaml catches up, then collapse into (1).
+ *
+ * `tasks.ts` and `teamReports.ts` host the mentor-side surfaces
+ * (approve/reject/accept/return + review action) and are imported
+ * directly to avoid name collisions with the rich DTOs here.
  *
  * See ADR 0001 (Russian status strings, ISO dates, numeric IDs).
  */
 
 import { apiFetch } from './client';
-import type { GanttResponse, Team, TeamMember, UserTeamContext } from './types';
+import type { UserSummary } from './users';
+import type { Task as TaskListItem } from './tasks';
 import type { Role } from '@/auth/roles';
 
-// ─── Generated-DTO surface ──────────────────────────────────────────────
+// ─── Standard team / sprint surface (mentor-dashboard) ──────────────────
 
-export function listTeams(projectId: number): Promise<Team[]> {
+export const SPRINT_STATUSES = ['Запланирован', 'Активный', 'Завершён'] as const;
+export type SprintStatus = (typeof SPRINT_STATUSES)[number];
+
+export interface Sprint {
+  id: number;
+  projectId: number;
+  number: number;
+  startDate: string;
+  endDate: string;
+  status: SprintStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TeamMember {
+  id: number;
+  teamId: number;
+  userId: number;
+  roleInTeam?: string;
+  isLeader: boolean;
+  joinedAt?: string;
+  user: UserSummary;
+}
+
+export interface Team {
+  id: number;
+  projectId: number;
+  name: string;
+  leaderId?: number | null;
+  leader?: UserSummary | null;
+  members?: TeamMember[];
+  currentSprint?: Sprint | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GanttMember {
+  userId: number;
+  name: string;
+  roleInTeam?: string;
+  isLeader: boolean;
+}
+
+export interface GanttResponse {
+  sprint: Sprint;
+  members: GanttMember[];
+  tasks: TaskListItem[];
+}
+
+export function listTeamsByProject(projectId: number): Promise<Team[]> {
   return apiFetch<Team[]>('/teams', { query: { projectId } });
 }
+
+/** Alias kept for older call sites that used `listTeams`. */
+export const listTeams = listTeamsByProject;
 
 export function getTeam(id: number): Promise<Team> {
   return apiFetch<Team>(`/teams/${id}`);
@@ -35,7 +91,11 @@ export function getTeamGantt(teamId: number, sprintId: number): Promise<GanttRes
   return apiFetch<GanttResponse>(`/teams/${teamId}/gantt`, { query: { sprintId } });
 }
 
-export function createTeam(payload: { projectId: number; name: string; leaderId?: number }): Promise<Team> {
+export function createTeam(payload: {
+  projectId: number;
+  name: string;
+  leaderId?: number;
+}): Promise<Team> {
   return apiFetch<Team>('/teams', { method: 'POST', body: payload });
 }
 
@@ -58,14 +118,31 @@ export function removeTeamMember(teamId: number, userId: number): Promise<void> 
   return apiFetch<void>(`/teams/${teamId}/members/${userId}`, { method: 'DELETE' });
 }
 
-/** `GET /api/users/{id}/team` — generated-DTO version. */
-export function getUserTeam(userId: number): Promise<UserTeamContext> {
-  return apiFetch<UserTeamContext>(`/users/${userId}/team`);
+export function listSprintsByProject(projectId: number): Promise<Sprint[]> {
+  return apiFetch<Sprint[]>('/sprints', { query: { projectId } });
 }
 
+/**
+ * Picks the best sprint to show on the mentor task-review screen by default:
+ * the active one, otherwise the next planned, otherwise the most recent.
+ * Pure helper — exposed for unit tests.
+ */
+export function pickDefaultSprint(sprints: Sprint[]): Sprint | null {
+  if (sprints.length === 0) return null;
+  const active = sprints.find((s) => s.status === 'Активный');
+  if (active) return active;
+  const planned = sprints
+    .filter((s) => s.status === 'Запланирован')
+    .sort((a, b) => a.number - b.number);
+  if (planned.length > 0) return planned[0] ?? null;
+  const sorted = [...sprints].sort((a, b) => b.number - a.number);
+  return sorted[0] ?? null;
+}
+
+/** Re-exported so sproject and other features can import status from here too. */
+export type { TeamReportStatus } from './teamReports';
+
 // ─── Rich DTOs used by feature/student-project ──────────────────────────
-// These describe response fields not yet present in swagger.yaml — keep
-// in sync with backend until the schema catches up.
 
 export type TaskStatus =
   | 'Ожидает аппрува'
@@ -123,9 +200,7 @@ export interface TeamMemberDto {
 export interface SprintDto {
   id: number;
   number: number;
-  /** ISO YYYY-MM-DD. */
   startDate: string;
-  /** ISO YYYY-MM-DD, включительно. */
   endDate: string;
   status: 'Запланирован' | 'Активный' | 'Завершён';
 }
@@ -198,9 +273,12 @@ export function deleteTask(id: number): Promise<void> {
   return apiFetch<void>(`/tasks/${id}`, { method: 'DELETE' });
 }
 
-// ─── Team reports (rich DTOs) ───────────────────────────────────────────
+// ─── Team reports (rich DTOs for student-project) ──────────────────────
+// `TeamReportStatus` is the single shared union, defined in `./teamReports.ts`.
+// The DTO below carries student-project's richer shape (whatDone/score)
+// that the mentor TeamReport doesn't have.
 
-export type TeamReportStatus = 'Черновик' | 'Отправлен' | 'Проверен';
+import type { TeamReportStatus } from './teamReports';
 
 export interface TeamReportDto {
   id: number;
@@ -247,9 +325,6 @@ export function createTeamReport(payload: {
   return apiFetch<TeamReportDto>('/team-reports', { method: 'POST', body: payload });
 }
 
-export function updateTeamReport(
-  id: number,
-  payload: TeamReportUpsert,
-): Promise<TeamReportDto> {
+export function updateTeamReport(id: number, payload: TeamReportUpsert): Promise<TeamReportDto> {
   return apiFetch<TeamReportDto>(`/team-reports/${id}`, { method: 'PUT', body: payload });
 }
