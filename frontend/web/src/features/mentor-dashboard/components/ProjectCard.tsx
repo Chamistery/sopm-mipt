@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { projectFillRatio, type ProjectListItem } from '@/api/projects';
+import { projectFillRatio, projectMaxSlots, type ProjectListItem } from '@/api/projects';
 import { StatusBadge } from './StatusBadge';
 import styles from './ProjectCard.module.css';
 
@@ -11,6 +11,7 @@ interface Props {
 export function ProjectCard({ project }: Props): JSX.Element {
   const ratio = projectFillRatio(project);
   const percent = Math.round(ratio * 100);
+  const maxSlots = projectMaxSlots(project);
 
   return (
     <Link to={`/mentor/projects/${project.id}`} className={styles.card}>
@@ -20,13 +21,13 @@ export function ProjectCard({ project }: Props): JSX.Element {
       </div>
       <div className={styles.meta}>
         {project.company ? <span>Инициатор: {project.company}</span> : null}
-        {project.course ? <span>Курс: {project.course}</span> : null}
+        {project.numTeams > 0 ? <span>Команд: {project.numTeams}</span> : null}
       </div>
       <div className={styles.progress}>
         <div className={styles.progressLabel}>
           <span>Заполненность</span>
           <span className={styles.progressValue}>
-            {project.filledSlots} / {project.maxSlots} ({percent}%)
+            {project.acceptedCount} / {maxSlots} ({percent}%)
           </span>
         </div>
         <div className={styles.progressTrack}>

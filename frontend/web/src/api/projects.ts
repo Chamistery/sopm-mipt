@@ -10,12 +10,13 @@
  */
 
 import { apiFetch } from './client';
+import type { Sprint, Team } from './teams';
 
 export const PROJECT_STATUSES = [
   'Черновик',
   'Опубликован',
   'Активный',
-  'Завершен',
+  'Завершён',
   'Архивный',
 ] as const;
 
@@ -26,23 +27,73 @@ export interface FieldValue {
   value: string;
 }
 
+export interface UserSummary {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+export interface CurrentSprintInfo {
+  id: number;
+  number: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+}
+
 export interface ProjectListItem {
   id: number;
   title: string;
   status: ProjectStatus;
   mentorId: number;
   company?: string;
-  course?: string;
-  maxSlots: number;
-  filledSlots: number;
+  courses?: number[];
+  description?: string;
+  technologies?: string[];
+  teamSizeMin: number;
+  teamSizeMax: number;
+  numTeams: number;
+  filledTeams: number;
+  acceptedCount: number;
+  availableSlots: number;
+  minGpa?: number;
+  currentSprint?: CurrentSprintInfo | null;
+  mentor?: UserSummary | null;
+  submittedAt?: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
-export interface Project extends Omit<ProjectListItem, 'filledSlots'> {
-  templateId: string;
-  fieldValues: FieldValue[];
-  creatorId: number;
+export interface Project {
+  id: number;
+  title: string;
+  status: ProjectStatus;
+  mentorId: number;
+  company?: string;
+  courses?: number[];
+  description?: string;
+  fullDescription?: string;
+  technologies?: string[];
+  teamSizeMin: number;
+  teamSizeMax: number;
+  numTeams: number;
+  minGpa?: number;
+  eduResult?: string;
+  acceptanceCriteria?: string;
+  goal?: string;
+  expectedResult?: string;
+  competencies?: string;
+  resources?: string;
+  durationSemesters?: number;
+  submittedAt?: string | null;
+  createdAt: string;
   updatedAt: string;
+}
+
+export interface ProjectFull {
+  project: Project;
+  sprints: Sprint[];
+  teams: Team[];
 }
 
 export interface ProjectListResponse {
@@ -58,6 +109,7 @@ export interface ProjectListQuery {
   company?: string;
   course?: string;
   status?: ProjectStatus;
+  mentorId?: number;
 }
 
 export function listProjects(query: ProjectListQuery = {}): Promise<ProjectListResponse> {
@@ -66,6 +118,10 @@ export function listProjects(query: ProjectListQuery = {}): Promise<ProjectListR
 
 export function getProject(id: number): Promise<Project> {
   return apiFetch<Project>(`/projects/${id}`);
+}
+
+export function getProjectFull(id: number): Promise<ProjectFull> {
+  return apiFetch<ProjectFull>(`/projects/${id}/full`);
 }
 
 export interface CreateProjectRequest {
@@ -84,12 +140,26 @@ export function createProject(payload: CreateProjectRequest): Promise<Project> {
 }
 
 /**
+ * Maximum total slots a project can fill = numTeams * teamSizeMax.
+ * Used by ProjectCard fill-bar; fall back to teamSizeMax for older
+ * payloads where numTeams is missing.
+ */
+export function projectMaxSlots(item: Pick<ProjectListItem, 'numTeams' | 'teamSizeMax'>): number {
+  const teams = item.numTeams > 0 ? item.numTeams : 1;
+  const size = item.teamSizeMax > 0 ? item.teamSizeMax : 0;
+  return teams * size;
+}
+
+/**
  * Computes filled-vs-total ratio for a project list item, clamped to [0, 1].
  * Used by ProjectCard to render the progress bar.
  */
-export function projectFillRatio(item: Pick<ProjectListItem, 'filledSlots' | 'maxSlots'>): number {
-  if (item.maxSlots <= 0) return 0;
-  const ratio = item.filledSlots / item.maxSlots;
+export function projectFillRatio(
+  item: Pick<ProjectListItem, 'acceptedCount' | 'numTeams' | 'teamSizeMax'>,
+): number {
+  const max = projectMaxSlots(item);
+  if (max <= 0) return 0;
+  const ratio = item.acceptedCount / max;
   if (ratio < 0) return 0;
   if (ratio > 1) return 1;
   return ratio;
@@ -101,4 +171,12 @@ export function projectFillRatio(item: Pick<ProjectListItem, 'filledSlots' | 'ma
  */
 export function isProjectInDistribution(status: ProjectStatus): boolean {
   return status === 'Опубликован';
+}
+
+/**
+ * Returns true when the project is finished/archived — used for the
+ * mentor archive screen filter.
+ */
+export function isProjectArchived(status: ProjectStatus): boolean {
+  return status === 'Завершён' || status === 'Архивный';
 }

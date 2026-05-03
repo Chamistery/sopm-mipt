@@ -9,7 +9,7 @@ const STATUS_CLASS: Record<ProjectStatus, string> = {
   Черновик: styles.draft,
   Опубликован: styles.published,
   Активный: styles.active,
-  Завершен: styles.finished,
+  Завершён: styles.finished,
   Архивный: styles.archive,
 };
 

@@ -1,24 +1,37 @@
 /*
  * Hand-written API surface for application endpoints.
  *
- * Mirrors backend/project-service/swagger.yaml. The endpoints mentioned
- * in the mentor-dashboard brief that don't exist yet on the backend
- * (/applications/{id}/recommend, /unrecommend, /invite) are emulated
- * here on top of the generic PUT /applications/{id} until the backend
- * agent ships dedicated routes. See TODO blocks below.
+ * Mirrors backend/project-service/swagger.yaml. The mentor distribution
+ * UI uses the dedicated /recommend, /unrecommend, /invite routes that
+ * the backend now exposes.
  */
 
 import { apiFetch } from './client';
 
-export const APPLICATION_STATUSES = ['Ожидает', 'Принято', 'Отклонено'] as const;
+export const APPLICATION_STATUSES = [
+  'Ожидает',
+  'Не подходит',
+  'Не рекомендован',
+  'Рекомендован',
+  'Принято ментором',
+  'Принят',
+  'Студент отклонил',
+  'Авто-отклонено',
+  'Исключён',
+] as const;
+
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
 export interface Application {
   id: number;
   projectId: number;
   studentId: number;
+  teamId?: number | null;
   priority: number;
   status: ApplicationStatus;
+  statusChangedAt?: string;
+  invitedAt?: string | null;
+  respondedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,48 +61,109 @@ export function updateApplication(
   return apiFetch<Application>(`/applications/${id}`, { method: 'PUT', body: payload });
 }
 
-/**
- * Mentor invites a student into the project — moves the application to
- * "Принято". Backend currently exposes only the generic update endpoint;
- * once `/applications/{id}/invite` lands we'll switch to it.
- */
+/** Recommends a student into a specific team — mentor distribution action. */
+export function recommendApplicant(id: number, teamId: number): Promise<Application> {
+  return apiFetch<Application>(`/applications/${id}/recommend`, {
+    method: 'PUT',
+    body: { teamId },
+  });
+}
+
+/** Removes a previous recommendation, returning the application to the pool. */
+export function unrecommendApplicant(id: number): Promise<Application> {
+  return apiFetch<Application>(`/applications/${id}/unrecommend`, { method: 'PUT' });
+}
+
+/** Sends the official invite — moves the application to "Принято ментором". */
 export function inviteApplicant(id: number): Promise<Application> {
-  return updateApplication(id, { status: 'Принято' });
+  return apiFetch<Application>(`/applications/${id}/invite`, { method: 'PUT' });
 }
 
-/**
- * Mentor rejects a student — sets status to "Отклонено". Same caveat as
- * inviteApplicant: replace with `/applications/{id}/unrecommend` once
- * the backend route exists.
- */
-export function rejectApplicant(id: number): Promise<Application> {
-  return updateApplication(id, { status: 'Отклонено' });
+/** Excludes a student from the project altogether. */
+export function excludeApplicant(id: number): Promise<Application> {
+  return apiFetch<Application>(`/applications/${id}/exclude`, { method: 'PUT' });
 }
 
-export interface ApplicantsByPriority {
-  /** priority 1..5 → applications. Index 0 holds priority 1, etc. */
-  buckets: Application[][];
-  /** Applications without a priority slot or beyond MAX_PRIORITY. */
-  other: Application[];
+export interface ApplicantItem {
+  applicationId: number;
+  studentId: number;
+  name: string;
+  course: number;
+  gpa: number;
+  status: ApplicationStatus;
+  teamId?: number | null;
+}
+
+export interface ApplicantPriorityBuckets {
+  priority1: ApplicantItem[];
+  priority2: ApplicantItem[];
+  priority3: ApplicantItem[];
+  priority4: ApplicantItem[];
+  priority5: ApplicantItem[];
+}
+
+export interface ApplicantTeamMember {
+  applicationId: number;
+  studentId: number;
+  name: string;
+  status: ApplicationStatus;
+}
+
+export interface ApplicantTeamBucket {
+  teamId: number;
+  name: string;
+  maxSize: number;
+  members: ApplicantTeamMember[];
+}
+
+export interface ApplicantRequirements {
+  minCourse: number;
+  minGpa: number;
+}
+
+export interface ProjectApplicantsResponse {
+  projectId: number;
+  requirements: ApplicantRequirements;
+  qualified: ApplicantPriorityBuckets;
+  unqualified: ApplicantPriorityBuckets;
+  teams: ApplicantTeamBucket[];
+}
+
+export function getProjectApplicants(projectId: number): Promise<ProjectApplicantsResponse> {
+  return apiFetch<ProjectApplicantsResponse>(`/projects/${projectId}/applicants`);
 }
 
 export const MAX_PRIORITY = 5;
 
 /**
- * Splits a flat list of project applications into priority buckets so the
- * mentor distribution board can render columns 1..5. Pure function — used
- * both by the page and tested directly.
+ * Flattens a ApplicantPriorityBuckets payload into an ordered array of
+ * (priority, applicants) pairs so the columns render in a stable order.
+ * Pure helper — exposed for unit tests.
  */
-export function groupApplicantsByPriority(applications: Application[]): ApplicantsByPriority {
-  const buckets: Application[][] = Array.from({ length: MAX_PRIORITY }, () => []);
-  const other: Application[] = [];
-  for (const app of applications) {
-    const idx = app.priority - 1;
-    if (Number.isInteger(app.priority) && idx >= 0 && idx < MAX_PRIORITY) {
-      buckets[idx]?.push(app);
-    } else {
-      other.push(app);
-    }
-  }
-  return { buckets, other };
+export function flattenPriorityBuckets(
+  buckets: ApplicantPriorityBuckets,
+): Array<{ priority: number; items: ApplicantItem[] }> {
+  return [
+    { priority: 1, items: buckets.priority1 },
+    { priority: 2, items: buckets.priority2 },
+    { priority: 3, items: buckets.priority3 },
+    { priority: 4, items: buckets.priority4 },
+    { priority: 5, items: buckets.priority5 },
+  ];
+}
+
+/**
+ * Returns true when the applicant has already been recommended into a
+ * team but the official invite hasn't gone out yet.
+ */
+export function isRecommended(item: ApplicantItem): boolean {
+  return item.status === 'Рекомендован' && item.teamId != null;
+}
+
+/**
+ * Returns true when the mentor has already sent the invite — the
+ * student's slot is locked from further reshuffling.
+ */
+export function isInvited(item: ApplicantItem): boolean {
+  return item.status === 'Принято ментором' || item.status === 'Принят';
 }
