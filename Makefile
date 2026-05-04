@@ -9,7 +9,7 @@ COMPOSE_FILE  ?= docker-compose.yml
 PG_CONTAINER  ?= sopm-postgres
 PG_USER       ?= postgres
 PG_DB         ?= sopm
-SEED_FILE     ?= backend/project-service/migrations/002_seed_data.sql
+SEED_FILE     ?= backend/project-service/seed/seed_demo.sql
 
 .PHONY: help up down restart logs ps build rebuild-web seed config clean
 
