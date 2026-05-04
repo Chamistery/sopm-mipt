@@ -1,0 +1,18 @@
+{
+  "http_port": 8080,
+  
+  "projects_service_url": "http://localhost:8080",
+  "projects_endpoint": "/api/projects",
+  "project_endpoint": "/api/projects/{id}",
+  
+  "users_service_url": "http://localhost:8080",
+  "users_endpoint": "/api/users",
+  
+  "applications_service_url": "http://localhost:8080",
+  "applications_endpoint": "/api/applications/project",
+  "application_update_endpoint": "/api/applications/{id}/recommend",
+  
+  "http_timeout_ms": 30000,
+  "log_level": "INFO",
+  "log_file": "./logs/distribution_service.log"
+}

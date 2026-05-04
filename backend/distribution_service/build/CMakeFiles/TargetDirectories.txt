@@ -1,0 +1,3 @@
+/home/timonyony/project/SOAP HSSE/destribution_service/build/CMakeFiles/distribution_service.dir
+/home/timonyony/project/SOAP HSSE/destribution_service/build/CMakeFiles/edit_cache.dir
+/home/timonyony/project/SOAP HSSE/destribution_service/build/CMakeFiles/rebuild_cache.dir
