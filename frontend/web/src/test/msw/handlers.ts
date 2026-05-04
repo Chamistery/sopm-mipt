@@ -28,6 +28,8 @@ import {
   fixtureTeamContext,
   fixtureTeamMeetings,
   fixtureTeamReport,
+  fixtureTeamReports,
+  fixtureTeamSprintScores,
   fixtureUserProfile,
   fixtureUsers,
   MENTOR_ID,
@@ -605,17 +607,13 @@ export const handlers = [
       return ok(fixtureArchiveTeamReports);
     }
     if (teamId !== 300) return ok([]);
-    // Single-pair lookup helper уважает одиночный объект тоже — но
-    // teamReports.ts вызывает GET /team-reports?teamId=...&sprintId=...
-    // и парсит ответ как `TeamReport | null`. Если массив возвращаем — он
-    // тоже работает (extractData возвращает массив). Для (teamId, sprintId)
-    // пары отдадим ОТЧЁТ как объект, иначе массив всех.
+    // Single-pair lookup: вернём ОТЧЁТ объектом если есть, иначе null.
+    // Список — массивом всех отчётов команды (текущий + прошлый спринт).
     if (sprintId) {
-      return fixtureTeamReport.sprintId === sprintId
-        ? ok(fixtureTeamReport)
-        : ok(null);
+      const found = fixtureTeamReports.find((r) => r.sprintId === sprintId);
+      return ok(found ?? null);
     }
-    return ok([fixtureTeamReport]);
+    return ok(fixtureTeamReports);
   }),
 
   http.post(`${API}/team-reports`, async ({ request }) => {
@@ -639,12 +637,24 @@ export const handlers = [
   http.get(`${API}/sprint-scores`, ({ request }) => {
     const url = new URL(request.url);
     const teamId = Number(url.searchParams.get('teamId'));
+    const sprintId = Number(url.searchParams.get('sprintId'));
     if (teamId === 310) return ok(fixtureArchiveSprintScores);
+    if (teamId === 300) {
+      if (sprintId) {
+        return ok(fixtureTeamSprintScores.filter((s) => s.sprintId === sprintId));
+      }
+      return ok(fixtureTeamSprintScores);
+    }
     return ok([]);
   }),
   http.post(`${API}/sprint-scores`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: 9999, ...body });
+  }),
+  http.put(`${API}/sprint-scores/:id`, async ({ params, request }) => {
+    const id = Number(params.id);
+    const body = (await request.json()) as Record<string, unknown>;
+    return ok({ id, ...body });
   }),
 
   // ─── Meetings ──────────────────────────────────────────────────────────
