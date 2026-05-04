@@ -129,6 +129,8 @@ func (v *Validator) ValidProjectStatus(field string, status models.ProjectStatus
 
 	validStatuses := []models.ProjectStatus{
 		models.ProjectStatusDraft,
+		models.ProjectStatusPending,
+		models.ProjectStatusApproved,
 		models.ProjectStatusPublished,
 		models.ProjectStatusActive,
 		models.ProjectStatusCompleted,
