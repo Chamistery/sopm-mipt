@@ -30,11 +30,25 @@ if (!rootElement) {
   throw new Error('#root element not found in index.html');
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
-    </QueryClientProvider>
-  </StrictMode>,
-);
+async function enableMockingIfRequested(): Promise<void> {
+  // Условный импорт — prod-бандл не должен тянуть msw. Включается через
+  // `VITE_ENABLE_MSW=true npm run dev|preview` для локальной разработки и
+  // Playwright e2e (см. playwright.config.ts).
+  if (import.meta.env.VITE_ENABLE_MSW !== 'true') return;
+  const { worker } = await import('./test/msw/browser');
+  await worker.start({
+    onUnhandledRequest: 'warn',
+    serviceWorker: { url: '/mockServiceWorker.js' },
+  });
+}
+
+void enableMockingIfRequested().then(() => {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
+      </QueryClientProvider>
+    </StrictMode>,
+  );
+});

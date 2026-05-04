@@ -14,6 +14,8 @@ export default tseslint.config(
       'playwright-report',
       'test-results',
       'src/api/generated',
+      // Сгенерированный MSW service worker — внешний код, не наш стиль.
+      'public/mockServiceWorker.js',
     ],
   },
   {
