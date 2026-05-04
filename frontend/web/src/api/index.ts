@@ -20,3 +20,4 @@ export * from './distribution';
 export * from './meetings';
 export * from './users';
 export * from './templates';
+export * from './notifications';
