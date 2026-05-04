@@ -4,6 +4,7 @@ import type { TaskDto, TeamContextDto } from '@/api/teams';
 import { ApiError } from '@/api/client';
 import { useRequireUser } from '@/auth/useCurrentUser';
 import { ROLE_LABELS_RU } from '@/auth/roles';
+import { RequiresAttention } from '@/_shared/RequiresAttention';
 import { GanttChart } from './components/GanttChart';
 import { TaskPopup, type CreateTaskInput, type NewTaskDraft, type TaskPatch } from './components/TaskPopup';
 import { PersonalReports } from './components/PersonalReports';
@@ -165,6 +166,7 @@ function Loaded({
 
   return (
     <div className={styles.page}>
+      <RequiresAttention />
       <header>
         <h1 className={styles.title}>Текущий проект</h1>
         <p className={styles.context}>

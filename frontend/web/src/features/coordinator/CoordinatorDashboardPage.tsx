@@ -8,6 +8,7 @@ import {
   updateProject,
   type ProjectListItem,
 } from '@/api/projects';
+import { RequiresAttention } from '@/_shared/RequiresAttention';
 import { StatsCard } from './components/StatsCard';
 import { useProjectsQuery } from './hooks/useProjects';
 import { computeStats, pendingProjects } from './stats';
@@ -66,6 +67,7 @@ export function CoordinatorDashboardPage(): JSX.Element {
 
   return (
     <div className={styles.page}>
+      <RequiresAttention />
       <section className={styles.statsGrid} aria-label="Статистика по проектам">
         <StatsCard
           tone="blue"
