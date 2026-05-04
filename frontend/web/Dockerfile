@@ -15,7 +15,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install deps first to maximize Docker layer cache reuse.
-COPY frontend/web/package.json frontend/web/package-lock.json ./
+# .npmrc carries `legacy-peer-deps=true` — Storybook 8.6 won't install without it.
+COPY frontend/web/package.json frontend/web/package-lock.json frontend/web/.npmrc ./
 RUN npm ci
 
 # Copy frontend sources and the swagger schema the codegen depends on.
