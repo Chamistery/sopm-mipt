@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -23,9 +24,10 @@ func (r *ProjectRepository) Create(ctx context.Context, project *models.Project)
 		INSERT INTO projects (
 			title, status, mentor_id, company, courses, description, full_description, technologies,
 			team_size_min, team_size_max, num_teams, min_gpa, edu_result, acceptance_criteria,
-			goal, expected_result, competencies, resources, duration_semesters, submitted_at
+			goal, expected_result, competencies, resources, duration_semesters, submitted_at,
+			proposal_data
 		)
-		VALUES ($1,$2,$3,$4,$5::int[],$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+		VALUES ($1,$2,$3,$4,$5::int[],$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
 		RETURNING id, created_at, updated_at
 	`
 
@@ -52,7 +54,17 @@ func (r *ProjectRepository) Create(ctx context.Context, project *models.Project)
 		project.Resources,
 		project.DurationSemesters,
 		project.SubmittedAt,
+		proposalDataParam(project.ProposalData),
 	).Scan(&project.ID, &project.CreatedAt, &project.UpdatedAt)
+}
+
+// proposalDataParam превращает *json.RawMessage в значение, пригодное для
+// pgx. Если документ пустой/nil — отдаём nil (NULL в БД), иначе []byte.
+func proposalDataParam(raw *json.RawMessage) interface{} {
+	if raw == nil || len(*raw) == 0 {
+		return nil
+	}
+	return []byte(*raw)
 }
 
 func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Project, error) {
@@ -63,13 +75,14 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 		       team_size_min, team_size_max, num_teams, COALESCE(min_gpa, 0),
 		       COALESCE(edu_result, ''), COALESCE(acceptance_criteria, ''), COALESCE(goal, ''),
 		       COALESCE(expected_result, ''), COALESCE(competencies, ''), COALESCE(resources, ''),
-		       duration_semesters, submitted_at, created_at, updated_at
+		       duration_semesters, submitted_at, proposal_data, created_at, updated_at
 		FROM projects
 		WHERE id = $1
 	`
 
 	project := &models.Project{}
 	var courses models.IntList
+	var proposalRaw []byte
 	scanFunc := func(s Scanner) error {
 		return s.Scan(
 			&project.ID,
@@ -93,6 +106,7 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 			&project.Resources,
 			&project.DurationSemesters,
 			&project.SubmittedAt,
+			&proposalRaw,
 			&project.CreatedAt,
 			&project.UpdatedAt,
 		)
@@ -102,8 +116,31 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 		return nil, err
 	}
 	project.Courses = []int(courses)
+	if len(proposalRaw) > 0 {
+		raw := json.RawMessage(append([]byte(nil), proposalRaw...))
+		project.ProposalData = &raw
+	}
 
 	return project, nil
+}
+
+// GetProposal возвращает только proposal_data (или nil, если не задан) +
+// id ментора-владельца, чтобы вызывающий мог проверить право доступа.
+func (r *ProjectRepository) GetProposal(ctx context.Context, id int) (*json.RawMessage, int, error) {
+	var proposalRaw []byte
+	var mentorID int
+	row := r.db.QueryRow(ctx, "SELECT mentor_id, proposal_data FROM projects WHERE id = $1", id)
+	scanFunc := func(s Scanner) error {
+		return s.Scan(&mentorID, &proposalRaw)
+	}
+	if err := ScanOne(row, scanFunc, "project"); err != nil {
+		return nil, 0, err
+	}
+	if len(proposalRaw) == 0 {
+		return nil, mentorID, nil
+	}
+	raw := json.RawMessage(append([]byte(nil), proposalRaw...))
+	return &raw, mentorID, nil
 }
 
 type ProjectListFilters struct {
@@ -223,7 +260,8 @@ func (r *ProjectRepository) Update(ctx context.Context, project *models.Project)
 		    competencies = $18,
 		    resources = $19,
 		    duration_semesters = $20,
-		    submitted_at = $21
+		    submitted_at = $21,
+		    proposal_data = COALESCE($22::jsonb, proposal_data)
 		WHERE id = $1
 	`
 
@@ -251,6 +289,7 @@ func (r *ProjectRepository) Update(ctx context.Context, project *models.Project)
 		project.Resources,
 		project.DurationSemesters,
 		project.SubmittedAt,
+		proposalDataParam(project.ProposalData),
 	)
 	if err != nil {
 		return err

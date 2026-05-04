@@ -147,6 +147,37 @@ func (h *ProjectHandler) GetFull(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w, http.StatusOK, project)
 }
 
+// GetProposal возвращает JSONB-документ заявки выбранного проекта.
+// Доступ: автор проекта (ментор) либо координатор/админ. Используется
+// фронтом для «Заполнить по шаблону» при создании продолжения.
+func (h *ProjectHandler) GetProposal(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.IsAuthenticated() {
+		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	proposal, mentorID, err := h.repo.GetProposal(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+
+	canSeeOthers := user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin)
+	if !canSeeOthers && user.ID != mentorID {
+		httputil.RespondError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	httputil.RespondSuccess(w, http.StatusOK, proposal)
+}
+
 func (h *ProjectHandler) GetPredecessor(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if !user.IsAuthenticated() {
