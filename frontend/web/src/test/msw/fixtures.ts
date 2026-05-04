@@ -259,19 +259,56 @@ export const fixtureTasks = [
   { id: 507, teamId: 300, sprintId: 201, assigneeId: 6, name: 'Документация ролей', description: null, status: 'Возвращена' as const, hours: 4, startDate: '2026-04-28', endDate: '2026-05-03', mr: null, workDescription: 'Доработать с учётом комментариев' },
 ];
 
-export const fixtureTeamReport = {
-  id: 600,
-  sprintId: 201,
-  teamId: 300,
-  summary: 'Закончили auth, собираем UI каталога.',
-  problems: 'Нет публичной части без логина.',
-  nextPlan: 'Подключить MSW и e2e.',
-  status: 'Черновик' as const,
-  submittedAt: null,
-  reviewedAt: null,
-  createdAt: NOW,
-  updatedAt: NOW,
-};
+/*
+ * Командные отчёты команды 300:
+ *   - sprint 200 (Завершён) → «Проверен» с комментарием ментора, прошедший
+ *   - sprint 201 (Активный) → «Отправлен», ждёт проверки
+ *
+ * Используются как для unit-тестов, так и для e2e-сценария таба «Отчёты
+ * по спринтам» у ментора. Кейс «Черновик» (только что создан) намеренно
+ * не покрываем — он есть в сторибуке.
+ */
+export const fixtureTeamReports = [
+  {
+    id: 600,
+    sprintId: 201,
+    teamId: 300,
+    summary: 'Закончили auth, собираем UI каталога.',
+    problems: 'Нет публичной части без логина.',
+    nextPlan: 'Подключить MSW и e2e.',
+    status: 'Отправлен' as const,
+    submittedAt: '2026-04-01T10:00:00Z',
+    reviewedAt: null,
+    createdAt: NOW,
+    updatedAt: NOW,
+  },
+  {
+    id: 599,
+    sprintId: 200,
+    teamId: 300,
+    summary: 'Развёрнута начальная структура проекта (Django + DRF).',
+    problems: 'Долго выбирали стек: Django vs FastAPI.',
+    nextPlan: 'Доменные модели, стартовый dashboard.',
+    status: 'Проверен' as const,
+    mentorComment:
+      'Хорошая работа на старте. Правильный выбор Django для данной задачи.',
+    submittedAt: '2026-03-16T10:00:00Z',
+    reviewedAt: '2026-03-17T09:00:00Z',
+    createdAt: '2026-03-15T10:00:00Z',
+    updatedAt: '2026-03-17T09:00:00Z',
+  },
+];
+
+/** Backwards-compat: первый по умолчанию (текущий, sprint 201). */
+export const fixtureTeamReport = fixtureTeamReports[0]!;
+
+/** Оценки команды 300 за спринт 200 — все 4 студента, среднее 8/10. */
+export const fixtureTeamSprintScores = [
+  { id: 800, sprintId: 200, teamId: 300, studentId: TEAMLEAD_ID, score: 9, comment: 'Хорошая работа над API.', scoredById: MENTOR_ID },
+  { id: 801, sprintId: 200, teamId: 300, studentId: STUDENT_ID, score: 8, comment: 'Чётко закрыл свои задачи.', scoredById: MENTOR_ID },
+  { id: 802, sprintId: 200, teamId: 300, studentId: 5, score: 7, comment: 'UI — местами кривовато, но работает.', scoredById: MENTOR_ID },
+  { id: 803, sprintId: 200, teamId: 300, studentId: 6, score: 8, comment: 'Аналитика на хорошем уровне.', scoredById: MENTOR_ID },
+];
 
 /*
  * Архивная команда (id=310) для проекта 110. Тот же тимлид/ментор, чтобы не

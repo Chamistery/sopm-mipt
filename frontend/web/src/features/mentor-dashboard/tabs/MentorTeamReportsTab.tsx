@@ -1,10 +1,14 @@
 /*
  * Таб «Отчёты по спринтам» страницы команды у ментора.
  *
- * Перенесено AS-IS из TeamReportReviewPage. Контекст команды (имя,
- * шапка, хлебные крошки) живёт на родительской странице, поэтому
- * убрали backLink + subtitle и оставили только список карточек отчётов
- * + ReportCard с инлайн-оценками за спринт.
+ * Pixel-port из mentor.html (tab-reports, lines 970–1075). Сворачиваемые
+ * карточки отчётов (текущий — открыт, прошедшие — свёрнуты по дефолту),
+ * заголовок «Спринт N (DD ммм — DD ммм)», статус-бейдж с агрегатной
+ * оценкой, подсекция «Личный вклад участников» (fallback из SprintScore.
+ * comment, см. отчёт по задаче), общая кнопка «Сохранить оценки» и
+ * кнопка «Принять отчёт». В шапке — outline-кнопка «Выгрузить отчёт»,
+ * открывающая ExportReportModal (фактическая генерация документа —
+ * отдельный backend-таск, пока что просто show banner).
  */
 
 import type { JSX } from 'react';
@@ -13,21 +17,31 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
 import {
-  reportNeedsReview,
-  reviewTeamReport,
-  type TeamReport,
-} from '@/api/teamReports';
-import {
   createSprintScore,
   updateSprintScore,
   type SprintScore,
 } from '@/api/sprintScores';
+import {
+  reviewTeamReport,
+  type TeamReport,
+} from '@/api/teamReports';
 import { useRequireUser } from '@/auth/useCurrentUser';
-import { SprintScoreInput, type SprintScoreDraft } from '../components/SprintScoreInput';
-import { buildScoreDrafts } from '../lib/scoreDrafts';
-import { useTeam } from '../hooks/useTeam';
-import { useTeamReports } from '../hooks/useTeamReports';
+import { initials, shortName } from '@/features/student-project/lib/people';
+
+import {
+  ExportReportModal,
+  type ExportReportPeriodOption,
+  type ExportReportSelection,
+} from '../components/ExportReportModal';
+import {
+  SprintReportCard,
+  type ScoreDraft,
+  type SprintReportCardMember,
+} from '../components/SprintReportCard';
 import { useSprintScores } from '../hooks/useSprintScores';
+import { useProjectSprints, useTeam } from '../hooks/useTeam';
+import { useTeamReports } from '../hooks/useTeamReports';
+import { reportTitle, sortReports } from '../lib/sprintReportHelpers';
 import styles from './MentorTeamReportsTab.module.css';
 
 interface Props {
@@ -37,8 +51,76 @@ interface Props {
 export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
   const teamQuery = useTeam(teamId);
   const reportsQuery = useTeamReports(teamId);
+  const projectId = teamQuery.data?.projectId ?? null;
+  const sprintsQuery = useProjectSprints(projectId);
 
-  if (reportsQuery.isLoading) {
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportBanner, setExportBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!exportBanner) return;
+    const id = window.setTimeout(() => setExportBanner(null), 3000);
+    return () => window.clearTimeout(id);
+  }, [exportBanner]);
+
+  const sprintsList = sprintsQuery.data;
+  const sprintsById = useMemo(() => {
+    const map = new Map<number, NonNullable<typeof sprintsList>[number]>();
+    for (const s of sprintsList ?? []) map.set(s.id, s);
+    return map;
+  }, [sprintsList]);
+
+  const sortedReports = useMemo(
+    () => sortReports(reportsQuery.data ?? [], sprintsById),
+    [reportsQuery.data, sprintsById],
+  );
+
+  const members = useMemo<SprintReportCardMember[]>(() => {
+    return (teamQuery.data?.members ?? []).map((m) => {
+      const person = {
+        firstName: m.user.firstName,
+        lastName: m.user.lastName,
+        middleName: m.user.middleName ?? null,
+      };
+      return {
+        userId: m.userId,
+        shortName: shortName(person),
+        avatarInitials: initials(person),
+      };
+    });
+  }, [teamQuery.data]);
+
+  // Текущий спринт = либо `Активный`, либо первый report (top-of-list).
+  // Используем чтобы понять, какую карточку открывать по дефолту.
+  const sprintsData = sprintsQuery.data;
+  const currentSprintId = useMemo(() => {
+    const active = (sprintsData ?? []).find((s) => s.status === 'Активный');
+    if (active) return active.id;
+    return sortedReports[0]?.sprintId ?? null;
+  }, [sprintsData, sortedReports]);
+
+  const periodOptions = useMemo<ExportReportPeriodOption[]>(() => {
+    const opts: ExportReportPeriodOption[] = [];
+    if (currentSprintId != null) {
+      opts.push({ value: 'current', label: 'Текущий спринт' });
+    }
+    opts.push({ value: 'all', label: 'Все спринты' });
+    for (const r of sortedReports) {
+      const sprint = sprintsById.get(r.sprintId) ?? null;
+      opts.push({ value: `sprint:${r.sprintId}`, label: reportTitle(r, sprint) });
+    }
+    return opts;
+  }, [currentSprintId, sortedReports, sprintsById]);
+
+  function handleExportSubmit(_selection: ExportReportSelection): void {
+    // TODO(backend): дернуть POST /api/team-reports/export с параметрами и
+    // получить link на скачивание (или blob). Пока что закрываем модалку и
+    // показываем баннер — это согласовано с задачей.
+    setShowExportModal(false);
+    setExportBanner('Отчёт сформирован');
+  }
+
+  if (reportsQuery.isLoading || teamQuery.isLoading) {
     return <div className={styles.placeholder}>Загружаем отчёты…</div>;
   }
   if (reportsQuery.error) {
@@ -51,213 +133,159 @@ export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
     );
   }
 
-  const reports = reportsQuery.data ?? [];
-  if (reports.length === 0) {
-    return <div className={styles.empty}>Команда ещё не отправляла отчётов.</div>;
-  }
-
   return (
-    <div className={styles.reportList}>
-      {reports
-        .slice()
-        .sort((a, b) => a.sprintId - b.sprintId)
-        .map((report) => (
-          <ReportCard
-            key={report.id}
-            report={report}
-            teamId={teamId}
-            memberSummaries={(teamQuery.data?.members ?? []).map((m) => ({
-              userId: m.userId,
-              name: `${m.user.lastName} ${m.user.firstName}`.trim(),
-            }))}
-          />
-        ))}
+    <div className={styles.tab}>
+      <div className={styles.head}>
+        <h2 className={styles.sectionTitle}>Отчёты по спринтам</h2>
+        <button
+          type="button"
+          className={styles.btnOutline}
+          onClick={() => setShowExportModal(true)}
+        >
+          <DownloadIcon />
+          Выгрузить отчёт
+        </button>
+      </div>
+
+      {exportBanner ? (
+        <div className={styles.banner} role="status">
+          {exportBanner}
+        </div>
+      ) : null}
+
+      {sortedReports.length === 0 ? (
+        <div className={styles.empty}>Команда ещё не отправляла отчётов.</div>
+      ) : (
+        <div className={styles.reportList}>
+          {sortedReports.map((report) => (
+            <ReportCardWrapper
+              key={report.id}
+              report={report}
+              sprint={sprintsById.get(report.sprintId) ?? null}
+              members={members}
+              teamId={teamId}
+              defaultExpanded={report.sprintId === currentSprintId}
+            />
+          ))}
+        </div>
+      )}
+
+      {showExportModal ? (
+        <ExportReportModal
+          periodOptions={periodOptions}
+          onClose={() => setShowExportModal(false)}
+          onSubmit={handleExportSubmit}
+        />
+      ) : null}
     </div>
   );
 }
 
-interface ReportCardProps {
+interface ReportCardWrapperProps {
   report: TeamReport;
+  sprint: NonNullable<ReturnType<typeof useProjectSprints>['data']>[number] | null;
+  members: SprintReportCardMember[];
   teamId: number;
-  memberSummaries: Array<{ userId: number; name: string }>;
+  defaultExpanded: boolean;
 }
 
-function ReportCard({ report, teamId, memberSummaries }: ReportCardProps): JSX.Element {
+function ReportCardWrapper({
+  report,
+  sprint,
+  members,
+  teamId,
+  defaultExpanded,
+}: ReportCardWrapperProps): JSX.Element {
   const me = useRequireUser();
   const queryClient = useQueryClient();
-  const needsReview = reportNeedsReview(report.status);
-  const [comment, setComment] = useState(report.mentorComment ?? '');
-  const [reviewError, setReviewError] = useState<string | null>(null);
-  const [scoreErrors, setScoreErrors] = useState<Record<number, string>>({});
+  const scoresQuery = useSprintScores({ sprintId: report.sprintId, teamId });
 
-  useEffect(() => {
-    setComment(report.mentorComment ?? '');
-  }, [report.mentorComment]);
+  const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
 
-  const reviewMutation = useMutation({
-    mutationFn: () => reviewTeamReport(report.id, { mentorComment: comment.trim() }),
+  const acceptMutation = useMutation({
+    mutationFn: (mentorComment: string) => reviewTeamReport(report.id, { mentorComment }),
     onSuccess: async () => {
-      setReviewError(null);
       await queryClient.invalidateQueries({ queryKey: ['team', teamId, 'reports'] });
-    },
-    onError: (err: unknown) => {
-      setReviewError(
-        err instanceof ApiError
-          ? `Ошибка ${err.status}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : 'Не удалось сохранить ревью',
-      );
     },
   });
 
-  const scoresQuery = useSprintScores({ sprintId: report.sprintId, teamId });
-
-  const initialDrafts = useMemo(
-    () => buildScoreDrafts(memberSummaries, scoresQuery.data ?? []),
-    [memberSummaries, scoresQuery.data],
-  );
-
-  const [drafts, setDrafts] = useState<SprintScoreDraft[]>(initialDrafts);
-  useEffect(() => {
-    setDrafts(initialDrafts);
-  }, [initialDrafts]);
-
-  const scoreMutation = useMutation({
-    mutationFn: async (draft: SprintScoreDraft): Promise<SprintScore> => {
-      if (draft.score == null) {
-        throw new Error('Балл не указан');
-      }
-      if (draft.existingId != null) {
-        return updateSprintScore(draft.existingId, {
-          score: draft.score,
-          comment: draft.comment.trim() || undefined,
-        });
-      }
-      return createSprintScore({
-        sprintId: report.sprintId,
-        teamId,
-        studentId: draft.studentId,
-        score: draft.score,
-        comment: draft.comment.trim() || undefined,
-        scoredById: me.userId,
-      });
-    },
-    onSuccess: async (saved, draft) => {
-      setScoreErrors((prev) => {
-        const next = { ...prev };
-        delete next[draft.studentId];
-        return next;
-      });
-      setDrafts((prev) =>
-        prev.map((d) =>
-          d.studentId === draft.studentId
-            ? { ...d, dirty: false, existingId: saved.id, score: saved.score, comment: saved.comment ?? '' }
-            : d,
-        ),
+  const saveScoresMutation = useMutation({
+    mutationFn: async (drafts: ScoreDraft[]): Promise<SprintScore[]> => {
+      const results = await Promise.all(
+        drafts.map((d) => {
+          if (d.score == null) {
+            throw new Error(`Балл для ${d.studentName} не указан`);
+          }
+          if (d.existingId != null) {
+            return updateSprintScore(d.existingId, {
+              score: d.score,
+              comment: d.comment.trim() || undefined,
+            });
+          }
+          return createSprintScore({
+            sprintId: report.sprintId,
+            teamId,
+            studentId: d.studentId,
+            score: d.score,
+            comment: d.comment.trim() || undefined,
+            scoredById: me.userId,
+          });
+        }),
       );
+      return results;
+    },
+    onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ['sprint-scores', teamId, report.sprintId],
       });
     },
-    onError: (err: unknown, draft) => {
-      const msg =
-        err instanceof ApiError
-          ? `Ошибка ${err.status}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : 'Не удалось сохранить балл';
-      setScoreErrors((prev) => ({ ...prev, [draft.studentId]: msg }));
-    },
   });
 
   return (
-    <article className={styles.report}>
-      <header className={styles.reportHead}>
-        <div>
-          <h2 className={styles.reportTitle}>Отчёт спринта #{report.sprintId}</h2>
-          <div className={styles.reportSubtitle}>
-            Статус: {report.status}
-            {report.submittedAt ? ` · отправлен ${formatDate(report.submittedAt)}` : ''}
-          </div>
-        </div>
-      </header>
-
-      {report.summary ? (
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Что сделано</h3>
-          <p className={styles.blockBody}>{report.summary}</p>
-        </section>
-      ) : null}
-
-      {report.problems ? (
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>Проблемы</h3>
-          <p className={styles.blockBody}>{report.problems}</p>
-        </section>
-      ) : null}
-
-      {report.nextPlan ? (
-        <section className={styles.block}>
-          <h3 className={styles.blockTitle}>План на следующий спринт</h3>
-          <p className={styles.blockBody}>{report.nextPlan}</p>
-        </section>
-      ) : null}
-
-      <section className={styles.block}>
-        <h3 className={styles.blockTitle}>Комментарий ментора</h3>
-        <textarea
-          className={styles.textarea}
-          rows={3}
-          value={comment}
-          placeholder="Что обсудить с командой"
-          onChange={(e) => setComment(e.target.value)}
-          readOnly={!needsReview && report.status === 'Проверен'}
-        />
-        {reviewError ? <div className={styles.error}>{reviewError}</div> : null}
-        {needsReview ? (
-          <div className={styles.actionsRow}>
-            <button
-              type="button"
-              className={styles.primary}
-              disabled={reviewMutation.isPending}
-              onClick={() => reviewMutation.mutate()}
-            >
-              {reviewMutation.isPending ? 'Сохраняем…' : 'Проверить отчёт'}
-            </button>
-          </div>
-        ) : null}
-      </section>
-
-      <section className={styles.block}>
-        <h3 className={styles.blockTitle}>Оценки за спринт</h3>
-        {scoresQuery.isLoading ? (
-          <div className={styles.placeholder}>Загружаем оценки…</div>
-        ) : memberSummaries.length === 0 ? (
-          <div className={styles.placeholder}>В команде нет участников для оценки.</div>
-        ) : (
-          <div className={styles.scoreList}>
-            {drafts.map((draft) => (
-              <SprintScoreInput
-                key={draft.studentId}
-                draft={draft}
-                isSaving={scoreMutation.isPending && scoreMutation.variables?.studentId === draft.studentId}
-                serverError={scoreErrors[draft.studentId] ?? null}
-                onChange={(next) =>
-                  setDrafts((prev) => prev.map((d) => (d.studentId === next.studentId ? next : d)))
-                }
-                onSave={(d) => scoreMutation.mutate(d)}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-    </article>
+    <SprintReportCard
+      report={report}
+      sprint={sprint}
+      members={members}
+      scores={scoresQuery.data ?? []}
+      scoresLoading={scoresQuery.isLoading}
+      expanded={expanded}
+      onToggle={() => setExpanded((v) => !v)}
+      onSaveScores={async (drafts) => {
+        try {
+          const saved = await saveScoresMutation.mutateAsync(drafts);
+          return { ok: true, saved };
+        } catch (err) {
+          return { ok: false, error: errorMessage(err, 'Не удалось сохранить оценки') };
+        }
+      }}
+      onAcceptReport={async (mentorComment) => {
+        try {
+          await acceptMutation.mutateAsync(mentorComment);
+          return { ok: true };
+        } catch (err) {
+          return { ok: false, error: errorMessage(err, 'Не удалось принять отчёт') };
+        }
+      }}
+    />
   );
 }
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('ru-RU');
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) return `Ошибка ${err.status}: ${err.message}`;
+  if (err instanceof Error) return err.message;
+  return fallback;
+}
+
+function DownloadIcon(): JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M8 2v9M4 7l4 4 4-4M2 14h12"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
