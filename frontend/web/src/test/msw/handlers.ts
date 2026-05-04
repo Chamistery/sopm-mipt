@@ -26,6 +26,7 @@ import {
   fixtureTasks,
   fixtureTeam,
   fixtureTeamContext,
+  fixtureTeamMeetings,
   fixtureTeamReport,
   fixtureUserProfile,
   fixtureUsers,
@@ -69,6 +70,12 @@ const state = {
    * just-assigned leader.
    */
   teamLeaderOverrides: new Map<number, number>(),
+  /*
+   * Создаваемые во время сессии встречи. Persisted across GET-запросов,
+   * сбрасывается перезапуском MSW worker (preview-сервер).
+   */
+  meetings: [] as Array<Record<string, unknown> & { id: number; teamId: number; status: string }>,
+  nextMeetingId: 9000,
 };
 
 type FixtureTask = (typeof fixtureTasks)[number];
@@ -645,7 +652,48 @@ export const handlers = [
     const url = new URL(request.url);
     const teamId = Number(url.searchParams.get('teamId'));
     if (teamId === 310) return ok(fixtureArchiveMeetings);
+    if (teamId === 300) {
+      return ok([...fixtureTeamMeetings, ...state.meetings.filter((m) => m.teamId === 300)]);
+    }
     return ok([]);
+  }),
+  http.post(`${API}/meetings`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    const teamId = Number(body.teamId ?? 0);
+    const created = {
+      ...body,
+      teamId,
+      id: state.nextMeetingId++,
+      // Бэк форсирует «Подтверждена» когда POST делает ментор; имитируем
+      // это здесь, чтобы пост-инвалидация увидела встречу в верхней секции.
+      status: 'Подтверждена',
+      mentorConfirmed: true,
+    };
+    state.meetings.push(created);
+    return ok(created);
+  }),
+  http.put(`${API}/meetings/:id`, async ({ params, request }) => {
+    const id = Number(params.id);
+    const body = (await request.json()) as Record<string, unknown> & {
+      mentorConfirmed?: boolean;
+      teamId?: number;
+    };
+    const teamId = Number(body.teamId ?? 0);
+    const next = {
+      ...body,
+      id,
+      teamId,
+      status: body.mentorConfirmed === false ? 'Отклонена' : 'Подтверждена',
+    };
+    const idx = state.meetings.findIndex((m) => m.id === id);
+    if (idx >= 0) state.meetings[idx] = next;
+    else state.meetings.push(next);
+    return ok(next);
+  }),
+  http.delete(`${API}/meetings/:id`, ({ params }) => {
+    const id = Number(params.id);
+    state.meetings = state.meetings.filter((m) => m.id !== id);
+    return new HttpResponse(null, { status: 204 });
   }),
 
   // ─── Templates ─────────────────────────────────────────────────────────

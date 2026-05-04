@@ -75,6 +75,8 @@ function renderAt(initialPath: string, team: Team = makeTeam()) {
   client.setQueryData(['team', 300], team);
   client.setQueryData(['project', 100], PROJECT);
   client.setQueryData(['project', 100, 'sprints'], []);
+  client.setQueryData(['meetings', 300], []);
+  client.setQueryData(['team', 300, 'reports'], []);
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[initialPath]}>
@@ -129,12 +131,13 @@ describe('MentorTeamPage', () => {
     expect(screen.queryByText(/Тимлид ещё не назначен/)).not.toBeInTheDocument();
   });
 
-  it('selects the meetings tab when ?tab=meetings and shows the placeholder', async () => {
+  it('selects the meetings tab when ?tab=meetings and renders the meetings sections', async () => {
     renderAt('/mentor/teams/300?tab=meetings');
 
     expect(await screen.findByRole('heading', { name: 'Команда 1' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Встречи' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByText(/Раздел в разработке/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Встречи команды' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Назначить встречу/ })).toBeInTheDocument();
   });
 
   it('calls updateTeam with the chosen userId when «Сделать тимлидом» is clicked', async () => {

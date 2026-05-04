@@ -53,14 +53,15 @@ test.describe('mentor team page golden path', () => {
     // — оба варианта приемлемы; главное, что таб активен.
   });
 
-  test('?tab=meetings shows the «under construction» placeholder', async ({ page }) => {
+  test('?tab=meetings renders the meetings sections and «Назначить встречу» button', async ({ page }) => {
     await page.goto('/mentor/teams/300?tab=meetings');
 
     await expect(page.getByRole('tab', { name: 'Встречи' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    await expect(page.getByText(/Раздел в разработке/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Встречи команды' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Назначить встречу/ })).toBeVisible();
   });
 
   test('legacy URL /mentor/teams/300/gantt redirects to ?tab=gantt', async ({ page }) => {

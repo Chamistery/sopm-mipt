@@ -348,6 +348,40 @@ export const fixtureArchiveTasks = [
   { id: 565, teamId: 310, sprintId: 221, assigneeId: 5, name: 'Демо-страница', description: null, status: 'Готово' as const, hours: 8, startDate: '2025-10-10', endDate: '2025-10-26', mr: null, workDescription: 'Готово' },
 ];
 
+/*
+ * Встречи для команды 300 (активного проекта). Используются в e2e
+ * mentor-team-meetings: 1 предстоящая (Ожидает подтверждения) + 1
+ * прошедшая со summary, чтобы тест видел обе секции и мог нажать
+ * «+ Назначить встречу».
+ */
+export const fixtureTeamMeetings = [
+  {
+    id: 700,
+    teamId: 300,
+    title: 'Обзор спринта 2',
+    description: 'Демо API и макета дашборда. Планирование спринта 3.',
+    meetingDate: '2099-04-01',
+    startTime: '16:00',
+    durationMinutes: 60,
+    conferenceLink: 'https://example.test/meet/700',
+    createdById: TEAMLEAD_ID,
+    status: 'Ожидает подтверждения' as const,
+  },
+  {
+    id: 701,
+    teamId: 300,
+    title: 'Постановка спринта 2',
+    description: 'Распределение задач, обсуждение приоритетов.',
+    meetingDate: '2020-03-17',
+    startTime: '16:00',
+    durationMinutes: 60,
+    createdById: MENTOR_ID,
+    summary:
+      'Определены приоритеты: OAuth-авторизация, API проектов, макет дашборда.',
+    status: 'Состоялась' as const,
+  },
+];
+
 export const fixtureArchiveMeetings = [
   {
     id: 810,
