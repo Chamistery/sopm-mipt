@@ -13,6 +13,7 @@ import {
 import { ApiError } from '@/api/client';
 import { useRequireUser } from '@/auth/useCurrentUser';
 import { ROLE_LABELS_RU } from '@/auth/roles';
+import { UserFilesSection } from './components/UserFilesSection';
 import styles from './ProfilePage.module.css';
 
 interface FormState {
@@ -153,6 +154,11 @@ export function ProfilePage(): JSX.Element {
       <section className={styles.card}>
         <div className={styles.sectionHead}>Ссылки</div>
         <LinksEditor links={form.links} onChange={(links) => update({ links })} />
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.sectionHead}>Файлы</div>
+        <UserFilesSection userId={me.userId} />
       </section>
 
       <div className={styles.actions}>
