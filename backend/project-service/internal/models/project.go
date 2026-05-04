@@ -9,6 +9,8 @@ type ProjectStatus string
 
 const (
 	ProjectStatusDraft     ProjectStatus = "Черновик"
+	ProjectStatusPending   ProjectStatus = "На утверждении" // submitted by mentor, awaiting coordinator approval
+	ProjectStatusApproved  ProjectStatus = "Утверждён"      // coordinator approved, before students get distributed
 	ProjectStatusPublished ProjectStatus = "Опубликован"
 	ProjectStatusActive    ProjectStatus = "Активный"
 	ProjectStatusCompleted ProjectStatus = "Завершён"

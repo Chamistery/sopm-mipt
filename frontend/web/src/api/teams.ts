@@ -248,30 +248,185 @@ export interface UpdateTaskPayload {
   workDescription?: string | null;
 }
 
-/** `GET /api/users/{id}/team` — student-project's rich variant. */
-export function getTeamContext(userId: number): Promise<TeamContextDto> {
-  return apiFetch<TeamContextDto>(`/users/${userId}/team`);
+/*
+ * Adapter layer between sproject's rich DTOs (TaskDto/TeamContextDto/...) and
+ * the actual backend shapes (Task with hoursEstimate/mrLink, Team without
+ * embedded project/sprint metadata). Sproject components stay unchanged;
+ * the wire payload now matches what backend/project-service really
+ * accepts and emits.
+ *
+ * Once swagger ships these as composite endpoints (UserTeamContext,
+ * GanttResponse with members), drop these adapters and let components
+ * hit the standard layer directly.
+ */
+
+import { getProject } from './projects';
+import {
+  acceptTask as acceptTaskRich,
+  approveTask as approveTaskRich,
+  rejectTask as rejectTaskRich,
+  returnTask as returnTaskRich,
+  type Task as BackendTask,
+} from './tasks';
+
+function taskToDto(t: BackendTask): TaskDto {
+  return {
+    id: t.id,
+    teamId: t.teamId,
+    sprintId: t.sprintId,
+    assigneeId: t.assigneeId,
+    name: t.name,
+    description: t.description ?? null,
+    status: t.status,
+    hours: t.hoursEstimate,
+    startDate: t.startDate,
+    endDate: t.endDate,
+    mr: t.mrLink ?? null,
+    workDescription: t.workDescription ?? null,
+    wasOverdue: t.wasOverdue,
+    history: t.history?.map((h) => ({
+      // Backend events use `day` (offset from sprint start). Carry it through
+      // as date by deferring the actual ISO conversion to the Gantt renderer
+      // (which knows the sprint start). For now expose as a synthetic ISO
+      // string so the dto-shape stays consistent; renderers must use `wasOverdue`
+      // and the sprint context to position the marker.
+      date: typeof h.day === 'number' ? `day-${h.day}` : '',
+      event: h.event === 'review' || h.event === 'returned' || h.event === 'accepted' ? h.event : 'review',
+    })),
+    mentorComments: t.mentorComments?.map((c) => ({ action: c.action, text: c.text })),
+  };
 }
 
-export function getGantt(teamId: number, sprintId: number): Promise<GanttResponseDto> {
-  return apiFetch<GanttResponseDto>(`/teams/${teamId}/gantt`, { query: { sprintId } });
+function dtoToCreatePayload(p: CreateTaskPayload): Partial<BackendTask> {
+  const out: Partial<BackendTask> = {
+    teamId: p.teamId,
+    sprintId: p.sprintId,
+    assigneeId: p.assigneeId,
+    name: p.name,
+    hoursEstimate: p.hours,
+    startDate: p.startDate,
+    endDate: p.endDate,
+  };
+  if (p.description !== undefined && p.description !== null) out.description = p.description;
+  return out;
 }
 
-export function createTask(payload: CreateTaskPayload): Promise<TaskDto> {
-  return apiFetch<TaskDto>('/tasks', { method: 'POST', body: payload });
+function dtoToUpdatePayload(p: UpdateTaskPayload): Partial<BackendTask> {
+  const out: Partial<BackendTask> = {};
+  if (p.name !== undefined) out.name = p.name;
+  if (p.description !== undefined && p.description !== null) out.description = p.description;
+  if (p.hours !== undefined) out.hoursEstimate = p.hours;
+  if (p.mr !== undefined && p.mr !== null) out.mrLink = p.mr;
+  if (p.workDescription !== undefined && p.workDescription !== null)
+    out.workDescription = p.workDescription;
+  return out;
 }
 
-export function updateTask(id: number, payload: UpdateTaskPayload): Promise<TaskDto> {
-  return apiFetch<TaskDto>(`/tasks/${id}`, { method: 'PUT', body: payload });
+function memberToDto(m: TeamMember): TeamMemberDto {
+  return {
+    userId: m.userId,
+    firstName: m.user.firstName,
+    lastName: m.user.lastName,
+    middleName: null,
+    role: 'student' as Role,
+    projectRole: m.roleInTeam ?? null,
+    isLeader: m.isLeader,
+  };
 }
 
-export function submitTaskForReview(id: number): Promise<TaskDto> {
-  return apiFetch<TaskDto>(`/tasks/${id}/submit-review`, { method: 'PUT' });
+function sprintToDto(s: Sprint): SprintDto {
+  return {
+    id: s.id,
+    number: s.number,
+    startDate: s.startDate,
+    endDate: s.endDate,
+    status: s.status,
+  };
+}
+
+/**
+ * `GET /api/users/{id}/team` — backend returns Team alone. We compose with
+ * project + sprint list to give sproject pages a single ready-to-render shape.
+ */
+export async function getTeamContext(userId: number): Promise<TeamContextDto> {
+  const team = await apiFetch<Team>(`/users/${userId}/team`);
+  const projectId = team.projectId;
+  const [project, sprints] = await Promise.all([
+    getProject(projectId),
+    listSprintsByProject(projectId),
+  ]);
+  const currentSprint = pickDefaultSprint(sprints) ?? sprints[sprints.length - 1] ?? {
+    id: 0,
+    projectId,
+    number: 0,
+    startDate: '',
+    endDate: '',
+    status: 'Запланирован' as const,
+  };
+  return {
+    teamId: team.id,
+    teamName: team.name,
+    projectId,
+    projectTitle: project.title,
+    initiator: project.company ?? null,
+    mentor: null, // No mentor info in /users/{id}/team yet — leave null until swagger adds it
+    currentSprint: sprintToDto(currentSprint),
+    sprintsTotal: sprints.length,
+    members: (team.members ?? []).map(memberToDto),
+  };
+}
+
+/**
+ * `GET /api/teams/{id}/gantt` returns standard GanttResponse. We re-shape its
+ * tasks/members to the dto sproject expects.
+ */
+export async function getGantt(teamId: number, sprintId: number): Promise<GanttResponseDto> {
+  const data = await apiFetch<GanttResponse>(`/teams/${teamId}/gantt`, { query: { sprintId } });
+  return {
+    team: { id: teamId, name: '' },
+    sprint: sprintToDto(data.sprint),
+    members: data.members.map((m) => ({
+      userId: m.userId,
+      firstName: '',
+      lastName: m.name,
+      middleName: null,
+      role: 'student' as Role,
+      projectRole: m.roleInTeam ?? null,
+      isLeader: m.isLeader,
+    })),
+    tasks: data.tasks.map((t) => taskToDto(t as unknown as BackendTask)),
+  };
+}
+
+export async function createTask(payload: CreateTaskPayload): Promise<TaskDto> {
+  const created = await apiFetch<BackendTask>('/tasks', {
+    method: 'POST',
+    body: dtoToCreatePayload(payload),
+  });
+  return taskToDto(created);
+}
+
+export async function updateTask(id: number, payload: UpdateTaskPayload): Promise<TaskDto> {
+  const updated = await apiFetch<BackendTask>(`/tasks/${id}`, {
+    method: 'PUT',
+    body: dtoToUpdatePayload(payload),
+  });
+  return taskToDto(updated);
+}
+
+export async function submitTaskForReview(id: number): Promise<TaskDto> {
+  const updated = await apiFetch<BackendTask>(`/tasks/${id}/submit-review`, { method: 'PUT' });
+  return taskToDto(updated);
 }
 
 export function deleteTask(id: number): Promise<void> {
   return apiFetch<void>(`/tasks/${id}`, { method: 'DELETE' });
 }
+
+/* Re-export mentor task actions (approve/reject/accept/return) so callers
+ * have a single import path. They already return BackendTask — adapt at the
+ * call site if a TaskDto is needed. */
+export { approveTaskRich, rejectTaskRich, acceptTaskRich, returnTaskRich };
 
 // Team report functions live in `./teamReports.ts` — single source of truth
 // (backend uses `summary`, not `whatDone`). The duplicates that used to live

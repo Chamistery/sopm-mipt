@@ -16,32 +16,21 @@ import type { UserSummary } from './users';
 
 export const PROJECT_STATUSES = [
   'Черновик',
+  'На утверждении',
+  'Утверждён',
   'Опубликован',
   'Активный',
   'Завершён',
   'Архивный',
 ] as const;
 
-/** Alias kept for feature/coordinator imports. */
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
+
+/** Backwards-compat aliases for feature code. */
 export const PROJECT_STATUS_OFFICIAL = PROJECT_STATUSES;
-
-/**
- * Coordinator workflow uses two extra status values that the backend
- * doesn't yet declare in swagger.yaml: `'На утверждении'` (waiting for
- * coordinator approval) and `'Утверждён'` (approved). They're typed as
- * a union extension so the UI compiles; if the backend rejects the value
- * the call surfaces as ApiError and the UI handles it.
- *
- * TODO(coordinator): add these to backend ProjectStatus enum + swagger.
- */
-export const PROJECT_STATUS_PENDING = 'На утверждении' as const;
-export const PROJECT_STATUS_APPROVED = 'Утверждён' as const;
-
-export type ProjectStatusOfficial = (typeof PROJECT_STATUSES)[number];
-export type ProjectStatus =
-  | ProjectStatusOfficial
-  | typeof PROJECT_STATUS_PENDING
-  | typeof PROJECT_STATUS_APPROVED;
+export type ProjectStatusOfficial = ProjectStatus;
+export const PROJECT_STATUS_PENDING: ProjectStatus = 'На утверждении';
+export const PROJECT_STATUS_APPROVED: ProjectStatus = 'Утверждён';
 
 export interface FieldValue {
   fieldId: string;
