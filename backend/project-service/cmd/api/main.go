@@ -35,6 +35,7 @@ func setupRoutes(
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
 	mux.HandleFunc("GET /api/projects/{id}/applicants", projectHandler.GetApplicants)
 	mux.HandleFunc("GET /api/projects/{id}/predecessor", projectHandler.GetPredecessor)
+	mux.HandleFunc("GET /api/projects/{id}/proposal", projectHandler.GetProposal)
 	mux.HandleFunc("PUT /api/projects/{id}", projectHandler.Update)
 	mux.HandleFunc("DELETE /api/projects/{id}", projectHandler.Delete)
 

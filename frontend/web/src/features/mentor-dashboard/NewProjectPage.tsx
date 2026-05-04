@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
 import { createProject } from '@/api/projects';
-import { listTemplates } from '@/api/templates';
 import { useRequireUser } from '@/auth/useCurrentUser';
+import { useArchivedProjectsForTemplate } from './hooks/useArchivedProjectsForTemplate';
+import { useProposalTemplate } from './hooks/useProposalTemplate';
 import {
   NewProjectForm,
   buildCreateProjectRequest,
-  type NewProjectFormResult,
+  type NewProjectFormSubmit,
 } from './components/NewProjectForm';
 import styles from './NewProjectPage.module.css';
 
@@ -19,29 +20,16 @@ export function NewProjectPage(): JSX.Element {
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const templatesQuery = useQuery({
-    queryKey: ['templates'],
-    queryFn: listTemplates,
-    staleTime: 5 * 60_000,
-  });
-
-  const defaultTemplate = templatesQuery.data?.[0];
+  const { archived } = useArchivedProjectsForTemplate(me.userId);
+  const { fetchProposal } = useProposalTemplate();
 
   const mutation = useMutation({
-    mutationFn: async (value: NewProjectFormResult) => {
-      if (!defaultTemplate) {
-        throw new Error('Шаблон проекта не настроен');
-      }
-      return createProject(
-        buildCreateProjectRequest(value, {
-          mentorId: me.userId,
-          templateId: defaultTemplate.id,
-        }),
-      );
-    },
+    mutationFn: async (value: NewProjectFormSubmit) =>
+      createProject(buildCreateProjectRequest(value.proposal, { mentorId: me.userId })),
     onSuccess: async () => {
       setServerError(null);
       await queryClient.invalidateQueries({ queryKey: ['projects', 'mentor', me.userId] });
+      await queryClient.invalidateQueries({ queryKey: ['mentor-dashboard'] });
       navigate('/mentor');
     },
     onError: (error: unknown) => {
@@ -57,24 +45,33 @@ export function NewProjectPage(): JSX.Element {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link to="/mentor" className={styles.back}>
-          ← К списку проектов
+      <h1 className={styles.title} id="create-page-title">
+        Создание проекта
+      </h1>
+      <nav className={styles.breadcrumb} aria-label="Хлебные крошки">
+        <Link to="/mentor" className={styles.breadcrumbLink}>
+          Дашборд
         </Link>
-        <h1 className={styles.title}>Новый проект</h1>
-      </header>
+        <svg width="16" height="16" fill="none" viewBox="0 0 16 16" aria-hidden>
+          <path
+            d="M6 4l4 4-4 4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className={styles.breadcrumbCurrent}>Создание проекта</span>
+      </nav>
 
-      {templatesQuery.isLoading ? (
-        <div className={styles.placeholder}>Загружаем шаблон…</div>
-      ) : (
-        <NewProjectForm
-          onSubmit={(value) => mutation.mutate(value)}
-          onCancel={() => navigate('/mentor')}
-          isSubmitting={mutation.isPending}
-          serverError={serverError}
-          templateMissing={!templatesQuery.isLoading && !defaultTemplate}
-        />
-      )}
+      <NewProjectForm
+        predecessors={archived.map((p) => ({ id: p.id, title: p.title }))}
+        onFetchPredecessor={fetchProposal}
+        onSubmit={(value) => mutation.mutate(value)}
+        onCancel={() => navigate('/mentor')}
+        isSubmitting={mutation.isPending}
+        serverError={serverError}
+      />
     </div>
   );
 }

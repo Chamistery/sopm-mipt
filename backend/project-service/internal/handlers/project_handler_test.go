@@ -13,6 +13,13 @@ import (
 	"github.com/hsse/project-service/internal/repository"
 )
 
+// rawProposal is a small helper that builds a json.RawMessage pointer for
+// proposal-related tests without us repeating the cast every time.
+func rawProposal(s string) *json.RawMessage {
+	r := json.RawMessage(s)
+	return &r
+}
+
 // stubProjectRepo captures the last filters passed to GetList and returns
 // configurable canned responses for the methods exercised by handler tests.
 type stubProjectRepo struct {
@@ -23,6 +30,10 @@ type stubProjectRepo struct {
 	predecessor         *models.Project
 	predecessorErr      error
 	predecessorCalledID int
+	proposalRaw         *json.RawMessage
+	proposalMentorID    int
+	proposalErr         error
+	proposalCalledID    int
 }
 
 func (s *stubProjectRepo) Create(context.Context, *models.Project) error { return nil }
@@ -41,6 +52,10 @@ func (s *stubProjectRepo) GetApplicants(context.Context, int) (*models.ProjectAp
 func (s *stubProjectRepo) GetPredecessor(_ context.Context, id int) (*models.Project, error) {
 	s.predecessorCalledID = id
 	return s.predecessor, s.predecessorErr
+}
+func (s *stubProjectRepo) GetProposal(_ context.Context, id int) (*json.RawMessage, int, error) {
+	s.proposalCalledID = id
+	return s.proposalRaw, s.proposalMentorID, s.proposalErr
 }
 func (s *stubProjectRepo) Update(context.Context, *models.Project) error { return nil }
 func (s *stubProjectRepo) Delete(context.Context, int) error             { return nil }
@@ -212,6 +227,115 @@ func TestProjectHandler_GetPredecessor_NotFoundWhenProjectMissing(t *testing.T) 
 
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProjectHandler_GetProposal_OwnMentorReceivesData(t *testing.T) {
+	repo := &stubProjectRepo{
+		proposalRaw:      rawProposal(`{"title":"Старый проект"}`),
+		proposalMentorID: 99,
+	}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/proposal", user)
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetProposal(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.proposalCalledID != 12 {
+		t.Fatalf("expected repo called with id=12, got %d", repo.proposalCalledID)
+	}
+	var body struct {
+		Data map[string]string `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Data["title"] != "Старый проект" {
+		t.Fatalf("expected title в payload, got %s", w.Body.String())
+	}
+}
+
+func TestProjectHandler_GetProposal_NullWhenEmpty(t *testing.T) {
+	repo := &stubProjectRepo{proposalMentorID: 99}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/proposal", user)
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetProposal(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var body struct {
+		Data interface{} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if body.Data != nil {
+		t.Fatalf("expected null, got %+v", body.Data)
+	}
+}
+
+func TestProjectHandler_GetProposal_ForbiddenForOtherMentor(t *testing.T) {
+	repo := &stubProjectRepo{
+		proposalRaw:      rawProposal(`{"title":"Чужой"}`),
+		proposalMentorID: 7,
+	}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/proposal", user)
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetProposal(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+}
+
+func TestProjectHandler_GetProposal_CoordinatorCanReadAny(t *testing.T) {
+	repo := &stubProjectRepo{
+		proposalRaw:      rawProposal(`{"title":"Любой"}`),
+		proposalMentorID: 7,
+	}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 1, Role: auth.RoleCoordinator}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/proposal", user)
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetProposal(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestProjectHandler_GetProposal_NotFound(t *testing.T) {
+	repo := &stubProjectRepo{proposalErr: errors.New("project not found")}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := newRequestWithUser(http.MethodGet, "/api/projects/999/proposal", user)
+	req.SetPathValue("id", "999")
+	w := httptest.NewRecorder()
+	h.GetProposal(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestProjectHandler_GetProposal_UnauthenticatedRejected(t *testing.T) {
+	repo := &stubProjectRepo{}
+	h := NewProjectHandler(repo)
+	req := newRequestWithUser(http.MethodGet, "/api/projects/12/proposal", &auth.CurrentUser{Role: auth.RoleAnonymous})
+	req.SetPathValue("id", "12")
+	w := httptest.NewRecorder()
+	h.GetProposal(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
 	}
 }
 

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -53,6 +54,9 @@ func (s *stubProjectRepo) GetApplicants(context.Context, int) (*models.ProjectAp
 }
 func (s *stubProjectRepo) GetPredecessor(context.Context, int) (*models.Project, error) {
 	return nil, nil
+}
+func (s *stubProjectRepo) GetProposal(context.Context, int) (*json.RawMessage, int, error) {
+	return nil, 0, nil
 }
 func (s *stubProjectRepo) Update(context.Context, *models.Project) error { return nil }
 func (s *stubProjectRepo) Delete(context.Context, int) error             { return nil }

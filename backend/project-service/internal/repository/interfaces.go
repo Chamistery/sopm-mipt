@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/hsse/project-service/internal/models"
 )
@@ -13,6 +14,7 @@ type ProjectRepositoryInterface interface {
 	GetFull(ctx context.Context, id int) (*models.ProjectFull, error)
 	GetApplicants(ctx context.Context, id int) (*models.ProjectApplicantsResponse, error)
 	GetPredecessor(ctx context.Context, id int) (*models.Project, error)
+	GetProposal(ctx context.Context, id int) (*json.RawMessage, int, error)
 	Update(ctx context.Context, project *models.Project) error
 	Delete(ctx context.Context, id int) error
 }

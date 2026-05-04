@@ -11,6 +11,7 @@
  */
 
 import { apiFetch } from './client';
+import type { ProposalData } from '@/features/mentor-dashboard/lib/projectFormState';
 import type { Sprint, Team } from './teams';
 import type { UserSummary } from './users';
 
@@ -181,10 +182,20 @@ export interface CreateProjectRequest {
   eduResult?: string;
   durationSemesters?: number;
   predecessorProjectId?: number | null;
+  /**
+   * Произвольный JSON-документ заявки (Приложение 1 Положения о ПП).
+   * См. структуру в frontend/web/src/features/mentor-dashboard/lib/projectFormState.ts.
+   */
+  proposalData?: ProposalData;
 }
 
 export function createProject(payload: CreateProjectRequest): Promise<Project> {
   return apiFetch<Project>('/projects', { method: 'POST', body: payload });
+}
+
+/** Возвращает proposal_data выбранного проекта (или null, если не задан). */
+export function getProjectProposal(id: number): Promise<ProposalData | null> {
+  return apiFetch<ProposalData | null>(`/projects/${id}/proposal`);
 }
 
 export function updateProject(id: number, payload: Partial<Project>): Promise<Project> {

@@ -154,6 +154,32 @@ paths:
         '401': { description: Требуется аутентификация }
         '404': { description: Проект не найден }
 
+  /api/projects/{id}/proposal:
+    get:
+      tags: [Projects]
+      summary: JSON-документ заявки проекта
+      description: |
+        Возвращает `proposal_data` указанного проекта (см.
+        `Project.proposalData`). Используется фронтом «Создание проекта»
+        для кнопки «Заполнить по шаблону» при выборе проекта-предшественника.
+        Доступ — автор проекта (ментор), либо координатор/админ.
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      responses:
+        '200':
+          description: Заявка найдена (data может быть null, если поле не заполнено)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    nullable: true
+        '401': { description: Требуется аутентификация }
+        '403': { description: Не ваш проект }
+        '404': { description: Проект не найден }
+
   /api/mentor/dashboard:
     get:
       tags: [Projects]
@@ -1038,6 +1064,42 @@ components:
           type: integer
           nullable: true
           description: Идентификатор проекта-предшественника (если задан)
+        proposalData:
+          type: object
+          nullable: true
+          description: |
+            Произвольный JSON-документ заявки на проект (Приложение 1
+            Положения о ПП). Структура нормирована на фронте (см.
+            ProposalData в frontend/web/src/features/mentor-dashboard/lib/projectFormState.ts);
+            бэк хранит документ как-есть в JSONB.
+          example:
+            title: 'Платформа автоматизации тестирования'
+            company: 'Яндекс.Образование'
+            mentor:
+              fullName: 'Тимохин В.А.'
+              email: 't@example.com'
+            goal: 'Автоматизировать сбор и анализ результатов тестов'
+            expectedResult: 'Веб-приложение, отчёты в PDF'
+            technologies: 'Python, Django, PostgreSQL, React'
+            competencies: 'Базовые знания Python, SQL'
+            description: 'Подробное описание...'
+            acceptanceCriteria: '...'
+            eduResult: '...'
+            durationSemesters: 1
+            sprints:
+              count: 5
+              startDate: '2026-09-01'
+              mode: 'simple'
+              durationWeeks: 2
+            numTeams: 1
+            teamSizeMin: 3
+            teamSizeMax: 5
+            minGpa: 7.0
+            minRating: 3.5
+            allowedCourses: [2, 3]
+            resources: 'Доступ к данным'
+            isContinuation: false
+            predecessorProjectId: null
     Application:
       type: object
       properties:

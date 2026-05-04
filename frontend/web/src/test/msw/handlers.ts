@@ -303,6 +303,47 @@ export const handlers = [
 
   http.get(`${API}/projects/:id/predecessor`, () => ok(null)),
 
+  /*
+   * Заявка проекта (proposalData). Для archived-фикстур возвращаем
+   * заранее заготовленный шаблон, чтобы кнопка «Заполнить по шаблону» в
+   * NewProjectPage реально заполняла поля. Для остальных id — null.
+   */
+  http.get(`${API}/projects/:id/proposal`, ({ params }) => {
+    const id = Number(params.id);
+    if (id === 110) {
+      return ok({
+        title: 'Архивный: Цифровой двойник кампуса',
+        company: 'ЦИТ МФТИ',
+        mentor: {
+          fullName: 'Тимохин В.А.',
+          role: 'Доцент',
+          email: 'timokhin@mipt.ru',
+          telegram: '@vtimokhin',
+          phone: '+7 (495) 000-00-00',
+        },
+        goal: 'Витрина цифрового двойника кампуса для абитуриентов и студентов.',
+        expectedResult: 'Веб-приложение с 3D-моделью + поиск по аудиториям.',
+        technologies: 'React, Three.js, PostgreSQL',
+        competencies: 'Знание JS/TS, базовое понимание 3D-графики.',
+        minRating: 3.5,
+        minGpa: 7.0,
+        allowedCourses: [2],
+        description: 'Подробное описание архивного проекта.',
+        acceptanceCriteria: 'Стабильная работа в Chrome/Firefox, время загрузки < 2 c.',
+        eduResult: 'Frontend, 3D, командная работа.',
+        durationSemesters: 1,
+        sprints: { count: 5, startDate: '2026-09-01', mode: 'simple', durationWeeks: 2 },
+        numTeams: 1,
+        teamSizeMin: 3,
+        teamSizeMax: 5,
+        resources: 'Доступ к данным кампуса.',
+        isContinuation: false,
+        predecessorProjectId: null,
+      });
+    }
+    return ok(null);
+  }),
+
   http.post(`${API}/projects`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({

@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"time"
 )
 
@@ -50,11 +51,15 @@ type Project struct {
 	ExpectedResult     string        `json:"expectedResult"`
 	Competencies       string        `json:"competencies"`
 	Resources          string        `json:"resources"`
-	DurationSemesters    int           `json:"durationSemesters"`
-	SubmittedAt          *time.Time    `json:"submittedAt,omitempty"`
-	PredecessorProjectID *int          `json:"predecessorProjectId,omitempty"`
-	CreatedAt            time.Time     `json:"createdAt"`
-	UpdatedAt            time.Time     `json:"updatedAt"`
+	DurationSemesters    int              `json:"durationSemesters"`
+	SubmittedAt          *time.Time       `json:"submittedAt,omitempty"`
+	PredecessorProjectID *int             `json:"predecessorProjectId,omitempty"`
+	// ProposalData — произвольный JSON-документ заявки на проект (13 полей
+	// формы + контакт ментора + настройки спринтов + доп.требования).
+	// Структура нормирована на фронте, бэк хранит её как-есть в JSONB.
+	ProposalData *json.RawMessage `json:"proposalData,omitempty"`
+	CreatedAt    time.Time        `json:"createdAt"`
+	UpdatedAt    time.Time        `json:"updatedAt"`
 }
 
 func (l IntList) Value() (driver.Value, error) {
