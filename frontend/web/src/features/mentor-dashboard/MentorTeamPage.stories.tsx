@@ -72,9 +72,15 @@ interface SeedArgs {
   team?: Team;
   reports?: unknown[];
   scoresBySprint?: Record<number, unknown[]>;
+  meetings?: unknown[];
 }
 
-function seedClient({ team = makeTeam(), reports = [], scoresBySprint = {} }: SeedArgs): QueryClient {
+function seedClient({
+  team = makeTeam(),
+  reports = [],
+  scoresBySprint = {},
+  meetings = [],
+}: SeedArgs): QueryClient {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
@@ -82,6 +88,7 @@ function seedClient({ team = makeTeam(), reports = [], scoresBySprint = {} }: Se
   client.setQueryData(['project', PROJECT_ID], PROJECT);
   client.setQueryData(['project', PROJECT_ID, 'sprints'], []);
   client.setQueryData(['team', TEAM_ID, 'reports'], reports);
+  client.setQueryData(['meetings', TEAM_ID], meetings);
   for (const [sprintId, scores] of Object.entries(scoresBySprint)) {
     client.setQueryData(['sprint-scores', TEAM_ID, Number(sprintId)], scores);
   }
@@ -131,10 +138,46 @@ export const TabReports_Empty: Story = {
   ],
 };
 
-export const TabMeetings_Placeholder: Story = {
+export const TabMeetings_Empty: Story = {
   decorators: [
     withProviders(
       seedClient({ team: makeTeam({ leaderId: 3, leader: TEAMLEAD }) }),
+      `/mentor/teams/${TEAM_ID}?tab=meetings`,
+    ),
+  ],
+};
+
+export const TabMeetings_WithData: Story = {
+  decorators: [
+    withProviders(
+      seedClient({
+        team: makeTeam({ leaderId: 3, leader: TEAMLEAD }),
+        meetings: [
+          {
+            id: 1,
+            teamId: TEAM_ID,
+            title: 'Обзор спринта 2',
+            description: 'Демо API и дашборда',
+            meetingDate: '2099-04-01',
+            startTime: '16:00',
+            durationMinutes: 60,
+            conferenceLink: 'https://zoom.us/j/12345',
+            createdById: 3,
+            status: 'Ожидает подтверждения',
+          },
+          {
+            id: 2,
+            teamId: TEAM_ID,
+            title: 'Постановка спринта 2',
+            meetingDate: '2020-03-17',
+            startTime: '16:00',
+            durationMinutes: 60,
+            createdById: 3,
+            summary: 'Определены приоритеты — backend, frontend, тесты.',
+            status: 'Состоялась',
+          },
+        ],
+      }),
       `/mentor/teams/${TEAM_ID}?tab=meetings`,
     ),
   ],

@@ -318,6 +318,45 @@ INSERT INTO team_reports (sprint_id, team_id, summary, problems, next_plan, stat
   (22, 12, 'AutoFix в ревью.', '', '', 'Отправлен', NULL, '2026-04-05 17:00:00', NULL)
 ON CONFLICT (sprint_id, team_id) DO NOTHING;
 
+-- ─── Meetings — для команды 1 проекта 1 (СУПП). ─────────────────────────
+-- 2 предстоящие (одна ждёт подтверждения от ментора, одна назначена ментором)
+-- + 2 прошедшие со summary. ID прописываем явно ради идемпотентности —
+-- ON CONFLICT (id) DO NOTHING пропустит повторный seed.
+INSERT INTO meetings (
+  id, team_id, sprint_id, title, description, meeting_date, start_time,
+  duration_minutes, conference_link, created_by_id, mentor_confirmed,
+  confirmed_at, summary, status
+) VALUES
+  (1, 1, 2,
+   'Обзор спринта 2',
+   'Обсуждение результатов спринта 2. Демо работающего API и макета дашборда. Планирование спринта 3.',
+   '2026-04-01', '16:00:00', 60,
+   'https://zoom.us/j/9876543210', 3, NULL, NULL, NULL,
+   'Ожидает подтверждения'),
+  (2, 1, 3,
+   'Постановка спринта 3',
+   'Постановка задач на спринт 3. Распределение ролей, уточнение приоритетов.',
+   '2026-04-08', '15:00:00', 45,
+   NULL, 1, TRUE, '2026-03-30 10:00:00', NULL,
+   'Подтверждена'),
+  (3, 1, 2,
+   'Постановка спринта 2',
+   'Установочная встреча второго спринта.',
+   '2026-03-17', '16:00:00', 60,
+   NULL, 1, TRUE, '2026-03-16 12:00:00',
+   'Определены приоритеты: OAuth-авторизация, API проектов, макет дашборда. Стародубов берёт бэкенд, Кузнецов — фронт. Лебедева готовит Swagger-спецификацию до конца первой недели. Волков начинает с тестов для Auth модуля.',
+   'Состоялась'),
+  (4, 1, 1,
+   'Обзор спринта 1',
+   'Демонстрация результатов первого спринта.',
+   '2026-03-14', '16:00:00', 45,
+   NULL, 1, TRUE, '2026-03-13 12:00:00',
+   'Демо структуры проекта и прототипа UI. Обсуждён выбор Django vs FastAPI — решили остаться на Django. Ментор рекомендовал увеличить покрытие тестами до 70%.',
+   'Состоялась')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('meetings_id_seq', GREATEST((SELECT MAX(id) FROM meetings), 1));
+
 -- ─── Done ───────────────────────────────────────────────────────────────
 SELECT
   (SELECT COUNT(*) FROM users)         AS users,
@@ -327,4 +366,5 @@ SELECT
   (SELECT COUNT(*) FROM applications)  AS applications,
   (SELECT COUNT(*) FROM sprints)       AS sprints,
   (SELECT COUNT(*) FROM tasks)         AS tasks,
-  (SELECT COUNT(*) FROM team_reports)  AS team_reports;
+  (SELECT COUNT(*) FROM team_reports)  AS team_reports,
+  (SELECT COUNT(*) FROM meetings)      AS meetings;

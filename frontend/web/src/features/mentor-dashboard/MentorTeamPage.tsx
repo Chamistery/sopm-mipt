@@ -124,7 +124,7 @@ export function MentorTeamPage(): JSX.Element {
       <div className={styles.tabContent}>
         {tab === 'gantt' ? <MentorTeamGanttTab teamId={teamId} /> : null}
         {tab === 'reports' ? <MentorTeamReportsTab teamId={teamId} /> : null}
-        {tab === 'meetings' ? <MentorTeamMeetingsTab /> : null}
+        {tab === 'meetings' ? <MentorTeamMeetingsTab teamId={teamId} /> : null}
       </div>
     </div>
   );
