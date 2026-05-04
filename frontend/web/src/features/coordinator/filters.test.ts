@@ -17,8 +17,6 @@ function p(id: number, title: string, company: string | null = null): ProjectLis
     availableSlots: 4,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
-    maxSlots: 4,
-    filledSlots: 0,
     ...(company === null ? {} : { company }),
   };
 }

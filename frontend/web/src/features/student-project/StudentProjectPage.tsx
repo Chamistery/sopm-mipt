@@ -239,7 +239,7 @@ function Loaded({
             onSaveTeamReport={async (args) => {
               await saveTeamReport.mutateAsync({
                 current: teamReportQuery.data ?? null,
-                whatDone: args.whatDone,
+                summary: args.summary,
                 problems: args.problems,
                 nextPlan: args.nextPlan,
                 ...(args.status ? { status: args.status } : {}),

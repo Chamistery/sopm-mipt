@@ -116,8 +116,10 @@ function ProjectDetail({ id }: ProjectDetailProps): JSX.Element {
           <h1 className={styles.title}>{project.title}</h1>
           <div className={styles.meta}>
             {project.company ? <span>{project.company}</span> : null}
-            {project.course ? <span>Курс: {project.course}</span> : null}
-            <span>Мест: {project.maxSlots}</span>
+            {project.courses && project.courses.length > 0 ? (
+              <span>Курс: {project.courses.join(', ')}</span>
+            ) : null}
+            <span>Мест: {project.numTeams * project.teamSizeMax}</span>
             <span>ID: {project.id}</span>
           </div>
           <span className={`${styles.statusBadge} ${statusToneClass(project.status)}`}>

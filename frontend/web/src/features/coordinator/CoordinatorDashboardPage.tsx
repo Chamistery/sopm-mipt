@@ -115,7 +115,8 @@ export function CoordinatorDashboardPage(): JSX.Element {
                   {p.title}
                 </button>
                 <div className={styles.attentionMeta}>
-                  {p.company ?? 'Компания не указана'} · ID {p.id} · мест: {p.maxSlots}
+                  {p.company ?? 'Компания не указана'} · ID {p.id} · мест:{' '}
+                  {p.numTeams * p.teamSizeMax}
                 </div>
               </div>
 

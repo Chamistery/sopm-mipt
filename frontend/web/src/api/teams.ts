@@ -273,58 +273,7 @@ export function deleteTask(id: number): Promise<void> {
   return apiFetch<void>(`/tasks/${id}`, { method: 'DELETE' });
 }
 
-// ─── Team reports (rich DTOs for student-project) ──────────────────────
-// `TeamReportStatus` is the single shared union, defined in `./teamReports.ts`.
-// The DTO below carries student-project's richer shape (whatDone/score)
-// that the mentor TeamReport doesn't have.
-
-import type { TeamReportStatus } from './teamReports';
-
-export interface TeamReportDto {
-  id: number;
-  teamId: number;
-  sprintId: number;
-  whatDone: string;
-  problems: string;
-  nextPlan: string;
-  status: TeamReportStatus;
-  mentorComment?: string | null;
-  score?: string | null;
-  updatedAt?: string | null;
-}
-
-export interface TeamReportUpsert {
-  whatDone: string;
-  problems: string;
-  nextPlan: string;
-  status?: TeamReportStatus;
-}
-
-export function getTeamReport(
-  teamId: number,
-  sprintId: number,
-): Promise<TeamReportDto | null> {
-  return apiFetch<TeamReportDto | null>('/team-reports', {
-    query: { teamId, sprintId },
-  }).catch((err: unknown) => {
-    if (err instanceof Error && 'status' in err && (err as { status: number }).status === 404) {
-      return null;
-    }
-    throw err;
-  });
-}
-
-export function createTeamReport(payload: {
-  teamId: number;
-  sprintId: number;
-  whatDone: string;
-  problems: string;
-  nextPlan: string;
-  status?: TeamReportStatus;
-}): Promise<TeamReportDto> {
-  return apiFetch<TeamReportDto>('/team-reports', { method: 'POST', body: payload });
-}
-
-export function updateTeamReport(id: number, payload: TeamReportUpsert): Promise<TeamReportDto> {
-  return apiFetch<TeamReportDto>(`/team-reports/${id}`, { method: 'PUT', body: payload });
-}
+// Team report functions live in `./teamReports.ts` — single source of truth
+// (backend uses `summary`, not `whatDone`). The duplicates that used to live
+// here were removed in cleanup/m1; sproject components now import from
+// `@/api/teamReports` directly.

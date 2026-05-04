@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import type { TeamReportDto, TeamReportStatus } from '@/api/teams';
+import type { TeamReport, TeamReportStatus } from '@/api/teamReports';
 import { ApiError } from '@/api/client';
 import { formatRuRange } from '../lib/dates';
 import styles from './TeamReportCard.module.css';
@@ -13,7 +13,7 @@ import styles from './TeamReportCard.module.css';
  */
 
 export interface SaveTeamReportArgs {
-  whatDone: string;
+  summary: string;
   problems: string;
   nextPlan: string;
   status?: TeamReportStatus;
@@ -21,7 +21,7 @@ export interface SaveTeamReportArgs {
 
 interface Props {
   /** null если отчёта в БД ещё нет (POST при первом сохранении). */
-  report: TeamReportDto | null;
+  report: TeamReport | null;
   sprintNumber: number;
   sprintStartDate: string;
   sprintEndDate: string;
@@ -37,7 +37,7 @@ export function TeamReportCard({
   busy = false,
   onSave,
 }: Props): JSX.Element {
-  const [whatDone, setWhatDone] = useState(report?.whatDone ?? '');
+  const [summary, setWhatDone] = useState(report?.summary ?? '');
   const [problems, setProblems] = useState(report?.problems ?? '');
   const [nextPlan, setNextPlan] = useState(report?.nextPlan ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +45,7 @@ export function TeamReportCard({
 
   // Когда отчёт пришёл/обновился с сервера — синкаем поля.
   useEffect(() => {
-    setWhatDone(report?.whatDone ?? '');
+    setWhatDone(report?.summary ?? '');
     setProblems(report?.problems ?? '');
     setNextPlan(report?.nextPlan ?? '');
   }, [report]);
@@ -60,13 +60,13 @@ export function TeamReportCard({
 
   const handleSave = async (newStatus?: TeamReportStatus): Promise<void> => {
     setError(null);
-    if (!whatDone.trim()) {
+    if (!summary.trim()) {
       setError('Заполните «Что сделано»');
       return;
     }
     try {
       await onSave({
-        whatDone: whatDone.trim(),
+        summary: summary.trim(),
         problems: problems.trim(),
         nextPlan: nextPlan.trim(),
         status: newStatus,
@@ -99,7 +99,7 @@ export function TeamReportCard({
         <label className={styles.label}>Что сделано *</label>
         <textarea
           className={`${styles.textarea} ${styles.textareaMain}`}
-          value={whatDone}
+          value={summary}
           readOnly={locked}
           onChange={(e) => setWhatDone(e.target.value)}
           placeholder="Ключевые результаты команды за спринт…"
@@ -130,11 +130,8 @@ export function TeamReportCard({
         <div className={styles.mentorBlock}>
           <div className={styles.mentorTitle}>Комментарий ментора</div>
           <div className={styles.mentorText}>{report.mentorComment}</div>
-          {report.score ? (
-            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, color: 'var(--color-success)' }}>
-              Оценка: {report.score}
-            </div>
-          ) : null}
+          {/* Per-team score isn't stored on TeamReport — mentor grades each
+              member individually via SprintScore (см. ADR 0001). */}
         </div>
       ) : null}
 
