@@ -9,8 +9,9 @@ import styles from './MentorDashboardPage.module.css';
 /**
  * Mentor's archive — completed and archived projects only. Reuses the
  * same card grid and styles as the main dashboard so the look is
- * familiar; the only difference is the data source filter (status =
- * Завершён | Архивный) handled inside `useMentorProjects`.
+ * familiar; the data source filter (status = Завершён | Архивный) lives
+ * inside `useMentorProjects`. Карточки ведут на /mentor/archive/projects/:id
+ * (список команд), а не на обычный mentor-projects detail.
  */
 export function ArchivePage(): JSX.Element {
   const me = useRequireUser();
@@ -54,7 +55,11 @@ export function ArchivePage(): JSX.Element {
       {projectsQuery.data && projectsQuery.data.length > 0 ? (
         <div className={styles.grid}>
           {projectsQuery.data.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              to={`/mentor/archive/projects/${project.id}`}
+            />
           ))}
         </div>
       ) : null}

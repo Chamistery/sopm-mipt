@@ -15,6 +15,8 @@ import { ApplicantsPage } from '@/features/mentor-dashboard/ApplicantsPage';
 import { MentorTaskReviewPage } from '@/features/mentor-dashboard/MentorTaskReviewPage';
 import { TeamReportReviewPage } from '@/features/mentor-dashboard/TeamReportReviewPage';
 import { ArchivePage } from '@/features/mentor-dashboard/ArchivePage';
+import { ArchiveProjectTeamsPage } from '@/features/mentor-dashboard/ArchiveProjectTeamsPage';
+import { ArchiveTeamPage } from '@/features/mentor-dashboard/ArchiveTeamPage';
 import { CoordinatorLayout } from '@/features/coordinator/CoordinatorLayout';
 import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
 import { ProjectsListPage } from '@/features/coordinator/ProjectsListPage';
@@ -42,6 +44,8 @@ export const router = createBrowserRouter([
       { path: 'mentor/teams/:teamId/gantt', element: <MentorTaskReviewPage /> },
       { path: 'mentor/teams/:teamId/reports', element: <TeamReportReviewPage /> },
       { path: 'mentor/archive', element: <ArchivePage /> },
+      { path: 'mentor/archive/projects/:projectId', element: <ArchiveProjectTeamsPage /> },
+      { path: 'mentor/archive/teams/:teamId', element: <ArchiveTeamPage /> },
       {
         path: 'admin',
         element: <CoordinatorLayout />,

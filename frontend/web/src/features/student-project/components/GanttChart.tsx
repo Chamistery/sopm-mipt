@@ -8,20 +8,40 @@ import {
   isWeekend,
   sprintDayList,
 } from '../lib/dates';
-import { calcEffectiveStatus, statusVisual, wasOverdue } from '../lib/taskStatus';
+import {
+  ARCHIVE_DONE_BG,
+  ARCHIVE_REVIEW_BG,
+  archiveStatusVisual,
+  calcEffectiveStatus,
+  statusVisual,
+  wasOverdue,
+} from '../lib/taskStatus';
 import { avatarColor, shortName } from '../lib/people';
 import { TaskBar } from './TaskBar';
 import styles from './GanttChart.module.css';
+
+export type GanttMode = 'student' | 'mentor' | 'archive';
 
 interface Props {
   data: GanttResponseDto;
   todayIso: string;
   currentUserId: number;
-  /** Тимлид может всё, студент — только свои задачи. */
+  /** Тимлид может всё, студент — только свои задачи. Игнорируется в `mode='mentor'|'archive'`. */
   canEditAll: boolean;
-  /** «+ Добавить задачу» (показывается студенту и тимлиду на текущем спринте). */
+  /** «+ Добавить задачу». Игнорируется в `mode='mentor'|'archive'`. */
   canAddTask: boolean;
+  /**
+   * `'student'` (по умолчанию) — обычный режим: клик зовёт `onTaskClick`,
+   * показываются иконки-карандаши у своих задач, кнопка добавления и пр.
+   * `'mentor'` — read-only: ни добавления, ни иконок, клик зовёт
+   * `onTaskAction` (для approve/reject/accept/return).
+   * `'archive'` — read-only финальный вид завершённого спринта: ни кликов,
+   * ни мутаций; зелёно-фиолетовая палитра, своя легенда.
+   */
+  mode?: GanttMode;
   onTaskClick: (task: TaskDto) => void;
+  /** Обязателен только при `mode='mentor'`. */
+  onTaskAction?: (task: TaskDto) => void;
   onAddTask: () => void;
   sprintNumber: number;
   sprintsTotal: number;
@@ -33,12 +53,17 @@ export function GanttChart({
   currentUserId,
   canEditAll,
   canAddTask,
+  mode = 'student',
   onTaskClick,
+  onTaskAction,
   onAddTask,
   sprintNumber,
   sprintsTotal,
 }: Props): JSX.Element {
   const { sprint, members, tasks } = data;
+  const isMentor = mode === 'mentor';
+  const isArchive = mode === 'archive';
+  const isReadOnly = isMentor || isArchive;
 
   const days = useMemo(
     () => sprintDayList(sprint.startDate, sprint.endDate),
@@ -59,6 +84,15 @@ export function GanttChart({
 
   const minBarsWidth = days.length * 28;
 
+  const handleTaskClick = (task: TaskDto): void => {
+    if (isArchive) return;
+    if (isMentor) {
+      onTaskAction?.(task);
+    } else {
+      onTaskClick(task);
+    }
+  };
+
   return (
     <section className={styles.wrapper} aria-label="Диаграмма Ганта">
       <div className={styles.headerBar}>
@@ -69,12 +103,39 @@ export function GanttChart({
             · {formatRuRange(sprint.startDate, sprint.endDate)} · {days.length} дн.
           </span>
         </div>
-        {canAddTask ? (
+        {!isReadOnly && canAddTask ? (
           <button type="button" className={styles.addButton} onClick={onAddTask}>
             + Добавить задачу
           </button>
         ) : null}
       </div>
+
+      {isArchive ? (
+        <div className={styles.archiveLegend} aria-label="Легенда архивной диаграммы">
+          <span className={styles.archiveLegendItem}>
+            <span
+              className={styles.archiveLegendSwatch}
+              style={{ background: ARCHIVE_DONE_BG }}
+            />
+            Готово (принято ментором)
+          </span>
+          <span className={styles.archiveLegendDivider} aria-hidden="true" />
+          <span className={styles.archiveLegendItem}>
+            <span
+              className={styles.archiveLegendMarker}
+              style={{ background: ARCHIVE_REVIEW_BG }}
+            />
+            На ревью
+          </span>
+          <span className={styles.archiveLegendItem}>
+            <span
+              className={styles.archiveLegendMarker}
+              style={{ background: ARCHIVE_DONE_BG }}
+            />
+            Принято
+          </span>
+        </div>
+      ) : null}
 
       {tasks.length === 0 ? (
         <div className={styles.empty}>В этом спринте задач пока нет.</div>
@@ -115,10 +176,12 @@ export function GanttChart({
                   group={g}
                   currentUserId={currentUserId}
                   canEditAll={canEditAll}
+                  isMentor={isMentor}
+                  isArchive={isArchive}
                   todayIso={todayIso}
                   sprintStartIso={sprint.startDate}
                   sprintEndIso={sprint.endDate}
-                  onTaskClick={onTaskClick}
+                  onTaskClick={handleTaskClick}
                 />
               ))}
             </tbody>
@@ -133,29 +196,31 @@ export function GanttChart({
         </div>
       )}
 
-      <div className={styles.legend} aria-label="Легенда">
-        {(
-          [
-            ['Ожидает аппрува'],
-            ['Назначена'],
-            ['В работе'],
-            ['На ревью'],
-            ['Возвращена'],
-            ['Готово'],
-          ] as const
-        ).map(([s]) => {
-          const v = statusVisual(s);
-          return (
-            <span key={s} className={styles.legendItem}>
-              <span
-                className={styles.legendDot}
-                style={{ background: v.bg, border: v.border ? `1px solid ${v.border}` : 'none' }}
-              />
-              {s}
-            </span>
-          );
-        })}
-      </div>
+      {isArchive ? null : (
+        <div className={styles.legend} aria-label="Легенда">
+          {(
+            [
+              ['Ожидает аппрува'],
+              ['Назначена'],
+              ['В работе'],
+              ['На ревью'],
+              ['Возвращена'],
+              ['Готово'],
+            ] as const
+          ).map(([s]) => {
+            const v = statusVisual(s);
+            return (
+              <span key={s} className={styles.legendItem}>
+                <span
+                  className={styles.legendDot}
+                  style={{ background: v.bg, border: v.border ? `1px solid ${v.border}` : 'none' }}
+                />
+                {s}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
@@ -205,6 +270,8 @@ interface PersonRowsProps {
   group: PersonGroup;
   currentUserId: number;
   canEditAll: boolean;
+  isMentor: boolean;
+  isArchive: boolean;
   todayIso: string;
   sprintStartIso: string;
   sprintEndIso: string;
@@ -215,6 +282,8 @@ function PersonRows({
   group,
   currentUserId,
   canEditAll,
+  isMentor,
+  isArchive,
   todayIso,
   sprintStartIso,
   sprintEndIso,
@@ -259,20 +328,20 @@ function PersonRows({
       </tr>
       {group.tasks.map((task) => {
         const status = calcEffectiveStatus(task, todayIso);
-        const visual = statusVisual(status);
-        const overdue = wasOverdue(task, todayIso);
-        const isOwn = task.assigneeId === currentUserId || canEditAll;
+        const visual = isArchive ? archiveStatusVisual(status) : statusVisual(status);
+        const overdue = !isArchive && wasOverdue(task, todayIso);
+        const showPencil = !isMentor && !isArchive && (task.assigneeId === currentUserId || canEditAll);
         return (
           <tr
             key={task.id}
-            className={styles.taskRow}
+            className={`${styles.taskRow} ${isArchive ? styles.taskRowArchive : ''}`}
             data-task-id={task.id}
             onClick={() => onTaskClick(task)}
           >
             <td className={styles.colTask}>
               <div className={styles.taskName}>
                 <span className={styles.iconSlot} aria-hidden="true">
-                  {isOwn ? '✎' : ''}
+                  {showPencil ? '✎' : ''}
                 </span>
                 <span className={styles.taskNameText}>{task.name}</span>
               </div>
@@ -296,6 +365,7 @@ function PersonRows({
                   sprintStartIso={sprintStartIso}
                   sprintEndIso={sprintEndIso}
                   todayIso={todayIso}
+                  archive={isArchive}
                 />
               </div>
             </td>

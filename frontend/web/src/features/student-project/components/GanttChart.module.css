@@ -299,3 +299,47 @@
   color: var(--color-text-muted);
   font-size: var(--font-size-base);
 }
+
+/* Архивная легенда — соответствует прототипу mentor.html:1554-1560.
+   Лежит над таблицей; обычная (нижняя) легенда в архиве не рендерится. */
+.archiveLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 20px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-card);
+}
+
+.archiveLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.archiveLegendDivider {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 4px;
+  background: var(--color-border);
+}
+
+.archiveLegendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.archiveLegendMarker {
+  width: 5px;
+  height: 14px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #fff, 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.taskRowArchive td {
+  cursor: default;
+}

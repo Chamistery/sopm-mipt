@@ -4,7 +4,7 @@ import styles from './TaskActionPopup.module.css';
 
 export type TaskActionKind = 'approve' | 'reject' | 'accept' | 'return';
 
-const TITLES: Record<TaskActionKind, string> = {
+const SINGLE_TITLES: Record<TaskActionKind, string> = {
   approve: 'Аппрувить задачу',
   reject: 'Отклонить задачу',
   accept: 'Принять задачу',
@@ -25,13 +25,16 @@ const COMMENT_REQUIRED: Record<TaskActionKind, boolean> = {
   return: true,
 };
 
+const NEGATIVE = new Set<TaskActionKind>(['reject', 'return']);
+
 interface Props {
   open: boolean;
   taskName: string;
-  action: TaskActionKind;
+  /** Available actions; popup renders one button per kind. */
+  actions: TaskActionKind[];
   isSubmitting?: boolean;
   serverError?: string | null;
-  onSubmit: (comment: string) => void;
+  onSubmit: (action: TaskActionKind, comment: string) => void;
   onClose: () => void;
 }
 
@@ -39,11 +42,16 @@ interface Props {
  * Modal dialog the mentor uses to approve / reject / accept / return a
  * task. Comment is required for the negative actions (reject, return)
  * and optional for the positive ones (approve, accept).
+ *
+ * `actions` lists what the mentor can do for this task — one button per
+ * kind, keyed by the task's status. Single-button mode (e.g. just
+ * `['approve']`) keeps the per-action title; multi-button mode shows a
+ * neutral title and lets the mentor pick at submit time.
  */
 export function TaskActionPopup({
   open,
   taskName,
-  action,
+  actions,
   isSubmitting,
   serverError,
   onSubmit,
@@ -51,24 +59,30 @@ export function TaskActionPopup({
 }: Props): JSX.Element | null {
   const [comment, setComment] = useState('');
   const [touched, setTouched] = useState(false);
+  const [pendingAction, setPendingAction] = useState<TaskActionKind | null>(null);
 
   useEffect(() => {
     if (open) {
       setComment('');
       setTouched(false);
+      setPendingAction(null);
     }
-  }, [open, action]);
+  }, [open, actions]);
 
   if (!open) return null;
 
-  const required = COMMENT_REQUIRED[action];
   const trimmed = comment.trim();
-  const error = required && !trimmed ? 'Комментарий обязателен' : null;
+  const requiresComment = pendingAction != null && COMMENT_REQUIRED[pendingAction];
+  const error = requiresComment && !trimmed ? 'Комментарий обязателен' : null;
 
-  const handleSubmit = (): void => {
+  const title =
+    actions.length === 1 && actions[0] != null ? SINGLE_TITLES[actions[0]] : 'Действие над задачей';
+
+  const handleClick = (action: TaskActionKind): void => {
     setTouched(true);
-    if (error) return;
-    onSubmit(trimmed);
+    setPendingAction(action);
+    if (COMMENT_REQUIRED[action] && !trimmed) return;
+    onSubmit(action, trimmed);
   };
 
   return (
@@ -76,12 +90,12 @@ export function TaskActionPopup({
       className={styles.overlay}
       role="dialog"
       aria-modal="true"
-      aria-label={TITLES[action]}
+      aria-label={title}
       onClick={onClose}
     >
       <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
         <header className={styles.header}>
-          <h2 className={styles.title}>{TITLES[action]}</h2>
+          <h2 className={styles.title}>{title}</h2>
           <button
             type="button"
             className={styles.close}
@@ -97,13 +111,13 @@ export function TaskActionPopup({
         <label className={styles.field}>
           <div className={styles.label}>
             Комментарий
-            {required ? <span className={styles.required}> *</span> : null}
+            {requiresComment ? <span className={styles.required}> *</span> : null}
           </div>
           <textarea
             className={styles.textarea}
             rows={4}
             value={comment}
-            placeholder={required ? 'Опишите, почему' : 'Необязательно'}
+            placeholder="Комментарий (обязателен для отклонения / возврата)"
             onChange={(e) => setComment(e.target.value)}
             onBlur={() => setTouched(true)}
             aria-invalid={touched && !!error}
@@ -114,15 +128,18 @@ export function TaskActionPopup({
         {serverError ? <div className={styles.serverError}>{serverError}</div> : null}
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={action === 'reject' || action === 'return' ? styles.danger : styles.primary}
-            disabled={isSubmitting}
-            onClick={handleSubmit}
-          >
-            {isSubmitting ? 'Сохраняем…' : SUBMIT_LABEL[action]}
-          </button>
-          <button type="button" className={styles.secondary} onClick={onClose}>
+          {actions.map((action) => (
+            <button
+              key={action}
+              type="button"
+              className={NEGATIVE.has(action) ? styles.danger : styles.primary}
+              disabled={isSubmitting}
+              onClick={() => handleClick(action)}
+            >
+              {isSubmitting && pendingAction === action ? 'Сохраняем…' : SUBMIT_LABEL[action]}
+            </button>
+          ))}
+          <button type="button" className={styles.secondary} onClick={onClose} disabled={isSubmitting}>
             Отмена
           </button>
         </div>

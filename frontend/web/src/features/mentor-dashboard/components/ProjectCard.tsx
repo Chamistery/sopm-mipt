@@ -6,15 +6,18 @@ import styles from './ProjectCard.module.css';
 
 interface Props {
   project: ProjectListItem;
+  /** Override link target (для архива). По умолчанию — `/mentor/projects/:id`. */
+  to?: string;
 }
 
-export function ProjectCard({ project }: Props): JSX.Element {
+export function ProjectCard({ project, to }: Props): JSX.Element {
   const ratio = projectFillRatio(project);
   const percent = Math.round(ratio * 100);
   const maxSlots = projectMaxSlots(project);
+  const href = to ?? `/mentor/projects/${project.id}`;
 
   return (
-    <Link to={`/mentor/projects/${project.id}`} className={styles.card}>
+    <Link to={href} className={styles.card}>
       <div className={styles.header}>
         <h3 className={styles.title}>{project.title}</h3>
         <StatusBadge status={project.status} />

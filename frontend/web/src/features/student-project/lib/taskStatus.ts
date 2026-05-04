@@ -82,6 +82,25 @@ export function statusVisual(status: EffectiveTaskStatus): StatusVisual {
   return VISUALS[status];
 }
 
+export const ARCHIVE_DONE_BG = '#34d399';
+export const ARCHIVE_REVIEW_BG = '#6d5dd3';
+const ARCHIVE_FALLBACK_BG = '#9ca3af';
+
+/**
+ * Архивная палитра: «Готово» — зелёный, «На ревью» — фиолетовый,
+ * остальное — серый «как Готово». Палитра жёстко зафиксирована
+ * прототипом mentor.html:1556-1561 и не использует токены.
+ */
+export function archiveStatusVisual(status: EffectiveTaskStatus): StatusVisual {
+  if (status === 'Готово') {
+    return { bg: ARCHIVE_DONE_BG, text: 'var(--color-success)', chipBg: 'var(--color-success-bg)' };
+  }
+  if (status === 'На ревью') {
+    return { bg: ARCHIVE_REVIEW_BG, text: 'var(--color-purple)', chipBg: 'var(--color-purple-bg)' };
+  }
+  return { bg: ARCHIVE_FALLBACK_BG, text: 'var(--color-text-muted)', chipBg: 'var(--color-surface-alt)' };
+}
+
 export function isLockedForStudent(status: EffectiveTaskStatus): boolean {
   // Студент не редактирует задачу, пока она у ментора (review) или закрыта.
   return status === 'На ревью' || status === 'Готово' || status === 'Отклонена';

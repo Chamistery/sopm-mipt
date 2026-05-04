@@ -9,9 +9,10 @@ import {
   rejectTask,
   returnTask,
   taskNeedsMentorAction,
-  type Task,
 } from '@/api/tasks';
-import { pickDefaultSprint, type Sprint } from '@/api/teams';
+import { pickDefaultSprint, type Sprint, type TaskDto } from '@/api/teams';
+import { GanttChart } from '@/features/student-project/components/GanttChart';
+import { formatISODate } from '@/features/student-project/lib/dates';
 import { TaskActionPopup, type TaskActionKind } from './components/TaskActionPopup';
 import { useTeam, useProjectSprints } from './hooks/useTeam';
 import { useTeamGantt } from './hooks/useTeamGantt';
@@ -19,14 +20,14 @@ import { actionsFor } from './lib/taskActions';
 import styles from './MentorTaskReviewPage.module.css';
 
 /**
- * Mentor's task-review screen. Reuses the team's gantt aggregate to show
- * tasks for a sprint and surfaces the four moderation actions:
- *   - "Ожидает аппрува" → approve / reject
- *   - "На ревью"        → accept / return
- * Negative actions require a comment (validated in TaskActionPopup).
+ * Mentor's task-review screen. Renders the team's Gantt at the top
+ * (read-only with mentor click-actions) and a compact "needs action"
+ * list below for keyboard-friendly batch review. Both surfaces open the
+ * same TaskActionPopup; mutations re-use the gantt cache key so the
+ * Gantt repaints on success.
  *
- * The full visual gantt with bars is intentionally *not* rebuilt here:
- * the brief allows a "minimum viable" task table for the mentor view.
+ *   - "Ожидает аппрува" → approve / reject (negative requires comment)
+ *   - "На ревью"        → accept / return (negative requires comment)
  */
 export function MentorTaskReviewPage(): JSX.Element {
   const params = useParams<{ teamId: string }>();
@@ -47,14 +48,24 @@ export function MentorTaskReviewPage(): JSX.Element {
   const ganttQuery = useTeamGantt(teamId, defaultSprintId);
 
   const [filter, setFilter] = useState<'all' | 'needs-action'>('needs-action');
-  const [popup, setPopup] = useState<{ task: Task; action: TaskActionKind } | null>(null);
+  const [popupTask, setPopupTask] = useState<TaskDto | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const todayIso = useMemo(() => formatISODate(new Date()), []);
 
   const refresh = (): Promise<unknown> =>
     queryClient.invalidateQueries({ queryKey: ['team', teamId, 'gantt', defaultSprintId] });
 
   const mutation = useMutation({
-    mutationFn: async ({ task, action, comment }: { task: Task; action: TaskActionKind; comment: string }) => {
+    mutationFn: async ({
+      task,
+      action,
+      comment,
+    }: {
+      task: TaskDto;
+      action: TaskActionKind;
+      comment: string;
+    }) => {
       switch (action) {
         case 'approve':
           return approveTask(task.id, comment || undefined);
@@ -68,7 +79,7 @@ export function MentorTaskReviewPage(): JSX.Element {
     },
     onSuccess: async () => {
       setServerError(null);
-      setPopup(null);
+      setPopupTask(null);
       await refresh();
     },
     onError: (err: unknown) => {
@@ -90,8 +101,19 @@ export function MentorTaskReviewPage(): JSX.Element {
     );
   }
 
-  const tasks = ganttQuery.data?.tasks ?? [];
+  const ganttData = ganttQuery.data;
+  const tasks = ganttData?.tasks ?? [];
   const filtered = filter === 'needs-action' ? tasks.filter((t) => taskNeedsMentorAction(t.status)) : tasks;
+  const popupActions = popupTask ? actionsFor(popupTask.status).map((a) => a.kind) : [];
+
+  const openTaskPopup = (task: TaskDto): void => {
+    if (actionsFor(task.status).length === 0) return;
+    setServerError(null);
+    setPopupTask(task);
+  };
+
+  const sprintNumber = ganttData?.sprint.number ?? 0;
+  const sprintsTotal = sprintsQuery.data?.length ?? 0;
 
   return (
     <div className={styles.page}>
@@ -123,43 +145,62 @@ export function MentorTaskReviewPage(): JSX.Element {
             ? `Ошибка ${ganttQuery.error.status}: ${ganttQuery.error.message}`
             : 'Не удалось загрузить задачи'}
         </div>
-      ) : filtered.length === 0 ? (
-        <div className={styles.empty}>
-          {filter === 'needs-action'
-            ? 'Нет задач, требующих действия. Покажите все, чтобы посмотреть остальные.'
-            : 'В этом спринте задач нет.'}
-        </div>
-      ) : (
-        <ul className={styles.taskList}>
-          {filtered.map((task) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              busy={mutation.isPending}
-              onAction={(action) => {
-                setServerError(null);
-                setPopup({ task, action });
-              }}
-            />
-          ))}
-        </ul>
-      )}
+      ) : ganttData ? (
+        <>
+          <GanttChart
+            data={ganttData}
+            todayIso={todayIso}
+            currentUserId={-1}
+            canEditAll={false}
+            canAddTask={false}
+            mode="mentor"
+            onTaskClick={() => undefined}
+            onTaskAction={openTaskPopup}
+            onAddTask={() => undefined}
+            sprintNumber={sprintNumber}
+            sprintsTotal={sprintsTotal}
+          />
+
+          <section className={styles.reviewList} aria-label="Задачи к разбору">
+            <div className={styles.reviewListHeader}>Задачи к разбору</div>
+            {filtered.length === 0 ? (
+              <div className={styles.empty}>
+                {filter === 'needs-action'
+                  ? 'Нет задач, требующих действия. Покажите все, чтобы посмотреть остальные.'
+                  : 'В этом спринте задач нет.'}
+              </div>
+            ) : (
+              <ul className={styles.taskList}>
+                {filtered.map((task) => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    busy={mutation.isPending}
+                    canAct={actionsFor(task.status).length > 0}
+                    onClick={() => openTaskPopup(task)}
+                  />
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      ) : null}
 
       <TaskActionPopup
-        open={popup != null}
-        taskName={popup?.task.name ?? ''}
-        action={popup?.action ?? 'approve'}
+        open={popupTask != null}
+        taskName={popupTask?.name ?? ''}
+        actions={popupActions.length > 0 ? popupActions : ['approve']}
         isSubmitting={mutation.isPending}
         serverError={serverError}
         onClose={() => {
           if (!mutation.isPending) {
-            setPopup(null);
+            setPopupTask(null);
             setServerError(null);
           }
         }}
-        onSubmit={(comment) => {
-          if (!popup) return;
-          mutation.mutate({ task: popup.task, action: popup.action, comment });
+        onSubmit={(action, comment) => {
+          if (!popupTask) return;
+          mutation.mutate({ task: popupTask, action, comment });
         }}
       />
     </div>
@@ -222,54 +263,30 @@ function FilterToggle({ filter, onChange }: FilterToggleProps): JSX.Element {
 }
 
 interface RowProps {
-  task: Task;
+  task: TaskDto;
   busy: boolean;
-  onAction: (action: TaskActionKind) => void;
+  canAct: boolean;
+  onClick: () => void;
 }
 
-function TaskRow({ task, busy, onAction }: RowProps): JSX.Element {
-  const actions = actionsFor(task.status);
-
+function TaskRow({ task, busy, canAct, onClick }: RowProps): JSX.Element {
   return (
-    <li className={`${styles.task} ${actions.length > 0 ? styles.taskNeedsAction : ''}`}>
-      <div className={styles.taskMain}>
-        <div className={styles.taskHead}>
-          <span className={styles.taskName}>{task.name}</span>
-          <span className={styles.statusTag}>{task.status}</span>
-        </div>
-        <div className={styles.taskMeta}>
-          <span>Исполнитель: {task.assigneeName || `#${task.assigneeId}`}</span>
-          <span>
-            {task.startDate} → {task.endDate}
-          </span>
-          <span>{task.hoursEstimate} ч</span>
-        </div>
-        {task.workDescription ? (
-          <p className={styles.workDescription}>{task.workDescription}</p>
-        ) : null}
-        {task.mrLink ? (
-          <a className={styles.mrLink} href={task.mrLink} target="_blank" rel="noreferrer">
-            MR / результат →
-          </a>
-        ) : null}
-      </div>
-
-      {actions.length > 0 ? (
-        <div className={styles.taskActions}>
-          {actions.map((a) => (
-            <button
-              key={a.kind}
-              type="button"
-              className={a.kind === 'reject' || a.kind === 'return' ? styles.btnDanger : styles.btnPrimary}
-              disabled={busy}
-              onClick={() => onAction(a.kind)}
-            >
-              {a.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+    <li
+      className={`${styles.task} ${canAct ? styles.taskNeedsAction : ''}`}
+      data-task-id={task.id}
+    >
+      <button
+        type="button"
+        className={styles.taskButton}
+        disabled={busy || !canAct}
+        onClick={onClick}
+      >
+        <span className={styles.taskName}>{task.name}</span>
+        <span className={styles.statusTag}>{task.status}</span>
+        <span className={styles.taskMeta}>
+          {task.startDate} → {task.endDate} · {task.hours} ч
+        </span>
+      </button>
     </li>
   );
 }
-
