@@ -1,0 +1,220 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+  color: var(--color-white);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.item:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border);
+}
+
+.itemDanger {
+  border-left: 3px solid var(--color-danger);
+}
+
+.itemWarning {
+  border-left: 3px solid var(--color-warning);
+}
+
+.itemSuccess {
+  border-left: 3px solid var(--color-success);
+}
+
+.itemInfo {
+  border-left: 3px solid var(--color-accent);
+}
+
+.itemNonClickable {
+  cursor: default;
+}
+
+.itemClickable {
+  cursor: pointer;
+}
+
+.itemClickable:hover {
+  border-color: var(--color-accent);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.iconDanger {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+
+.iconWarning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.iconSuccess {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.iconInfo {
+  background: var(--color-selected-bg);
+  color: var(--color-accent);
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.itemBody {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  word-break: break-word;
+}
+
+.date {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: inherit;
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+
+.toggle:hover {
+  color: var(--color-accent-hover);
+  text-decoration: underline;
+}
+
+.empty {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  background: var(--color-card);
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.skeletonIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  animation: pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeletonLines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeletonLine {
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-alt);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeletonLine:nth-child(1) {
+  width: 70%;
+}
+
+.skeletonLine:nth-child(2) {
+  width: 45%;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
