@@ -83,6 +83,117 @@ function resolveTask(id: number): ResolvedTask | undefined {
   return override ? { ...base, ...override } : base;
 }
 
+const NOW_DASHBOARD = '2026-04-01T08:00:00Z';
+
+/*
+ * Builds a /mentor/dashboard project from a fixture-shaped active project.
+ * Mirrors what the Go MentorDashboardRepository computes — sprints + teams
+ * + per-sprint statuses derived from sprint chronology + report status.
+ *
+ * Special-cases for fixture projects 100/101/102/110 — those existed before
+ * the dashboard endpoint and have no corresponding teams/sprints in MSW
+ * fixtures (project 100 has team 300 + 3 sprints, others are empty). We
+ * inline a believable synthetic shape here so e2e sees the prototype's
+ * iter-track without us creating 6 more `fixture*` exports.
+ */
+function buildDashboardProject(
+  p: (typeof fixtureProjects)[number],
+  _today: Date,
+): {
+  id: number;
+  title: string;
+  status: string;
+  company: string;
+  predecessorId: number | null;
+  durationSemesters: number;
+  currentSemester: number;
+  startedAt: string;
+  sprints: Array<{ id: number; number: number; startDate: string; endDate: string; status: string }>;
+  teams: Array<{
+    id: number;
+    name: string;
+    lead: { id: number; firstName: string; lastName: string } | null;
+    memberCount: number;
+    launched: boolean;
+    sprintStatuses: string[];
+  }>;
+} {
+  // Project 100 (СУПП) — реальная команда + спринты из fixtures.
+  if (p.id === 100) {
+    const sprints = fixtureSprints
+      .filter((s) => s.projectId === 100)
+      .map((s) => ({ id: s.id, number: s.number, startDate: s.startDate, endDate: s.endDate, status: s.status }));
+    const team1 = {
+      id: fixtureTeam.id,
+      name: fixtureTeam.name,
+      lead: { id: fixtureTeam.leader.id, firstName: fixtureTeam.leader.firstName, lastName: fixtureTeam.leader.lastName },
+      memberCount: fixtureTeam.members.length,
+      launched: true,
+      sprintStatuses: sprints.map((s, idx) => {
+        if (idx === 0) return 'reviewed';
+        if (s.status === 'Активный') return 'pending-review';
+        return 'future';
+      }),
+    };
+    const team2 = {
+      id: 800,
+      name: 'Команда 2',
+      lead: { id: 5, firstName: 'Мария', lastName: 'Иванова' },
+      memberCount: 3,
+      launched: true,
+      sprintStatuses: sprints.map((s, idx) => (idx === 0 ? 'reviewed' : s.status === 'Активный' ? 'current' : 'future')),
+    };
+    const team3 = {
+      id: 801,
+      name: 'Команда 3 (ожидает запуска)',
+      lead: null,
+      memberCount: 2,
+      launched: false,
+      sprintStatuses: [],
+    };
+    return {
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      company: p.company ?? '',
+      predecessorId: null,
+      durationSemesters: 1,
+      currentSemester: 1,
+      startedAt: p.createdAt.split('T')[0],
+      sprints,
+      teams: [team1, team2, team3],
+    };
+  }
+  // Опубликован / На утверждении / Черновик — без команд и спринтов.
+  const status = p.status as string;
+  if (status === 'Опубликован' || status === 'На утверждении' || status === 'Черновик') {
+    return {
+      id: p.id,
+      title: p.title,
+      status: p.status,
+      company: p.company ?? '',
+      predecessorId: null,
+      durationSemesters: 1,
+      currentSemester: 1,
+      startedAt: p.createdAt.split('T')[0],
+      sprints: [],
+      teams: [],
+    };
+  }
+  return {
+    id: p.id,
+    title: p.title,
+    status: p.status,
+    company: p.company ?? '',
+    predecessorId: null,
+    durationSemesters: 1,
+    currentSemester: 1,
+    startedAt: p.createdAt.split('T')[0],
+    sprints: [],
+    teams: [],
+  };
+}
+
 /*
  * Архивная команда (310) — Гант собирается из fixtureArchiveTasks по
  * запрошенному sprintId. Без taskOverrides, без мутаций — все задачи
@@ -221,8 +332,25 @@ export const handlers = [
   http.delete(`${API}/projects/:id`, () => ok(null)),
 
   http.get(`${API}/mentor/projects/archive`, () =>
-    ok({ projects: [], total: 0, limit: 20, offset: 0 }),
+    ok({
+      projects: fixtureProjects.filter((p) => p.status === 'Завершён'),
+      total: fixtureProjects.filter((p) => p.status === 'Завершён').length,
+      limit: 20,
+      offset: 0,
+    }),
   ),
+
+  // ─── Mentor dashboard aggregate (feature/mentor-dashboard) ─────────────
+  http.get(`${API}/mentor/dashboard`, () => {
+    const today = new Date(NOW_DASHBOARD);
+    const projects = fixtureProjects
+      .filter((p) => {
+        const s = p.status as string;
+        return s !== 'Завершён' && s !== 'Архивный';
+      })
+      .map((p) => buildDashboardProject(p, today));
+    return ok({ projects });
+  }),
 
   // ─── Applications ──────────────────────────────────────────────────────
   http.get(`${API}/applications`, ({ request }) => {

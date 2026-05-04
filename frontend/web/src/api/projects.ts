@@ -202,6 +202,66 @@ export function listMentorArchive(query: { limit?: number; offset?: number } = {
   return apiFetch<ProjectListResponse>('/mentor/projects/archive', { query });
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * Mentor dashboard aggregate (feature/mentor-dashboard, /api/mentor/dashboard)
+ * ──────────────────────────────────────────────────────────────────────── */
+
+export type DashboardIterState =
+  | 'reviewed'
+  | 'pending-review'
+  | 'missed'
+  | 'current'
+  | 'future';
+
+export interface DashboardSprint {
+  id: number;
+  number: number;
+  startDate: string;
+  endDate: string;
+  status: 'Запланирован' | 'Активный' | 'Завершён';
+}
+
+export interface DashboardTeamLead {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
+export interface DashboardTeam {
+  id: number;
+  name: string;
+  lead?: DashboardTeamLead | null;
+  memberCount: number;
+  launched: boolean;
+  sprintStatuses: DashboardIterState[];
+}
+
+export interface MentorDashboardProject {
+  id: number;
+  title: string;
+  status: ProjectStatus;
+  company: string;
+  predecessorId?: number | null;
+  durationSemesters: number;
+  currentSemester: number;
+  startedAt?: string;
+  sprints: DashboardSprint[];
+  teams: DashboardTeam[];
+}
+
+export interface MentorDashboardResponse {
+  projects: MentorDashboardProject[];
+}
+
+/**
+ * Loads the mentor dashboard aggregate. Each card on the dashboard is
+ * fully self-contained — sprints, teams, leader, statuses — so the React
+ * page never has to issue follow-up requests.
+ */
+export function getMentorDashboard(query: { mentorId?: number } = {}): Promise<MentorDashboardResponse> {
+  return apiFetch<MentorDashboardResponse>('/mentor/dashboard', { query });
+}
+
 /**
  * Predecessor of a project (feature/backend-gaps).
  * 200 + Project — has predecessor; 200 + null — no predecessor; 404 — id missing.
