@@ -13,6 +13,11 @@
 import { http, HttpResponse } from 'msw';
 
 import {
+  fixtureArchiveMeetings,
+  fixtureArchiveSprintScores,
+  fixtureArchiveTasks,
+  fixtureArchiveTeam,
+  fixtureArchiveTeamReports,
   fixtureDistributionStatus,
   fixtureNotifications,
   fixtureProjectApplicants,
@@ -50,7 +55,68 @@ const state = {
     updatedAt: string;
   }>,
   nextApplicationId: 1000,
+  /*
+   * Overrides applied on top of `fixtureTasks`. Mentor approve/reject
+   * etc. mutate this map so subsequent GET /teams/:id/gantt sees the
+   * post-transition status. Lifetime is the MSW worker — i.e. one
+   * preview-server boot. Tests that need clean state should issue
+   * fresh task ids or be sequenced.
+   */
+  taskOverrides: new Map<number, { status: TaskStatus }>(),
 };
+
+type FixtureTask = (typeof fixtureTasks)[number];
+type ResolvedTask = Omit<FixtureTask, 'status'> & { status: TaskStatus };
+type TaskStatus =
+  | 'Ожидает аппрува'
+  | 'Назначена'
+  | 'Отклонена'
+  | 'В работе'
+  | 'На ревью'
+  | 'Возвращена'
+  | 'Готово';
+
+function resolveTask(id: number): ResolvedTask | undefined {
+  const base = fixtureTasks.find((t) => t.id === id);
+  if (!base) return undefined;
+  const override = state.taskOverrides.get(id);
+  return override ? { ...base, ...override } : base;
+}
+
+/*
+ * Архивная команда (310) — Гант собирается из fixtureArchiveTasks по
+ * запрошенному sprintId. Без taskOverrides, без мутаций — все задачи
+ * закрыты в финальных статусах.
+ */
+function archiveGanttResponse(request: Request) {
+  const url = new URL(request.url);
+  const sprintId = Number(url.searchParams.get('sprintId'));
+  const sprint = fixtureSprints.find((s) => s.id === sprintId && s.projectId === 110);
+  if (!sprint) return err(404, 'sprint not found');
+  const memberToGantt = (m: (typeof fixtureArchiveTeam.members)[number]) => ({
+    userId: m.userId,
+    name: `${m.user.firstName} ${m.user.lastName}`,
+    roleInTeam: m.roleInTeam ?? undefined,
+    isLeader: m.isLeader,
+  });
+  const tasks = fixtureArchiveTasks
+    .filter((t) => t.sprintId === sprintId)
+    .map((t) => {
+      const owner = fixtureArchiveTeam.members.find((m) => m.userId === t.assigneeId);
+      return {
+        ...t,
+        hoursEstimate: t.hours,
+        mrLink: t.mr ?? undefined,
+        assigneeName: owner ? `${owner.user.lastName} ${owner.user.firstName.charAt(0)}.` : undefined,
+      };
+    });
+  return ok({
+    team: { id: fixtureArchiveTeam.id, name: fixtureArchiveTeam.name },
+    sprint,
+    members: fixtureArchiveTeam.members.map(memberToGantt),
+    tasks,
+  });
+}
 
 export const handlers = [
   // ─── Users ─────────────────────────────────────────────────────────────
@@ -118,7 +184,7 @@ export const handlers = [
     const project = fixtureProjects.find((p) => p.id === id);
     if (!project) return err(404, 'project not found');
     const sprints = fixtureSprints.filter((s) => s.projectId === id);
-    const teams = id === 100 ? [fixtureTeam] : [];
+    const teams = id === 100 ? [fixtureTeam] : id === 110 ? [fixtureArchiveTeam] : [];
     return ok({ project, sprints, teams });
   }),
 
@@ -223,20 +289,50 @@ export const handlers = [
   http.get(`${API}/teams`, ({ request }) => {
     const url = new URL(request.url);
     const projectId = Number(url.searchParams.get('projectId'));
-    return ok(projectId === 100 ? [fixtureTeam] : []);
+    if (projectId === 100) return ok([fixtureTeam]);
+    if (projectId === 110) return ok([fixtureArchiveTeam]);
+    return ok([]);
   }),
 
-  http.get(`${API}/teams/:id`, ({ params }) =>
-    Number(params.id) === 300 ? ok(fixtureTeam) : err(404, 'team not found'),
-  ),
+  http.get(`${API}/teams/:id`, ({ params }) => {
+    const id = Number(params.id);
+    if (id === 300) return ok(fixtureTeam);
+    if (id === 310) return ok(fixtureArchiveTeam);
+    return err(404, 'team not found');
+  }),
 
-  http.get(`${API}/teams/:teamId/gantt`, ({ params }) => {
-    if (Number(params.teamId) !== 300) return err(404, 'team not found');
+  http.get(`${API}/teams/:teamId/gantt`, ({ params, request }) => {
+    const teamId = Number(params.teamId);
+    if (teamId === 310) return archiveGanttResponse(request);
+    if (teamId !== 300) return err(404, 'team not found');
+    /*
+     * Project the dto-shaped fixtures into the backend `Task` /
+     * `GanttMember` shape that the api adapter (`getGantt` /
+     * `taskToDto`) expects. Apply taskOverrides on top so that
+     * mentor approve/reject mutations persist across query
+     * invalidations within a single MSW worker lifetime.
+     */
+    const member = (m: (typeof fixtureTeamContext.members)[number]) => ({
+      userId: m.userId,
+      name: `${m.firstName} ${m.lastName}`,
+      roleInTeam: m.projectRole ?? undefined,
+      isLeader: m.isLeader,
+    });
+    const task = (t: (typeof fixtureTasks)[number]) => {
+      const merged = { ...t, ...(state.taskOverrides.get(t.id) ?? {}) };
+      const owner = fixtureTeamContext.members.find((m) => m.userId === merged.assigneeId);
+      return {
+        ...merged,
+        hoursEstimate: merged.hours,
+        mrLink: merged.mr ?? undefined,
+        assigneeName: owner ? `${owner.lastName} ${owner.firstName.charAt(0)}.` : undefined,
+      };
+    };
     return ok({
       team: { id: 300, name: 'Команда «СУПП»' },
       sprint: fixtureTeamContext.currentSprint,
-      members: fixtureTeamContext.members,
-      tasks: fixtureTasks,
+      members: fixtureTeamContext.members.map(member),
+      tasks: fixtureTasks.map(task),
     });
   }),
 
@@ -261,32 +357,42 @@ export const handlers = [
 
   http.put(`${API}/tasks/:id/submit-review`, ({ params }) => {
     const id = Number(params.id);
-    const task = fixtureTasks.find((t) => t.id === id);
-    return task ? ok({ ...task, status: 'На ревью' }) : err(404, 'task not found');
+    const task = resolveTask(id);
+    if (!task) return err(404, 'task not found');
+    state.taskOverrides.set(id, { status: 'На ревью' });
+    return ok({ ...task, status: 'На ревью' });
   }),
 
   http.put(`${API}/tasks/:id/approve`, ({ params }) => {
     const id = Number(params.id);
-    const task = fixtureTasks.find((t) => t.id === id);
-    return task ? ok({ ...task, status: 'Назначена' }) : err(404, 'task not found');
+    const task = resolveTask(id);
+    if (!task) return err(404, 'task not found');
+    state.taskOverrides.set(id, { status: 'Назначена' });
+    return ok({ ...task, status: 'Назначена' });
   }),
 
   http.put(`${API}/tasks/:id/reject`, ({ params }) => {
     const id = Number(params.id);
-    const task = fixtureTasks.find((t) => t.id === id);
-    return task ? ok({ ...task, status: 'Отклонена' }) : err(404, 'task not found');
+    const task = resolveTask(id);
+    if (!task) return err(404, 'task not found');
+    state.taskOverrides.set(id, { status: 'Отклонена' });
+    return ok({ ...task, status: 'Отклонена' });
   }),
 
   http.put(`${API}/tasks/:id/accept`, ({ params }) => {
     const id = Number(params.id);
-    const task = fixtureTasks.find((t) => t.id === id);
-    return task ? ok({ ...task, status: 'Готово' }) : err(404, 'task not found');
+    const task = resolveTask(id);
+    if (!task) return err(404, 'task not found');
+    state.taskOverrides.set(id, { status: 'Готово' });
+    return ok({ ...task, status: 'Готово' });
   }),
 
   http.put(`${API}/tasks/:id/return`, ({ params }) => {
     const id = Number(params.id);
-    const task = fixtureTasks.find((t) => t.id === id);
-    return task ? ok({ ...task, status: 'Возвращена' }) : err(404, 'task not found');
+    const task = resolveTask(id);
+    if (!task) return err(404, 'task not found');
+    state.taskOverrides.set(id, { status: 'Возвращена' });
+    return ok({ ...task, status: 'Возвращена' });
   }),
 
   http.delete(`${API}/tasks/:id`, () => ok(null)),
@@ -296,6 +402,13 @@ export const handlers = [
     const url = new URL(request.url);
     const teamId = Number(url.searchParams.get('teamId'));
     const sprintId = Number(url.searchParams.get('sprintId'));
+    if (teamId === 310) {
+      if (sprintId) {
+        const found = fixtureArchiveTeamReports.find((r) => r.sprintId === sprintId);
+        return ok(found ?? null);
+      }
+      return ok(fixtureArchiveTeamReports);
+    }
     if (teamId !== 300) return ok([]);
     // Single-pair lookup helper уважает одиночный объект тоже — но
     // teamReports.ts вызывает GET /team-reports?teamId=...&sprintId=...
@@ -328,14 +441,24 @@ export const handlers = [
   }),
 
   // ─── Sprint scores ─────────────────────────────────────────────────────
-  http.get(`${API}/sprint-scores`, () => ok([])),
+  http.get(`${API}/sprint-scores`, ({ request }) => {
+    const url = new URL(request.url);
+    const teamId = Number(url.searchParams.get('teamId'));
+    if (teamId === 310) return ok(fixtureArchiveSprintScores);
+    return ok([]);
+  }),
   http.post(`${API}/sprint-scores`, async ({ request }) => {
     const body = (await request.json()) as Record<string, unknown>;
     return ok({ id: 9999, ...body });
   }),
 
   // ─── Meetings ──────────────────────────────────────────────────────────
-  http.get(`${API}/meetings`, () => ok([])),
+  http.get(`${API}/meetings`, ({ request }) => {
+    const url = new URL(request.url);
+    const teamId = Number(url.searchParams.get('teamId'));
+    if (teamId === 310) return ok(fixtureArchiveMeetings);
+    return ok([]);
+  }),
 
   // ─── Templates ─────────────────────────────────────────────────────────
   http.get(`${API}/templates`, () => ok([])),

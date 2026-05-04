@@ -19,25 +19,33 @@ const baseArgs = {
 };
 
 export const Approve: Story = {
-  args: { ...baseArgs, action: 'approve' },
+  args: { ...baseArgs, actions: ['approve'] },
 };
 
 export const Reject: Story = {
-  args: { ...baseArgs, action: 'reject' },
+  args: { ...baseArgs, actions: ['reject'] },
 };
 
 export const Accept: Story = {
-  args: { ...baseArgs, action: 'accept' },
+  args: { ...baseArgs, actions: ['accept'] },
 };
 
 export const Return: Story = {
-  args: { ...baseArgs, action: 'return' },
+  args: { ...baseArgs, actions: ['return'] },
+};
+
+export const ChoosePendingApproval: Story = {
+  args: { ...baseArgs, actions: ['approve', 'reject'] },
+};
+
+export const ChooseReview: Story = {
+  args: { ...baseArgs, actions: ['accept', 'return'] },
 };
 
 export const SubmittingWithError: Story = {
   args: {
     ...baseArgs,
-    action: 'reject',
+    actions: ['reject'],
     isSubmitting: true,
     serverError: 'Ошибка 409: задача уже изменена',
   },

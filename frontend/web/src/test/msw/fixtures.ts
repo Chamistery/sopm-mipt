@@ -141,12 +141,40 @@ export const fixtureProjects = [
     createdAt: NOW,
     updatedAt: NOW,
   },
+  /*
+   * Архивный проект — у того же ментора (Тимохин В.) одна команда (id=310),
+   * два закрытых спринта, набор финальных оценок и пара встреч. Используется
+   * в e2e/golden/mentor-archive.spec.ts и Storybook ArchiveTeamPage.
+   */
+  {
+    id: 110,
+    title: 'Архивный: Цифровой двойник кампуса',
+    status: 'Завершён' as const,
+    mentorId: MENTOR_ID,
+    company: 'ЦИТ МФТИ',
+    courses: [2],
+    description: 'Веб-витрина цифрового двойника кампуса (закончен в осеннем семестре).',
+    technologies: ['React', 'Three.js', 'PostgreSQL'],
+    teamSizeMin: 3,
+    teamSizeMax: 5,
+    numTeams: 1,
+    filledTeams: 1,
+    acceptedCount: 4,
+    availableSlots: 0,
+    minGpa: 3.5,
+    currentSprint: null,
+    createdAt: '2025-09-01T08:00:00Z',
+    updatedAt: '2025-10-30T08:00:00Z',
+  },
 ];
 
 export const fixtureSprints = [
   { id: 200, projectId: 100, number: 1, startDate: '2026-03-30', endDate: '2026-04-19', status: 'Завершён' as const },
   { id: 201, projectId: 100, number: 2, startDate: SPRINT_START, endDate: SPRINT_END, status: 'Активный' as const },
   { id: 202, projectId: 100, number: 3, startDate: '2026-05-11', endDate: '2026-05-31', status: 'Запланирован' as const },
+  // Архивный проект id=110: два завершённых спринта.
+  { id: 220, projectId: 110, number: 1, startDate: '2025-09-15', endDate: '2025-10-05', status: 'Завершён' as const },
+  { id: 221, projectId: 110, number: 2, startDate: '2025-10-06', endDate: '2025-10-26', status: 'Завершён' as const },
 ];
 
 export const fixtureTeam = {
@@ -244,6 +272,114 @@ export const fixtureTeamReport = {
   createdAt: NOW,
   updatedAt: NOW,
 };
+
+/*
+ * Архивная команда (id=310) для проекта 110. Тот же тимлид/ментор, чтобы не
+ * плодить пользователей; состав статически копируется из активной команды.
+ */
+export const fixtureArchiveTeam = {
+  id: 310,
+  projectId: 110,
+  name: 'Команда «Кампус-2»',
+  leaderId: TEAMLEAD_ID,
+  leader: {
+    id: TEAMLEAD_ID,
+    firstName: 'Иван',
+    lastName: 'Петров',
+    middleName: 'Алексеевич',
+    email: 'teamlead@example.test',
+    role: 'teamlead' as const,
+  },
+  members: [
+    { id: 411, teamId: 310, userId: TEAMLEAD_ID, isLeader: true, roleInTeam: 'Тимлид', user: fixtureUsers[2] },
+    { id: 412, teamId: 310, userId: STUDENT_ID, isLeader: false, roleInTeam: 'Backend', user: fixtureUsers[3] },
+    { id: 413, teamId: 310, userId: 5, isLeader: false, roleInTeam: 'Frontend', user: fixtureUsers[4] },
+    { id: 414, teamId: 310, userId: 6, isLeader: false, roleInTeam: 'Аналитик', user: fixtureUsers[5] },
+  ],
+};
+
+/* Финальные оценки команды 310 — итоговое среднее = (5+4+5+4+5+5)/6 = 4.7 */
+export const fixtureArchiveSprintScores = [
+  { id: 701, sprintId: 220, teamId: 310, studentId: TEAMLEAD_ID, score: 5, scoredById: MENTOR_ID },
+  { id: 702, sprintId: 220, teamId: 310, studentId: STUDENT_ID, score: 4, scoredById: MENTOR_ID },
+  { id: 703, sprintId: 220, teamId: 310, studentId: 5, score: 5, scoredById: MENTOR_ID },
+  { id: 704, sprintId: 221, teamId: 310, studentId: TEAMLEAD_ID, score: 4, scoredById: MENTOR_ID },
+  { id: 705, sprintId: 221, teamId: 310, studentId: STUDENT_ID, score: 5, scoredById: MENTOR_ID },
+  { id: 706, sprintId: 221, teamId: 310, studentId: 5, score: 5, scoredById: MENTOR_ID },
+];
+
+export const fixtureArchiveTeamReports = [
+  {
+    id: 610,
+    sprintId: 220,
+    teamId: 310,
+    summary: 'Развернули прототип, получили обратную связь от ЦИТ.',
+    problems: 'Не хватало UX-исследований на старте.',
+    nextPlan: 'Добавить онбординг и улучшить навигацию.',
+    status: 'Проверен' as const,
+    mentorComment: 'Хороший старт, акценты на UX поправили вовремя.',
+    submittedAt: '2025-10-06T10:00:00Z',
+    reviewedAt: '2025-10-07T09:00:00Z',
+    createdAt: '2025-10-05T10:00:00Z',
+    updatedAt: '2025-10-07T09:00:00Z',
+  },
+  {
+    id: 611,
+    sprintId: 221,
+    teamId: 310,
+    summary: 'Закрыли двойник кампуса, передали кодовую базу ЦИТ.',
+    problems: 'Не успели покрыть e2e-тестами.',
+    nextPlan: '—',
+    status: 'Проверен' as const,
+    mentorComment: 'Спасибо команде за работу!',
+    submittedAt: '2025-10-27T10:00:00Z',
+    reviewedAt: '2025-10-28T09:00:00Z',
+    createdAt: '2025-10-26T10:00:00Z',
+    updatedAt: '2025-10-28T09:00:00Z',
+  },
+];
+
+/* Архивные задачи команды 310 — все «Готово» / «На ревью» (архивная палитра). */
+export const fixtureArchiveTasks = [
+  { id: 561, teamId: 310, sprintId: 220, assigneeId: TEAMLEAD_ID, name: 'API кампуса', description: null, status: 'Готово' as const, hours: 10, startDate: '2025-09-15', endDate: '2025-09-25', mr: 'https://git/mr/61', workDescription: 'Готово' },
+  { id: 562, teamId: 310, sprintId: 220, assigneeId: STUDENT_ID, name: 'Авторизация', description: null, status: 'Готово' as const, hours: 8, startDate: '2025-09-16', endDate: '2025-09-24', mr: 'https://git/mr/62', workDescription: 'Готово' },
+  { id: 563, teamId: 310, sprintId: 220, assigneeId: 5, name: 'Витрина двойника', description: null, status: 'На ревью' as const, hours: 14, startDate: '2025-09-18', endDate: '2025-10-04', mr: 'https://git/mr/63', workDescription: 'На ревью' },
+  { id: 564, teamId: 310, sprintId: 221, assigneeId: TEAMLEAD_ID, name: 'Документация ЦИТ', description: null, status: 'Готово' as const, hours: 6, startDate: '2025-10-06', endDate: '2025-10-15', mr: null, workDescription: 'Готово' },
+  { id: 565, teamId: 310, sprintId: 221, assigneeId: 5, name: 'Демо-страница', description: null, status: 'Готово' as const, hours: 8, startDate: '2025-10-10', endDate: '2025-10-26', mr: null, workDescription: 'Готово' },
+];
+
+export const fixtureArchiveMeetings = [
+  {
+    id: 810,
+    teamId: 310,
+    sprintId: 220,
+    title: 'Установочная встреча',
+    description: 'Знакомство с заказчиком, согласование критериев приёмки.',
+    meetingDate: '2025-09-16',
+    startTime: '18:00',
+    durationMinutes: 60,
+    conferenceLink: 'https://example.test/meet/910',
+    createdById: TEAMLEAD_ID,
+    mentorConfirmed: true,
+    summary: 'Договорились о контактах и форматах созвонов.',
+    status: 'Состоялась' as const,
+  },
+  {
+    id: 811,
+    teamId: 310,
+    sprintId: 221,
+    title: 'Демо итогового прототипа',
+    description: 'Презентация для ЦИТ.',
+    meetingDate: '2025-10-25',
+    startTime: '15:00',
+    durationMinutes: 45,
+    conferenceLink: 'https://example.test/meet/911',
+    createdById: TEAMLEAD_ID,
+    mentorConfirmed: true,
+    summary: 'Прошло, доработок не требуется.',
+    status: 'Состоялась' as const,
+  },
+];
 
 export const fixtureNotifications = [
   {
