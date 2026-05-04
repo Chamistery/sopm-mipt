@@ -77,16 +77,6 @@ export interface ProjectListItem {
   submittedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-
-  /* Legacy aliases used by feature/coordinator. Backend doesn't populate
-   * them; coordinator code should switch to projectMaxSlots(), acceptedCount,
-   * and courses[0] respectively. Optional so list responses still type-check. */
-  /** @deprecated use projectMaxSlots(item) */
-  maxSlots?: number;
-  /** @deprecated use item.acceptedCount */
-  filledSlots?: number;
-  /** @deprecated use item.courses?.[0] */
-  course?: string | null;
 }
 
 export interface Project {
@@ -116,14 +106,6 @@ export interface Project {
   updatedAt: string;
   /** Legacy template field values, used by the catalog detail modal. */
   fieldValues?: FieldValue[];
-  /** @deprecated coord legacy alias for first courses[]. */
-  course?: string | null;
-  /** @deprecated coord legacy alias for projectMaxSlots(). */
-  maxSlots?: number;
-  /** @deprecated coord legacy template id. */
-  templateId?: string;
-  /** @deprecated coord legacy creator id. */
-  creatorId?: number;
 }
 
 /** Coordinator-side trimmed team view for project detail page. */

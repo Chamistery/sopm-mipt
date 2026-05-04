@@ -17,8 +17,6 @@ function project(id: number, status: ProjectStatus): ProjectListItem {
     availableSlots: 5,
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
-    maxSlots: 5,
-    filledSlots: 0,
   };
 }
 

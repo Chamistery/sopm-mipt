@@ -1,32 +1,33 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import type { TeamReportDto } from '@/api/teams';
+import type { TeamReport } from '@/api/teamReports';
 import { TeamReportCard } from './TeamReportCard';
 
 const SPRINT_DATES = { sprintStartDate: '2026-03-17', sprintEndDate: '2026-04-13' };
 
-const DRAFT: TeamReportDto = {
+const DRAFT: TeamReport = {
   id: 7,
   teamId: 1,
   sprintId: 2,
-  whatDone: 'Реализован OAuth, создан CRUD API.',
+  summary: 'Реализован OAuth, создан CRUD API.',
   problems: 'Задержка с доступом к VDI.',
   nextPlan: 'Деплой и модуль оценивания.',
   status: 'Черновик',
 };
 
-const SUBMITTED: TeamReportDto = {
+const SUBMITTED: TeamReport = {
   ...DRAFT,
   id: 8,
   status: 'Отправлен',
 };
 
-const REVIEWED: TeamReportDto = {
+const REVIEWED: TeamReport = {
   ...DRAFT,
   id: 9,
   status: 'Проверен',
   mentorComment: 'Хорошая работа. Покрытие тестами поднимем в следующем спринте.',
-  score: '8/10',
+  // Per-team score is no longer on TeamReport — mentor grades each
+  // member individually via SprintScore (см. ADR 0001).
 };
 
 const noopSave = async (): Promise<void> => {};

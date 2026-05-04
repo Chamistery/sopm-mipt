@@ -10,15 +10,15 @@ import {
   createTeamReport,
   getTeamReport,
   updateTeamReport,
-  type TeamReportDto,
+  type TeamReport,
   type TeamReportStatus,
-  type TeamReportUpsert,
-} from '@/api/teams';
+  type UpdateTeamReportPayload,
+} from '@/api/teamReports';
 
 export function useTeamReport(
   teamId: number | null,
   sprintId: number | null,
-): UseQueryResult<TeamReportDto | null> {
+): UseQueryResult<TeamReport | null> {
   return useQuery({
     queryKey: ['team', teamId, 'report', sprintId],
     queryFn: () => getTeamReport(teamId as number, sprintId as number),
@@ -27,8 +27,8 @@ export function useTeamReport(
 }
 
 export interface SaveTeamReportInput {
-  current: TeamReportDto | null;
-  whatDone: string;
+  current: TeamReport | null;
+  summary: string;
   problems: string;
   nextPlan: string;
   status?: TeamReportStatus;
@@ -37,19 +37,19 @@ export interface SaveTeamReportInput {
 export function useSaveTeamReport(
   teamId: number,
   sprintId: number,
-): UseMutationResult<TeamReportDto, unknown, SaveTeamReportInput> {
+): UseMutationResult<TeamReport, unknown, SaveTeamReportInput> {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ current, whatDone, problems, nextPlan, status }: SaveTeamReportInput) => {
+    mutationFn: async ({ current, summary, problems, nextPlan, status }: SaveTeamReportInput) => {
       if (current) {
-        const patch: TeamReportUpsert = { whatDone, problems, nextPlan };
+        const patch: UpdateTeamReportPayload = { summary, problems, nextPlan };
         if (status) patch.status = status;
         return updateTeamReport(current.id, patch);
       }
       return createTeamReport({
         teamId,
         sprintId,
-        whatDone,
+        summary,
         problems,
         nextPlan,
         status: status ?? 'Черновик',

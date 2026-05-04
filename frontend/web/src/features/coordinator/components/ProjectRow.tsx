@@ -28,9 +28,10 @@ export function ProjectRow({
   teamsCount,
   onOpen,
 }: ProjectRowProps): JSX.Element {
-  const filled = project.filledSlots ?? 0;
-  const max = project.maxSlots ?? 0;
+  const filled = project.acceptedCount;
+  const max = project.numTeams * project.teamSizeMax;
   const fillPct = max > 0 ? Math.min(100, Math.round((filled / max) * 100)) : 0;
+  const courseLabel = project.courses && project.courses.length > 0 ? `Курс ${project.courses.join(', ')}` : null;
 
   return (
     <tr
@@ -47,7 +48,7 @@ export function ProjectRow({
     >
       <td className={styles.titleCell}>
         <div className={styles.title}>{project.title}</div>
-        {project.course ? <div className={styles.subtitle}>{project.course}</div> : null}
+        {courseLabel ? <div className={styles.subtitle}>{courseLabel}</div> : null}
       </td>
       <td>{mentorName ?? `ID ${project.mentorId}`}</td>
       <td>{project.company ?? '—'}</td>
