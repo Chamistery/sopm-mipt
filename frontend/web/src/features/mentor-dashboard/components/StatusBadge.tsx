@@ -16,6 +16,14 @@ const STATUS_CLASS: Record<ProjectStatus, string> = {
   Утверждён: styles.published,
 };
 
+// Prototype displays a slightly shorter label than the canonical
+// «Активный» — see mentor.html status-badge texts. Render «Активен» for
+// the dashboard while keeping the API/model status pristine.
+const STATUS_LABEL: Partial<Record<ProjectStatus, string>> = {
+  Активный: 'Активен',
+};
+
 export function StatusBadge({ status }: Props): JSX.Element {
-  return <span className={`${styles.badge} ${STATUS_CLASS[status]}`}>{status}</span>;
+  const label = STATUS_LABEL[status] ?? status;
+  return <span className={`${styles.badge} ${STATUS_CLASS[status]}`}>{label}</span>;
 }

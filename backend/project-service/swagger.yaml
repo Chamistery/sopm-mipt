@@ -154,6 +154,41 @@ paths:
         '401': { description: Требуется аутентификация }
         '404': { description: Проект не найден }
 
+  /api/mentor/dashboard:
+    get:
+      tags: [Projects]
+      summary: Агрегированный дашборд ментора
+      description: |
+        Возвращает все активные проекты ментора в форме, оптимизированной
+        для шапки `mentor.html` view-dashboard: для каждого проекта —
+        список спринтов, список команд (с лидером, размером и
+        per-sprint статусами), флаг `launched`, ссылка на
+        предшественника. Архивные/завершённые проекты сюда не входят.
+      parameters:
+        - in: query
+          name: mentorId
+          description: |
+            Только для координатора/админа — переопределяет ментора. Для
+            обычного ментора берётся из `X-User-Id` контекста.
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Список проектов ментора с агрегатами
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      projects:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/MentorDashboardProject'
+        '401': { description: Не авторизован }
+        '403': { description: Только для ментора }
+
   /api/mentor/projects/archive:
     get:
       tags: [Projects]
@@ -1107,3 +1142,64 @@ components:
       type: object
       properties:
         mentorComment: { type: string }
+    DashboardSprint:
+      type: object
+      properties:
+        id: { type: integer }
+        number: { type: integer }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status:
+          $ref: '#/components/schemas/SprintStatus'
+    DashboardIterState:
+      type: string
+      enum: [reviewed, pending-review, missed, current, future]
+      description: |
+        Цветной маркер квадратика прогресса в карточке команды. Соответствует
+        классам `iter-sq.*` в `mentor.html`.
+    DashboardTeam:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        lead:
+          $ref: '#/components/schemas/UserSummary'
+        memberCount: { type: integer }
+        launched:
+          type: boolean
+          description: false → "Ожидает запуска", команда сформирована но не приступила.
+        sprintStatuses:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardIterState'
+    MentorDashboardProject:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        company: { type: string }
+        predecessorId:
+          type: integer
+          nullable: true
+        durationSemesters: { type: integer }
+        currentSemester: { type: integer }
+        startedAt:
+          type: string
+          format: date
+          description: ISO-дата создания проекта; UI форматирует в "DD ммм YYYY".
+        sprints:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSprint'
+        teams:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardTeam'
+    UserSummary:
+      type: object
+      properties:
+        id: { type: integer }
+        firstName: { type: string }
+        lastName: { type: string }

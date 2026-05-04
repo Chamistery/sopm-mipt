@@ -3,29 +3,27 @@ import { test, expect } from '@playwright/test';
 import { loginAs } from '../utils/login';
 
 /*
- * Golden path для ментора: дашборд → клик по проекту → детали проекта,
- * где должна быть кнопка «Открыть распределение» и линки на Гант команды.
+ * Legacy «mentor golden path» — раньше тестировал переход на ProjectDetailPage.
+ * После rewrite дашборда ментора (pixel-port из mentor.html) детальная
+ * страница проекта больше не достижима с дашборда: ментор кликает сразу на
+ * команду или на «ожидает запуска».
+ *
+ * Новый golden — `mentor-dashboard.spec.ts`. Этот файл оставлен как
+ * smoke-test заголовка, чтобы поломки страницы дашборда были видны в
+ * двух местах.
  */
 
-test.describe('mentor golden path', () => {
+test.describe('mentor dashboard smoke', () => {
   test.beforeEach(async ({ page }) => {
     await loginAs(page, 'mentor');
   });
 
-  test('dashboard lists projects and opens detail page', async ({ page }) => {
+  test('dashboard heading is visible', async ({ page }) => {
     await page.goto('/mentor');
 
-    await expect(page.getByRole('heading', { name: 'Мои проекты' })).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: 'Дашборд ментора' })).toBeVisible({
       timeout: 15_000,
     });
-
-    // Карточка проекта = <Link> на /mentor/projects/:id.
-    const card = page.getByRole('link', { name: /СУПП ВШПИ МФТИ/i });
-    await expect(card).toBeVisible();
-    await card.click();
-
-    await expect(page).toHaveURL(/\/mentor\/projects\/100/);
-    await expect(page.getByRole('link', { name: 'Открыть распределение' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Гант команды' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Создать проект/ })).toBeVisible();
   });
 });

@@ -25,9 +25,11 @@ func setupRoutes(
 	sprintScoreHandler *handlers.SprintScoreHandler,
 	meetingHandler *handlers.MeetingHandler,
 	distributionHandler *handlers.DistributionHandler,
+	mentorDashboardHandler *handlers.MentorDashboardHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
+	mux.HandleFunc("GET /api/mentor/dashboard", mentorDashboardHandler.Get)
 	mux.HandleFunc("GET /api/mentor/projects/archive", projectHandler.GetMentorArchive)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
@@ -164,6 +166,8 @@ func main() {
 	sprintScoreHandler := handlers.NewSprintScoreHandler(sprintScoreRepo)
 	meetingHandler := handlers.NewMeetingHandler(meetingRepo, teamRepo, projectRepo)
 	distributionHandler := handlers.NewDistributionHandler(distributionService)
+	mentorDashboardRepo := repository.NewMentorDashboardRepository(db.Pool)
+	mentorDashboardHandler := handlers.NewMentorDashboardHandler(mentorDashboardRepo)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -177,6 +181,7 @@ func main() {
 		sprintScoreHandler,
 		meetingHandler,
 		distributionHandler,
+		mentorDashboardHandler,
 	)
 	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
