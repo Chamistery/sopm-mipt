@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>СУПП ВШПИ — Дашборд ментора</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+  /* ─── Mentor-specific styles ─── */
+  .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:28px; }
+  .page-context-dot { width:4px; height:4px; border-radius:50%; background:var(--border); display:inline-block; }
+
+  .btn-primary {
+    display:inline-flex; align-items:center; gap:7px; padding:9px 18px;
+    border:none; border-radius:8px; background:var(--primary); color:#fff;
+    font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+    transition:background 0.15s; white-space:nowrap;
+  }
+  .btn-primary:hover { background:var(--primary-light); }
+  .btn-secondary {
+    display:inline-flex; align-items:center; gap:7px; padding:10px 20px;
+    border:1px solid var(--border); border-radius:8px; background:var(--white);
+    color:var(--text-secondary); font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+  }
+  .btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-success {
+    padding:10px 28px; border:none; border-radius:8px; background:var(--success);
+    color:#fff; font-size:13px; font-weight:600; font-family:inherit; cursor:pointer;
+  }
+  .btn-success:hover { background:#1a8a55; }
+  .btn-sm { padding:6px 12px; font-size:12px; border-radius:6px; }
+
+  /* ─── Attention ─── */
+  .section-title { font-size:15px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .attention-badge { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; padding:0 6px; border-radius:10px; background:var(--danger); color:#fff; font-size:11px; font-weight:700; }
+
+  /* ─── Dashboard projects grid ─── */
+  .dashboard-columns { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  .project-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .project-card-title { font-size:15px; font-weight:700; line-height:1.4; flex:1; padding-right:12px; }
+  .status-badge { display:inline-block; padding:3px 10px; border-radius:6px; font-size:12px; font-weight:600; white-space:nowrap; }
+  .status-active { background:var(--success-bg); color:var(--success); }
+  .status-draft { background:var(--warning-bg); color:var(--warning); }
+  .project-card-meta { font-size:13px; color:var(--text-secondary); margin-bottom:16px; }
+
+  .team-list { display:flex; flex-direction:column; gap:6px; }
+  .team-row { display:flex; align-items:center; gap:10px; background:var(--surface); border-radius:8px; padding:9px 14px; font-size:13px; transition:background 0.12s; }
+  .team-row:hover { background:var(--surface-alt); }
+  .team-name { font-weight:600; color:var(--text); min-width:80px; flex-shrink:0; }
+  .team-info { display:flex; align-items:center; gap:12px; flex:1; color:var(--text-secondary); font-size:12px; min-width:0; }
+  .team-info-item { display:flex; align-items:center; gap:4px; white-space:nowrap; }
+
+  /* Iteration squares */
+  .iter-track { display:flex; align-items:center; gap:4px; flex-shrink:0; }
+  .iter-sq {
+    width:22px; height:22px; border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:700; position:relative;
+    border:1.5px solid var(--border);
+    background:var(--white); color:var(--text-muted); cursor:default;
+  }
+  .iter-sq.reviewed { border-color:var(--success); background:var(--success-bg); color:var(--success); }
+  .iter-sq.pending-review { border-color:var(--warning); background:var(--warning-bg); color:var(--warning); }
+  .iter-sq.missed { border-color:var(--danger); background:var(--danger-bg); color:var(--danger); }
+  .iter-sq.current { border-color:var(--accent); border-style:dashed; background:var(--white); color:var(--text-muted); }
+  .iter-sq.future { border-color:var(--border-light); background:var(--surface); color:transparent; }
+
+  .project-iter-bar {
+    display:flex; align-items:center; gap:4px;
+    margin-bottom:12px; padding:8px 12px;
+    background:#e8eef6; border-radius:7px;
+  }
+  .project-iter-current { font-size:13px; font-weight:700; color:var(--primary); }
+  .project-iter-detail { font-size:12px; color:var(--text-secondary); }
+  .project-footer { display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--border-light); font-size:12px; color:var(--text-muted); }
+  .project-next-action { font-size:12px; font-weight:600; color:var(--accent); display:flex; align-items:center; gap:4px; }
+  .projects-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .projects-header h2 { font-size:18px; font-weight:700; }
+  .empty-team-msg { padding:16px 0; font-size:13px; color:var(--text-muted); text-align:center; background:var(--surface); border-radius:8px; }
+
+  /* ─── Create project form ─── */
+  .create-layout { display:flex; gap:28px; }
+  .section-nav { width:220px; flex-shrink:0; }
+  .section-nav-inner { position:sticky; top:20px; background:var(--card); border:1px solid var(--border-light); border-radius:10px; padding:8px; }
+  .section-nav-title { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; padding:8px 12px 10px; }
+  .section-nav-item {
+    display:block; width:100%; text-align:left; padding:9px 12px;
+    border:none; border-radius:7px; background:transparent; color:var(--text-secondary);
+    font-size:13px; font-weight:400; font-family:inherit; cursor:pointer;
+    transition:all 0.12s; margin-bottom:2px;
+  }
+  .section-nav-item:hover { background:var(--surface); }
+  .section-nav-item.active { background:var(--surface-alt); color:var(--primary); font-weight:600; }
+  .section-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--border); margin-right:8px; vertical-align:middle; }
+  .section-nav-item.active .section-dot { background:var(--accent); }
+  .form-card { flex:1; max-width:720px; background:var(--card); border:1px solid var(--border-light); border-radius:10px; padding:28px 32px; }
+  .form-card h2 { font-size:20px; font-weight:700; margin-bottom:6px; }
+  .form-card .form-desc { font-size:13px; color:var(--text-muted); line-height:1.5; margin-bottom:28px; }
+  .form-field { margin-bottom:20px; }
+  .form-label { display:flex; align-items:baseline; gap:6px; margin-bottom:7px; font-size:13px; font-weight:600; }
+  .field-number { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:6px; background:var(--primary); color:#fff; font-size:11px; font-weight:700; flex-shrink:0; }
+  .required { color:var(--danger); margin-left:2px; }
+  .form-hint { font-size:12px; color:var(--text-muted); margin-bottom:7px; line-height:1.5; }
+  .form-input, .form-textarea {
+    width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:7px;
+    font-size:14px; font-family:inherit; color:var(--text); background:var(--white);
+    outline:none; transition:border-color 0.15s, box-shadow 0.15s;
+  }
+  .form-input:focus, .form-textarea:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,108,181,0.1); }
+  .form-textarea { min-height:100px; resize:vertical; }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .form-grid-full { grid-column:1/-1; }
+  .extra-box { background:var(--surface-alt); border-radius:8px; padding:18px 20px; margin-top:8px; border:1px solid var(--border-light); }
+  .extra-box-title { font-size:13px; font-weight:700; color:var(--primary); margin-bottom:14px; }
+  .checkbox-group { display:flex; gap:8px; }
+  .checkbox-label { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--text-secondary); cursor:pointer; padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:var(--white); }
+  .checkbox-label:hover { border-color:var(--accent); }
+  .checkbox-label input { accent-color:var(--primary); }
+  .radio-group { display:flex; gap:10px; }
+  .radio-label { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; padding:10px 18px; border-radius:8px; border:1px solid var(--border); background:var(--white); }
+  .radio-label:hover { border-color:var(--accent); }
+  .radio-label input { accent-color:var(--primary); }
+  .team-size-row { display:flex; gap:8px; align-items:center; }
+  .team-size-input { width:70px; padding:10px 14px; border:1px solid var(--border); border-radius:7px; font-size:14px; font-family:inherit; text-align:center; outline:none; }
+  .team-size-input:focus { border-color:var(--accent); }
+  .file-drop { background:var(--surface-alt); border:1px dashed var(--border); border-radius:8px; padding:20px; text-align:center; cursor:pointer; margin-top:4px; }
+  .file-drop:hover { border-color:var(--accent); }
+  .form-footer { display:flex; justify-content:space-between; align-items:center; margin-top:28px; padding-top:20px; border-top:1px solid var(--border-light); }
+  .step-dots { display:flex; gap:8px; }
+  .step-dot { width:8px; height:8px; border-radius:4px; background:var(--border); cursor:pointer; transition:all 0.25s ease; }
+  .step-dot.active { width:28px; background:var(--accent); }
+  .form-actions { display:flex; gap:10px; }
+  .small-label { font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px; display:block; }
+  .section-content { display:none; }
+  .section-content.active { display:block; }
+
+  /* ─── Reports (mentor) ─── */
+  .mentor-comment-box { margin-top:14px; padding-top:14px; border-top:1px solid var(--border-light); }
+  .mentor-comment-label { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:6px; }
+  .mentor-comment-input { width:100%; padding:8px 12px; border:1px solid var(--border); border-radius:7px; font-size:13px; font-family:inherit; resize:vertical; min-height:60px; outline:none; }
+  .mentor-comment-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,108,181,0.1); }
+  .mentor-score { display:flex; align-items:center; gap:10px; margin-top:10px; }
+  .mentor-score label { font-size:12px; font-weight:600; color:var(--text-secondary); }
+  .mentor-score input[type=number] { width:60px; padding:6px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px; font-weight:700; text-align:center; font-family:inherit; outline:none; }
+  .mentor-score span { font-size:12px; color:var(--text-muted); }
+
+  /* ─── Distribution view ─── */
+  .dist-layout { display:grid; grid-template-columns:7fr 3fr; gap:20px; align-items:start; }
+  .dist-teams { display:flex; flex-direction:column; gap:16px; }
+  .dist-team-card { background:var(--card); border:1px solid var(--border-light); border-radius:10px; padding:20px 24px; }
+  .dist-team-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .dist-team-title { font-size:15px; font-weight:700; }
+  .dist-team-count { font-size:13px; color:var(--text-muted); font-weight:600; }
+  .dist-slots { display:flex; flex-direction:column; gap:6px; }
+  .dist-slot {
+    display:flex; align-items:center; gap:10px; min-height:44px; padding:8px 14px;
+    background:var(--surface); border-radius:8px; border:2px dashed transparent;
+    transition:all 0.15s;
+  }
+  .dist-slot.drag-over { border-color:var(--accent); background:var(--surface-alt); }
+  .dist-slot.empty-slot { border:2px dashed var(--border); background:var(--white); justify-content:center; }
+  .dist-slot.empty-slot span { font-size:12px; color:var(--text-muted); }
+  .dist-chip {
+    display:inline-flex; align-items:center; gap:8px; padding:6px 12px;
+    background:var(--card); border:1px solid var(--border-light); border-radius:8px;
+    font-size:13px; font-weight:500; cursor:grab; user-select:none;
+    transition:box-shadow 0.15s, transform 0.1s;
+  }
+  .dist-chip:active { cursor:grabbing; box-shadow:0 4px 16px rgba(0,0,0,0.15); transform:scale(1.03); }
+  .dist-chip.accepted { cursor:default; border-color:var(--success); background:var(--success-bg); }
+  .dist-chip .chip-name { font-weight:600; }
+  .dist-chip .chip-meta { font-size:11px; color:var(--text-muted); }
+  .dist-chip .chip-gpa { font-size:12px; font-weight:700; color:var(--primary); }
+  .dist-status-accepted { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600; background:var(--success-bg); color:var(--success); }
+  .dist-status-invited { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:600; }
+  .dist-invite-btn {
+    margin-left:auto; width:28px; height:28px; border-radius:6px; border:1.5px solid var(--success);
+    background:var(--success-bg); color:var(--success); cursor:pointer; display:inline-flex;
+    align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;
+  }
+  .dist-invite-btn:hover { background:var(--success); color:#fff; }
+
+  .dist-pool { background:var(--card); border:1px solid var(--border-light); border-radius:10px; padding:20px; }
+  .dist-pool-section { margin-bottom:16px; }
+  .dist-pool-toggle {
+    display:flex; align-items:center; gap:8px; width:100%; border:none; background:none;
+    font-size:13px; font-weight:700; color:var(--text); padding:8px 0; cursor:pointer;
+    font-family:inherit;
+  }
+  .dist-pool-toggle .toggle-arrow { transition:transform 0.2s; font-size:10px; color:var(--text-muted); }
+  .dist-pool-toggle .toggle-arrow.open { transform:rotate(90deg); }
+  .dist-pool-body { overflow:hidden; }
+  .dist-pool-body.collapsed { display:none; }
+  .dist-priority-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:8px; }
+  .dist-priority-col { background:var(--surface); border-radius:8px; padding:8px; min-height:60px; }
+  .dist-priority-col .priority-label { font-size:10px; font-weight:700; color:var(--text-muted); text-align:center; margin-bottom:6px; text-transform:uppercase; }
+  .dist-priority-col .dist-chip { display:flex; width:100%; margin-bottom:4px; font-size:12px; padding:5px 8px; }
+  .dist-priority-col .dist-chip .chip-meta { font-size:10px; }
+  .dist-priority-col .dist-chip .chip-gpa { font-size:11px; }
+
+  /* ─── Unstarted projects view ─── */
+  .unstarted-project { background:var(--card); border:1px solid var(--border-light); border-radius:12px; padding:24px 28px; margin-bottom:20px; }
+  .unstarted-project-header { margin-bottom:20px; }
+  .unstarted-project-title { font-size:18px; font-weight:700; margin-bottom:4px; }
+  .unstarted-project-meta { font-size:13px; color:var(--text-muted); line-height:1.6; }
+  .unstarted-sprint-config { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:var(--surface-alt); border-radius:7px; font-size:13px; font-weight:600; color:var(--primary); margin-top:8px; }
+  .unstarted-teams { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; }
+  .unstarted-team-card { background:var(--surface); border:1px solid var(--border-light); border-radius:10px; padding:18px 20px; }
+  .unstarted-team-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .unstarted-team-title { font-size:14px; font-weight:700; }
+  .unstarted-team-status { font-size:12px; font-weight:600; }
+  .unstarted-team-status.ready { color:var(--success); }
+  .unstarted-team-status.insufficient { color:var(--warning); }
+  .unstarted-team-status.empty { color:var(--text-muted); }
+  .unstarted-members { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; min-height:40px; }
+  .unstarted-member { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .unstarted-member .member-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#fff; flex-shrink:0; }
+  .unstarted-empty-msg { font-size:12px; color:var(--text-muted); text-align:center; padding:12px 0; }
+  .launch-btn {
+    width:100%; padding:10px; border:none; border-radius:8px; font-size:13px; font-weight:600;
+    font-family:inherit; cursor:pointer; transition:all 0.15s;
+  }
+  .launch-btn.enabled { background:var(--success); color:#fff; }
+  .launch-btn.enabled:hover { background:#1a8a55; }
+  .launch-btn.disabled { background:var(--surface-alt); color:var(--text-muted); cursor:not-allowed; border:1px solid var(--border-light); }
+  .launch-btn.launched { background:var(--success-bg); color:var(--success); cursor:default; border:1px solid var(--success); }
+  .unstarted-note { font-size:12px; color:var(--text-muted); margin-top:16px; padding:10px 14px; background:var(--surface); border-radius:7px; border-left:3px solid var(--warning); line-height:1.5; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-sub">ВШПИ МФТИ</div>
+    <div class="sidebar-logo-main">Система управления<br>проектным практикумом</div>
+  </div>
+  <div class="role-switcher-wrap">
+    <div class="role-switcher-label">Тестовый режим — роль</div>
+    <select class="role-switcher" onchange="switchRole(this.value)"><!-- filled by JS --></select>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-nav-item active" data-nav="dashboard" onclick="showView('dashboard')">
+      <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="2" width="7" height="4" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="11" width="7" height="4" rx="1.5" stroke="currentColor" stroke-width="1.4"/><rect x="11" y="8" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.4"/></svg>
+      Дашборд
+    </button>
+    <button class="sidebar-nav-item" data-nav="distribution" onclick="showView('distribution')">
+      <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M8 7v6l5-3-5-3z" fill="currentColor"/></svg>
+      Незапущенные команды
+    </button>
+  </nav>
+  <div class="sidebar-user">
+    <div class="sidebar-avatar">
+      <svg width="20" height="20" fill="none" viewBox="0 0 20 20" style="color:rgba(255,255,255,0.7)"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.4"/></svg>
+    </div>
+    <div>
+      <div class="sidebar-user-name">Тимохин В.Н.</div>
+      <div class="sidebar-user-role">Ментор</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ═══ DASHBOARD ═══ -->
+  <div id="view-dashboard" class="view active">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Дашборд ментора</h1>
+        <div class="page-context">
+          Весенний семестр 2025/2026 уч. г.
+          <span class="page-context-dot"></span>
+          Направление «Программная инженерия»
+        </div>
+      </div>
+      <button class="btn-primary" onclick="showView('create')">
+        <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Создать проект
+      </button>
+    </div>
+
+    <!-- Attention -->
+    <div class="attention-section">
+      <div class="section-title">
+        Требует внимания
+        <span class="attention-badge">7</span>
+      </div>
+      <div class="attention-list" id="attention-list">
+        <!-- 1: Задача на аппрув (action required) -->
+        <div class="attention-item">
+          <div class="attention-icon" style="background:#dbeafe;color:var(--primary)">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><rect x="3" y="2" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 6h6M6 9h6M6 12h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Новая задача на аппрув: «Аналитика пользовательских сценариев» от Лебедева Н., Команда 1</div>
+            <div class="attention-meta">СУПП ВШПИ · Требуется аппрув</div>
+          </div>
+          <div class="attention-date">2 часа назад</div>
+        </div>
+        <!-- 2: Задача на ревью (action required) -->
+        <div class="attention-item">
+          <div class="attention-icon" style="background:var(--purple-bg);color:var(--purple)">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M6 9l2 2 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Задача на ревью: «Интеграция с OAuth МФТИ» от Стародубов А., Команда 1</div>
+            <div class="attention-meta">СУПП ВШПИ · Отправлена на ревью</div>
+          </div>
+          <div class="attention-date">5 часов назад</div>
+        </div>
+        <!-- Hidden items (show on expand) -->
+        <div class="attention-item attention-hidden" style="display:none;border-left:3px solid var(--warning)">
+          <div class="attention-icon meeting">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h14" stroke="currentColor" stroke-width="1.4"/><path d="M6 1v3M12 1v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Тимлид Стародубов А. предлагает встречу «Обзор спринта 2» на 1 апр, 16:00</div>
+            <div class="attention-meta">СУПП ВШПИ · Команда 1</div>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <button onclick="this.closest('.attention-item').querySelector('.attention-title').textContent='Встреча подтверждена';this.parentElement.innerHTML='<span style=\'font-size:12px;font-weight:600;color:var(--success)\'>✓ Подтверждена</span>'" style="padding:5px 14px;border:none;border-radius:6px;background:var(--success);color:#fff;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">Подтвердить</button>
+              <button onclick="this.closest('.attention-item').querySelector('.attention-title').textContent='Встреча отклонена';this.parentElement.innerHTML='<span style=\'font-size:12px;font-weight:600;color:var(--danger)\'>✕ Отклонена</span>'" style="padding:5px 14px;border:1px solid var(--danger);border-radius:6px;background:var(--white);color:var(--danger);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer">Отклонить</button>
+            </div>
+          </div>
+          <div class="attention-date">сегодня</div>
+        </div>
+        <div class="attention-item attention-hidden" style="display:none">
+          <div class="attention-icon" style="background:var(--warning-bg);color:var(--warning)">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><rect x="3" y="2" width="12" height="14" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M6 6h6M6 9h6M6 12h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Командный отчёт за спринт 2 от Команды 1 требует проверки</div>
+            <div class="attention-meta">СУПП ВШПИ · отчёт сдан 5 апреля</div>
+          </div>
+          <div class="attention-date">2 дня назад</div>
+        </div>
+        <div class="attention-item attention-hidden" style="display:none">
+          <div class="attention-icon" style="background:var(--success-bg);color:var(--success)">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><path d="M5 9l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Студент принял приглашение: Кузнецов М. — проект СУПП ВШПИ, Команда 1</div>
+            <div class="attention-meta">Команду можно запустить после принятия всех приглашений</div>
+          </div>
+          <button onclick="this.closest('.attention-item').style.display='none';updateAttentionBadge()" style="border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0" title="Скрыть">✕</button>
+        </div>
+        <div class="attention-item attention-hidden" style="display:none">
+          <div class="attention-icon" style="background:var(--danger-bg);color:var(--danger)">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><path d="M5 5l8 8M13 5l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Студент отклонил приглашение: Григорьев П. — проект Мобильное расписание</div>
+            <div class="attention-meta">Требуется найти замену</div>
+          </div>
+          <button onclick="this.closest('.attention-item').style.display='none';updateAttentionBadge()" style="border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0" title="Скрыть">✕</button>
+        </div>
+        <div class="attention-item attention-hidden" style="display:none;border-left:3px solid var(--warning)">
+          <div class="attention-icon" style="background:var(--warning-bg);color:var(--warning)">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="9" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 5.5v4M9 12v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="attention-body">
+            <div class="attention-title">Нет встречи в спринте — Анализ кода, Команда 2</div>
+            <div class="attention-meta">Спринт заканчивается через 6 дней, встреча не проводилась</div>
+          </div>
+          <button onclick="showView('team');showToast('Перейдите во вкладку Встречи')" style="border:none;border-radius:6px;background:var(--warning);color:#fff;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;padding:5px 14px;white-space:nowrap;flex-shrink:0">Назначить</button>
+        </div>
+      </div>
+      <button id="attention-toggle" onclick="toggleAttentionList()" style="width:100%;padding:8px;border:none;background:none;color:var(--accent);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:4px">Показать ещё 5 ▾</button>
+    </div>
+
+    <!-- Projects -->
+    <div class="projects-header"><h2>Мои проекты</h2></div>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px;font-size:11px;color:var(--text-muted)">
+      <span style="display:flex;align-items:center;gap:4px"><span class="iter-sq reviewed" style="width:16px;height:16px"><svg width="10" height="10" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span> Проверен</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="iter-sq pending-review" style="width:16px;height:16px"><svg width="10" height="10" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.5" fill="currentColor"/></svg></span> Ждёт проверки</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="iter-sq missed" style="width:16px;height:16px"><svg width="10" height="10" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span> Не сдан</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="iter-sq current" style="width:16px;height:16px"></span> Текущий</span>
+      <span style="display:flex;align-items:center;gap:4px"><span class="iter-sq future" style="width:16px;height:16px"></span> Будущий</span>
+    </div>
+
+    <div class="dashboard-columns">
+
+      <!-- Project 1: СУПП — 5 sprints x 3 weeks, sprint 2 -->
+      <div class="project-card">
+        <div class="project-card-header"><h3 class="project-card-title">Система управления проектным практикумом ВШПИ</h3><span class="status-badge status-active">Активен</span></div>
+        <div class="project-card-meta">Инициатор: МФТИ · Срок: 2 семестра (2-й из 2)</div>
+        <div class="project-iter-bar"><span class="project-iter-current">Спринт 2 из 5</span><span class="project-iter-detail">· по 3 недели · 17 мар — 6 апр</span></div>
+        <div class="team-list">
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 1')"><span class="team-name">Команда 1</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 4 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Стародубов А.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq pending-review"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.5" fill="currentColor"/></svg></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 2')"><span class="team-name">Команда 2</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 3 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Козлов Д.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq current"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 3')"><span class="team-name">Команда 3</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 5 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Петрова Е.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="border:1.5px dashed var(--border);background:transparent;opacity:0.7" onclick="showView('distribution')"><span class="team-name" style="color:var(--text-muted)">Команда 4</span><div class="team-info"><span class="team-info-item" style="color:var(--text-muted)"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 2 чел.</span><span class="team-info-item" style="color:var(--warning);font-weight:600">Ожидает запуска</span></div></div>
+        </div>
+        <div class="project-footer"><span>Начат: сентябрь 2025</span></div>
+      </div>
+
+      <!-- Project 2: Тестирование — 4 sprints x 2 weeks, sprint 3 -->
+      <div class="project-card">
+        <div class="project-card-header"><h3 class="project-card-title">Платформа автоматизации тестирования ПО</h3><span class="status-badge status-active">Активен</span></div>
+        <div class="project-card-meta">Инициатор: Яндекс · Срок: 1 семестр</div>
+        <div class="project-iter-bar"><span class="project-iter-current">Спринт 3 из 4</span><span class="project-iter-detail">· по 2 недели · 24 мар — 6 апр</span></div>
+        <div class="team-list">
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 1')"><span class="team-name">Команда 1</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 5 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Иванова М.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq current"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 2')"><span class="team-name">Команда 2</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 4 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Сидоров К.</span></div><div class="iter-track"><span class="iter-sq missed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq pending-review"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.5" fill="currentColor"/></svg></span><span class="iter-sq future"></span></div></div>
+        </div>
+        <div class="project-footer"><span>Начат: февраль 2026</span></div>
+      </div>
+
+      <!-- Project 3: Рекомендательная — 6 sprints x 2 weeks, sprint 2 -->
+      <div class="project-card">
+        <div class="project-card-header"><h3 class="project-card-title">Рекомендательная система подбора элективных курсов</h3><span class="status-badge status-active">Активен</span></div>
+        <div class="project-card-meta">Инициатор: МФТИ · Срок: 1 семестр</div>
+        <div class="project-iter-bar"><span class="project-iter-current">Спринт 2 из 6</span><span class="project-iter-detail">· по 2 недели · 17 мар — 30 мар</span></div>
+        <div class="team-list">
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 1')"><span class="team-name">Команда 1</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 4 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Новиков А.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 2')"><span class="team-name">Команда 2</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 3 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Белова С.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq pending-review"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.5" fill="currentColor"/></svg></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 3')"><span class="team-name">Команда 3</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 5 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Фёдоров И.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq current"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 4')"><span class="team-name">Команда 4</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 4 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Орлова В.</span></div><div class="iter-track"><span class="iter-sq missed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="iter-sq current"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+        </div>
+        <div class="project-footer"><span>Начат: февраль 2026</span></div>
+      </div>
+
+      <!-- Project 4: Мобильное — 5 sprints x 3 weeks, sprint 1 -->
+      <div class="project-card">
+        <div class="project-card-header"><h3 class="project-card-title">Мобильное приложение расписания МФТИ</h3><span class="status-badge status-active">Активен</span></div>
+        <div class="project-card-meta">Инициатор: Т-Банк · Срок: 2 семестра (1-й из 2)</div>
+        <div class="project-iter-bar"><span class="project-iter-current">Спринт 1 из 5</span><span class="project-iter-detail">· по 3 недели · 10 мар — 30 мар</span></div>
+        <div class="team-list">
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 1')"><span class="team-name">Команда 1</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 5 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Григорьев П.</span></div><div class="iter-track"><span class="iter-sq current"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span><span class="iter-sq future"></span></div></div>
+        </div>
+        <div class="project-footer"><span>Начат: март 2026</span></div>
+      </div>
+
+      <!-- Project 5: Анализ кода — 3 sprints x 4 weeks, sprint 2 -->
+      <div class="project-card">
+        <div class="project-card-header"><h3 class="project-card-title">Сервис статического анализа студенческого кода</h3><span class="status-badge status-active">Активен</span></div>
+        <div class="project-card-meta">Инициатор: МФТИ · Срок: 1 семестр</div>
+        <div class="project-iter-bar"><span class="project-iter-current">Спринт 2 из 3</span><span class="project-iter-detail">· по 4 недели · 10 мар — 6 апр</span></div>
+        <div class="team-list">
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 1')"><span class="team-name">Команда 1</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 3 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Морозова Л.</span></div><div class="iter-track"><span class="iter-sq reviewed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span><span class="iter-sq pending-review"><svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.5" fill="currentColor"/></svg></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="cursor:pointer" onclick="openTeam(this.closest('.project-card').querySelector('.project-card-title').textContent, 'Команда 2')"><span class="team-name">Команда 2</span><div class="team-info"><span class="team-info-item"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 4 чел.</span><span class="team-info-item" style="font-weight:600;color:var(--text)">Лидер: Тарасов Н.</span></div><div class="iter-track"><span class="iter-sq missed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="iter-sq missed"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="iter-sq future"></span></div></div>
+          <div class="team-row" style="border:1.5px dashed var(--border);background:transparent;opacity:0.7" onclick="showView('distribution')"><span class="team-name" style="color:var(--text-muted)">Команда 3</span><div class="team-info"><span class="team-info-item" style="color:var(--text-muted)"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 14c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5" stroke="currentColor" stroke-width="1.2"/></svg> 3 чел.</span><span class="team-info-item" style="color:var(--warning);font-weight:600">Ожидает запуска</span></div></div>
+        </div>
+        <div class="project-footer"><span>Начат: февраль 2026</span></div>
+      </div>
+
+      <!-- Project 6: Черновик -->
+      <div class="project-card">
+        <div class="project-card-header">
+          <h3 class="project-card-title">Модуль анализа успеваемости студентов</h3>
+          <span class="status-badge status-draft">Черновик</span>
+        </div>
+        <div class="project-card-meta">Инициатор: МФТИ · Срок: 1 семестр</div>
+        <div class="empty-team-msg">Заявка ещё не отправлена — команды не сформированы</div>
+        <div class="project-footer">
+          <span>Создан: 25 марта 2026</span>
+          <span class="project-next-action" style="cursor:pointer" onclick="showView('create')">Дозаполнить заявку <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ CREATE PROJECT ═══ -->
+  <div id="view-create" class="view">
+    <h1 class="page-title">Создание проекта</h1>
+    <div style="height:8px"></div>
+    <div class="breadcrumb">
+      <a onclick="showView('dashboard')">Дашборд</a>
+      <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="color:var(--text);font-weight:600">Создание проекта</span>
+    </div>
+    <div class="create-layout">
+      <div class="section-nav">
+        <div class="section-nav-inner">
+          <div class="section-nav-title">Разделы заявки</div>
+          <button class="section-nav-item active" onclick="showSection(0)"><span class="section-dot"></span>Основная информация</button>
+          <button class="section-nav-item" onclick="showSection(1)"><span class="section-dot"></span>Требования и технологии</button>
+          <button class="section-nav-item" onclick="showSection(2)"><span class="section-dot"></span>Описание и критерии</button>
+          <button class="section-nav-item" onclick="showSection(3)"><span class="section-dot"></span>Параметры реализации</button>
+        </div>
+      </div>
+      <div class="form-card">
+        <h2>Заявка на проект</h2>
+        <p class="form-desc">Заполните все поля в соответствии с Приложением 1 Положения о проектном практикуме</p>
+
+        <div id="section-0" class="section-content active">
+          <div class="form-field"><label class="form-label"><span class="field-number">1</span> Полное название проекта <span class="required">*</span></label><div class="form-hint">Название должно отражать содержание результата и его конструктивных особенностей</div><input class="form-input" placeholder="Отражает содержание результата и конструктивные особенности"></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">2</span> Наименование Инициатора <span class="required">*</span></label><input class="form-input" placeholder="Название организации или подразделения МФТИ"></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">3</span> Информация о менторе проекта <span class="required">*</span></label><div class="form-hint">ФИО, должность, электронная почта, телеграм, телефон</div><div class="form-grid"><input class="form-input" placeholder="ФИО ментора"><input class="form-input" placeholder="Должность"><input class="form-input" placeholder="Электронная почта"><input class="form-input" placeholder="Телеграм"><input class="form-input form-grid-full" placeholder="Телефон"></div></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">4</span> Цель проекта <span class="required">*</span></label><div class="form-hint">Формулирует цель проектной деятельности как решение некоторой проблемы</div><textarea class="form-textarea" placeholder="Формулирует цель проектной деятельности как решение некоторой проблемы"></textarea></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">5</span> Результат (продукт) <span class="required">*</span></label><div class="form-hint">Содержит ожидаемый результат проектной деятельности</div><textarea class="form-textarea" placeholder="Ожидаемый результат проектной деятельности"></textarea></div>
+        </div>
+
+        <div id="section-1" class="section-content">
+          <div class="form-field"><label class="form-label"><span class="field-number">6</span> Требования к инструментам и технологиям <span class="required">*</span></label><div class="form-hint">Критический, не исчерпывающий перечень средств реализации проекта</div><textarea class="form-textarea" placeholder="Python, Django, PostgreSQL, React..."></textarea></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">7</span> Требования к компетенциям участников <span class="required">*</span></label><div class="form-hint">Перечень необходимых базовых компетенций, без овладения которыми студенты не допускаются к участию</div><textarea class="form-textarea" placeholder="Перечислите базовые компетенции"></textarea></div>
+          <div class="extra-box"><div class="extra-box-title">Дополнительные требования к студентам</div><div class="form-grid"><div><span class="small-label">Минимальный рейтинг</span><input class="form-input" type="number" placeholder="Напр.: 3.5"></div><div><span class="small-label">Минимальный средний балл</span><input class="form-input" type="number" placeholder="Напр.: 7.0"></div><div class="form-grid-full"><span class="small-label">Требования к курсу обучения</span><div class="checkbox-group"><label class="checkbox-label"><input type="checkbox"> 1 курс</label><label class="checkbox-label"><input type="checkbox"> 2 курс</label><label class="checkbox-label"><input type="checkbox"> 3 курс</label><label class="checkbox-label"><input type="checkbox"> 4 курс</label></div></div></div></div>
+        </div>
+
+        <div id="section-2" class="section-content">
+          <div class="form-field"><label class="form-label"><span class="field-number">8</span> Описание проекта <span class="required">*</span></label><div class="form-hint">Подробное описание проекта, до 2 страниц</div><textarea class="form-textarea" style="min-height:150px" placeholder="Подробное описание проекта"></textarea></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">9</span> Критерии приёмки результата <span class="required">*</span></label><div class="form-hint">Описание функциональных требований и конструктивных особенностей ожидаемого результата</div><textarea class="form-textarea" placeholder="Функциональные требования"></textarea></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">10</span> Ожидаемый образовательный результат <span class="required">*</span></label><div class="form-hint">Перечень новых и развитых компетенций</div><textarea class="form-textarea" placeholder="Перечень компетенций"></textarea></div>
+        </div>
+
+        <div id="section-3" class="section-content">
+          <div class="form-field"><label class="form-label"><span class="field-number">11</span> Срок реализации проекта <span class="required">*</span></label><div class="form-hint">Укажите количество семестров</div><div class="radio-group"><label class="radio-label"><input type="radio" name="duration"> 1 семестр</label><label class="radio-label"><input type="radio" name="duration"> 2 семестра</label><label class="radio-label"><input type="radio" name="duration"> 3 семестра</label></div></div>
+          <div class="extra-box" style="margin-bottom:20px">
+            <div class="extra-box-title">Настройка спринтов</div>
+            <div class="form-hint" style="margin-top:-6px">Все команды проекта работают по одному расписанию спринтов.</div>
+            <div style="margin-top:10px">
+              <div class="form-grid">
+                <div><span class="small-label">Количество спринтов <span class="required">*</span></span><input class="form-input" type="number" min="2" max="10" placeholder="Напр.: 5" id="sprint-count" oninput="renderTimeline()"></div>
+                <div><span class="small-label">Дата начала первого спринта <span class="required">*</span></span><input class="form-input" type="date" id="sprint-start" onchange="renderTimeline()"></div>
+              </div>
+              <div style="margin-top:14px;display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content">
+                <button id="mode-simple" onclick="setSprintMode('simple')" style="padding:7px 16px;border:none;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--primary);color:#fff;transition:all 0.15s">Одинаковая длительность</button>
+                <button id="mode-custom" onclick="setSprintMode('custom')" style="padding:7px 16px;border:none;border-left:1px solid var(--border);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--white);color:var(--text-secondary);transition:all 0.15s">Настроить каждый</button>
+              </div>
+              <div id="sprint-simple" style="margin-top:12px">
+                <span class="small-label">Продолжительность каждого спринта <span class="required">*</span></span>
+                <div class="radio-group">
+                  <label class="radio-label" style="padding:8px 14px;font-size:13px"><input type="radio" name="sprint_dur_s" value="2" checked onchange="renderTimeline()"> 2 нед.</label>
+                  <label class="radio-label" style="padding:8px 14px;font-size:13px"><input type="radio" name="sprint_dur_s" value="3" onchange="renderTimeline()"> 3 нед.</label>
+                  <label class="radio-label" style="padding:8px 14px;font-size:13px"><input type="radio" name="sprint_dur_s" value="4" onchange="renderTimeline()"> 4 нед.</label>
+                </div>
+              </div>
+              <div id="sprint-timeline" style="margin-top:14px"></div>
+            </div>
+          </div>
+          <div class="form-field"><label class="form-label"><span class="field-number">12</span> Количество команд для параллельной разработки <span class="required">*</span></label><div class="form-hint">Сколько параллельных команд могут работать над проектом</div><div class="form-grid"><div><span class="small-label">Количество команд</span><input class="form-input" type="number" min="1" max="5" placeholder="1"></div><div><span class="small-label">Студентов в команде</span><div class="team-size-row"><input class="team-size-input" type="number" placeholder="3"><span style="color:var(--text-muted)">—</span><input class="team-size-input" type="number" placeholder="5"><span style="color:var(--text-muted);font-size:13px">чел.</span></div></div></div></div>
+          <div class="form-field"><label class="form-label"><span class="field-number">13</span> Ресурсы, предоставляемые Инициатором</label><div class="form-hint">Укажите ресурсы или «Не требуется»</div><textarea class="form-textarea" placeholder="Оборудование, ПО, доступ к данным..."></textarea></div>
+          <div class="file-drop"><div style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Прикрепить дополнительные файлы</div><div style="font-size:12px;color:var(--text-muted)">ТЗ, техническая документация (PDF, DOCX — до 10 МБ)</div></div>
+        </div>
+
+        <div class="form-footer">
+          <div class="step-dots">
+            <div class="step-dot active" onclick="showSection(0)"></div>
+            <div class="step-dot" onclick="showSection(1)"></div>
+            <div class="step-dot" onclick="showSection(2)"></div>
+            <div class="step-dot" onclick="showSection(3)"></div>
+          </div>
+          <div class="form-actions" id="form-actions">
+            <button class="btn-primary" onclick="nextSection()">Далее</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TEAM DETAIL VIEW ═══ -->
+  <div id="view-team" class="view">
+    <div class="breadcrumb">
+      <a onclick="showView('dashboard')">Дашборд</a>
+      <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <a id="team-breadcrumb-project" onclick="showView('dashboard')">СУПП ВШПИ</a>
+      <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span id="team-breadcrumb-team" style="color:var(--text);font-weight:600">Команда 1</span>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+      <div>
+        <h1 id="team-detail-title" class="page-title">Команда 1</h1>
+        <div id="team-detail-subtitle" style="font-size:13px;color:var(--text-muted)">Система управления проектным практикумом ВШПИ</div>
+      </div>
+    </div>
+
+    <!-- Members -->
+    <div class="members-card">
+      <div class="members-grid">
+        <div class="member-chip">
+          <div class="member-avatar" style="background:var(--accent)">АС</div>
+          <div><div class="member-name">Стародубов А. <span class="member-leader">Лидер</span></div><div class="member-role-label">Backend-разработчик</div></div>
+        </div>
+        <div class="member-chip">
+          <div class="member-avatar" style="background:var(--success)">КМ</div>
+          <div><div class="member-name">Кузнецов М.</div><div class="member-role-label">Frontend-разработчик</div></div>
+        </div>
+        <div class="member-chip">
+          <div class="member-avatar" style="background:var(--warning)">ЛН</div>
+          <div><div class="member-name">Лебедева Н.</div><div class="member-role-label">Аналитик</div></div>
+        </div>
+        <div class="member-chip">
+          <div class="member-avatar" style="background:var(--purple)">ВД</div>
+          <div><div class="member-name">Волков Д.</div><div class="member-role-label">Тестировщик</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTeamTab('gantt',this)">Диаграмма Ганта</button>
+      <button class="tab" onclick="showTeamTab('reports',this)">Отчёты по спринтам</button>
+      <button class="tab" onclick="showTeamTab('meetings',this)">Встречи</button>
+    </div>
+
+    <!-- TAB: GANTT -->
+    <div id="tab-gantt" class="tab-content active">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px;font-size:12px;color:var(--text-muted)">
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#b8c0d4"></span> Ожидает аппрува</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#a5b4fc"></span> Назначена</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#60a5fa"></span> В работе</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#6d5dd3"></span> На ревью</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#34d399"></span> Готово</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#60a5fa;outline:1px solid var(--danger);outline-offset:0px"></span> Просрочена</span>
+        <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:var(--warning-bg);border:1px solid var(--warning)"></span> Возвращена</span>
+        <span style="display:flex;align-items:center;gap:8px;border-left:1px solid var(--border);padding-left:12px;margin-left:4px">
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:2px;height:12px;background:var(--purple);border-radius:1px"></span> На ревью</span>
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:2px;height:12px;background:var(--warning);border-radius:1px"></span> Возвращено</span>
+          <span style="display:flex;align-items:center;gap:3px"><span style="width:2px;height:12px;background:var(--success);border-radius:1px"></span> Принято</span>
+        </span>
+      </div>
+      <div id="gantt-sprints-container"></div>
+    </div>
+
+    <!-- TAB: REPORTS -->
+    <div id="tab-reports" class="tab-content">
+      <div class="section-title">Отчёты по спринтам</div>
+
+      <!-- Sprint 2 report -->
+      <div class="report-card">
+        <div class="report-header" onclick="toggleReport(this)">
+          <div><span class="report-title">Спринт 2 (17 мар — 6 апр)</span></div>
+          <span class="report-status" style="background:var(--warning-bg);color:var(--warning)">Ждёт проверки</span>
+        </div>
+        <div class="report-body open">
+          <div style="margin-bottom:18px;padding:14px 16px;background:var(--surface);border-radius:8px;border-left:3px solid var(--primary)">
+            <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Общий результат команды</div>
+            <div class="report-section" style="margin-bottom:10px">
+              <div class="report-section-title">Что сделано</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Реализован модуль авторизации через OAuth МФТИ. Создан API для управления проектами (CRUD). Подключена PostgreSQL, написаны миграции для основных моделей. Настроен CI/CD пайплайн в GitLab.</div>
+            </div>
+            <div class="report-section" style="margin-bottom:10px">
+              <div class="report-section-title">Проблемы и риски</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Задержка с получением доступа к VDI серверу — потеряли 3 дня. Нестабильная работа OAuth на стейджинге.</div>
+            </div>
+            <div class="report-section">
+              <div class="report-section-title">План на следующий спринт</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Ролевая модель, дашборд ментора, интеграционные тесты для API.</div>
+            </div>
+          </div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Личный вклад участников</div>
+          <div id="personal-reports-container"></div>
+
+          <!-- Mentor: individual scoring -->
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light)">
+            <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.04em">Оценки за спринт (индивидуально)</div>
+            <div style="display:flex;flex-direction:column;gap:10px" id="mentor-scores-sprint2">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">АС</div>
+                <div style="flex:1;font-size:13px;font-weight:600">Стародубов А.</div>
+                <input type="number" min="0" max="10" placeholder="—" style="width:50px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none">
+                <span style="font-size:12px;color:var(--text-muted)">/10</span>
+                <input type="text" placeholder="Комментарий..." style="flex:2;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">КМ</div>
+                <div style="flex:1;font-size:13px;font-weight:600">Кузнецов М.</div>
+                <input type="number" min="0" max="10" placeholder="—" style="width:50px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none">
+                <span style="font-size:12px;color:var(--text-muted)">/10</span>
+                <input type="text" placeholder="Комментарий..." style="flex:2;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--warning);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">ЛН</div>
+                <div style="flex:1;font-size:13px;font-weight:600">Лебедева Н.</div>
+                <input type="number" min="0" max="10" placeholder="—" style="width:50px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none">
+                <span style="font-size:12px;color:var(--text-muted)">/10</span>
+                <input type="text" placeholder="Комментарий..." style="flex:2;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:8px">
+                <div style="width:28px;height:28px;border-radius:50%;background:var(--purple);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">ВД</div>
+                <div style="flex:1;font-size:13px;font-weight:600">Волков Д.</div>
+                <input type="number" min="0" max="10" placeholder="—" style="width:50px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;text-align:center;font-family:inherit;outline:none">
+                <span style="font-size:12px;color:var(--text-muted)">/10</span>
+                <input type="text" placeholder="Комментарий..." style="flex:2;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none">
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px">
+              <button class="btn-primary" onclick="showToast('Оценки сохранены')">Сохранить оценки</button>
+            </div>
+          </div>
+
+          <!-- Mentor: comment on team report -->
+          <div class="mentor-comment-box" style="margin-top:16px">
+            <div class="mentor-comment-label">Комментарий к командному отчёту</div>
+            <textarea class="mentor-comment-input" placeholder="Комментарий к отчёту команды..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn-primary btn-sm" onclick="acceptReport(this)">Принять отчёт</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sprint 1 report (reviewed) -->
+      <div class="report-card">
+        <div class="report-header" onclick="toggleReport(this)">
+          <span class="report-title">Спринт 1 (24 фев — 16 мар)</span>
+          <span class="report-status" style="background:var(--success-bg);color:var(--success)">Проверен · 8/10</span>
+        </div>
+        <div class="report-body">
+          <div style="margin-bottom:18px;padding:14px 16px;background:var(--surface);border-radius:8px;border-left:3px solid var(--primary)">
+            <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Общий результат команды</div>
+            <div class="report-section" style="margin-bottom:10px">
+              <div class="report-section-title">Что сделано</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Развёрнута начальная структура проекта (Django + DRF). Написаны доменные модели. Настроено окружение разработки.</div>
+            </div>
+            <div class="report-section">
+              <div class="report-section-title">Проблемы</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Потратили время на выбор между Django и FastAPI. Решили остановиться на Django.</div>
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Личный вклад участников</div>
+          <div id="sprint1-reports-container"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MEETINGS -->
+    <div id="tab-meetings" class="tab-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin-bottom:0">Встречи команды</div>
+        <button class="btn-primary" onclick="document.getElementById('add-meeting-modal').style.display='flex'">
+          <svg width="16" height="16" fill="none" viewBox="0 0 18 18"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Назначить встречу
+        </button>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Предстоящие</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+        <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px">
+          <div style="width:48px;text-align:center;flex-shrink:0">
+            <div style="font-size:22px;font-weight:700;color:var(--primary);line-height:1">1</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600">апр</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Обзор спринта 2</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">16:00 — 17:00 · 60 мин</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:8px">Обсуждение результатов спринта 2. Демо работающего API и макета дашборда. Планирование спринта 3.</div>
+            <div style="display:flex;align-items:center;gap:12px;font-size:12px;margin-bottom:10px">
+              <a href="#" style="color:var(--accent);text-decoration:none;font-weight:600;display:flex;align-items:center;gap:4px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8l2 2 4-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Zoom-ссылка
+              </a>
+              <span style="color:var(--text-muted)">Назначил: Стародубов А. (тимлид)</span>
+            </div>
+            <div id="meeting-1-actions" style="display:flex;gap:8px">
+              <button onclick="confirmMeeting(1)" style="padding:7px 16px;border:none;border-radius:7px;background:var(--success);color:#fff;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px">
+                <svg width="12" height="12" fill="none" viewBox="0 0 14 14"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Подтвердить
+              </button>
+              <button onclick="declineMeeting(1)" style="padding:7px 16px;border:1px solid var(--danger);border-radius:7px;background:var(--white);color:var(--danger);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:5px">
+                <svg width="12" height="12" fill="none" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Отклонить
+              </button>
+            </div>
+          </div>
+          <span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--warning-bg);color:var(--warning);white-space:nowrap">Ожидает подтверждения</span>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px">
+          <div style="width:48px;text-align:center;flex-shrink:0">
+            <div style="font-size:22px;font-weight:700;color:var(--primary);line-height:1">8</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600">апр</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Постановка спринта 3</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">15:00 — 15:45 · 45 мин</div>
+            <div style="font-size:13px;color:var(--text-secondary);line-height:1.5">Постановка задач на спринт 3. Распределение ролей, уточнение приоритетов.</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--surface-alt);color:var(--text-muted);white-space:nowrap">через 8 дней</span>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Прошедшие</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px">
+          <div style="width:48px;text-align:center;flex-shrink:0;opacity:0.6">
+            <div style="font-size:22px;font-weight:700;color:var(--text-secondary);line-height:1">17</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600">мар</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Постановка спринта 2</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">16:00 — 17:00 · 60 мин</div>
+            <div style="margin-top:8px;padding:10px 14px;background:var(--surface);border-radius:7px;border-left:3px solid var(--accent)">
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">Резюме встречи</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Определены приоритеты: OAuth-авторизация, API проектов, макет дашборда. Стародубов берёт бэкенд, Кузнецов — фронт. Лебедева готовит Swagger-спецификацию до конца первой недели. Волков начинает с тестов для Auth модуля.</div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Назначил: Тимохин В.Н. (ментор)</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--success-bg);color:var(--success);white-space:nowrap">состоялась</span>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px">
+          <div style="width:48px;text-align:center;flex-shrink:0;opacity:0.6">
+            <div style="font-size:22px;font-weight:700;color:var(--text-secondary);line-height:1">14</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600">мар</div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Обзор спринта 1</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">16:00 — 16:45 · 45 мин</div>
+            <div style="margin-top:8px;padding:10px 14px;background:var(--surface);border-radius:7px;border-left:3px solid var(--accent)">
+              <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">Резюме встречи</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.6">Демо структуры проекта и прототипа UI. Обсуждён выбор Django vs FastAPI — решили остаться на Django. Ментор рекомендовал увеличить покрытие тестами до 70%.</div>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Назначил: Тимохин В.Н. (ментор)</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:var(--success-bg);color:var(--success);white-space:nowrap">состоялась</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ DISTRIBUTION ═══ -->
+  <div id="view-distribution" class="view">
+    <div class="breadcrumb">
+      <a onclick="showView('dashboard')">Дашборд</a>
+      <svg width="16" height="16" fill="none" viewBox="0 0 16 16"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="color:var(--text);font-weight:600">Распределение</span>
+    </div>
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Незапущенные команды</h1>
+        <div class="page-context">
+          Проект: СУПП ВШПИ
+          <span class="page-context-dot"></span>
+          Дедлайн: 15 марта 2025
+        </div>
+      </div>
+    </div>
+
+    <div class="dist-layout">
+      <!-- LEFT: Teams grouped by project -->
+      <div class="dist-teams">
+
+        <!-- ═══ Проект: СУПП ВШПИ ═══ -->
+        <div class="dist-project-group" style="margin-bottom:24px">
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">Система управления проектным практикумом ВШПИ</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">МФТИ · 3 команды · 3–5 чел. · 5 спринтов × 3 недели</div>
+
+          <!-- Команда 1 -->
+          <div class="dist-team-card" style="margin-bottom:12px">
+            <div class="dist-team-header">
+              <span class="dist-team-title">Команда 1</span>
+              <span class="dist-team-count" id="dist-team1-count">4 / 5</span>
+            </div>
+            <div class="dist-slots" id="dist-team1-slots">
+              <div class="dist-slot" data-team="1" data-slot="0">
+                <div class="dist-chip accepted" draggable="false" data-student-id="starodubov">
+                  <span class="chip-name">Стародубов А.</span>
+                  <span class="chip-meta">2 курс</span>
+                  <span class="chip-gpa">7.2</span>
+                  <span class="dist-status-accepted"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Принят</span>
+                </div>
+              </div>
+              <div class="dist-slot" data-team="1" data-slot="1">
+                <div class="dist-chip accepted" draggable="false" data-student-id="kuznetsov">
+                  <span class="chip-name">Кузнецов М.</span>
+                  <span class="chip-meta">2 курс</span>
+                  <span class="chip-gpa">6.8</span>
+                  <span class="dist-status-accepted"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Принят</span>
+                </div>
+              </div>
+              <div class="dist-slot" data-team="1" data-slot="2">
+                <div class="dist-chip" draggable="true" data-student-id="volkov">
+                  <span class="chip-name">Волков Д.</span>
+                  <span class="chip-meta">2 курс</span>
+                  <span class="chip-gpa">6.5</span>
+                  <span class="dist-status-invited" style="display:none"></span>
+                  <button class="dist-invite-btn" onclick="event.stopPropagation();inviteStudent(this)" title="Пригласить в команду">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="dist-slot empty-slot" data-team="1" data-slot="3" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onSlotDrop(event)">
+                <span>Свободное место</span>
+              </div>
+              <div class="dist-slot empty-slot" data-team="1" data-slot="4" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onSlotDrop(event)">
+                <span>Свободное место</span>
+              </div>
+            </div>
+            <button class="launch-btn" id="launch-team1" onclick="launchTeamFromDist(1, this)" disabled style="width:100%;margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s">
+              <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg>
+              Не все участники приняты
+            </button>
+          </div>
+
+          <!-- Команда 2 -->
+          <div class="dist-team-card" style="margin-bottom:12px">
+            <div class="dist-team-header">
+              <span class="dist-team-title">Команда 2</span>
+              <span class="dist-team-count" id="dist-team2-count">2 / 5</span>
+            </div>
+            <div class="dist-slots" id="dist-team2-slots">
+              <div class="dist-slot" data-team="2" data-slot="0">
+                <div class="dist-chip" draggable="true" data-student-id="kozlov">
+                  <span class="chip-name">Козлов Д.</span>
+                  <span class="chip-meta">3 курс</span>
+                  <span class="chip-gpa">7.0</span>
+                  <span class="dist-status-invited" style="display:none"></span>
+                  <button class="dist-invite-btn" onclick="event.stopPropagation();inviteStudent(this)" title="Пригласить в команду">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="dist-slot" data-team="2" data-slot="1">
+                <div class="dist-chip" draggable="true" data-student-id="sidorov">
+                  <span class="chip-name">Сидоров К.</span>
+                  <span class="chip-meta">2 курс</span>
+                  <span class="chip-gpa">5.9</span>
+                  <span class="dist-status-invited" style="display:none"></span>
+                  <button class="dist-invite-btn" onclick="event.stopPropagation();inviteStudent(this)" title="Пригласить в команду">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="dist-slot empty-slot" data-team="2" data-slot="2" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onSlotDrop(event)">
+                <span>Свободное место</span>
+              </div>
+              <div class="dist-slot empty-slot" data-team="2" data-slot="3" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onSlotDrop(event)">
+                <span>Свободное место</span>
+              </div>
+              <div class="dist-slot empty-slot" data-team="2" data-slot="4" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onSlotDrop(event)">
+                <span>Свободное место</span>
+              </div>
+            </div>
+            <button class="launch-btn" id="launch-team2" disabled style="width:100%;margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:6px">
+              <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg>
+              Не все участники приняты
+            </button>
+          </div>
+        </div>
+
+        <!-- ═══ Проект: Анализ кода ═══ -->
+        <div class="dist-project-group" style="margin-bottom:24px">
+          <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px">Сервис статического анализа студенческого кода</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">МФТИ · 2 команды · 3–4 чел. · 3 спринта × 4 недели</div>
+
+          <!-- Команда 1 (все приняты) -->
+          <div class="dist-team-card" style="margin-bottom:12px">
+            <div class="dist-team-header">
+              <span class="dist-team-title">Команда 1</span>
+              <span class="dist-team-count">3 / 4</span>
+            </div>
+            <div class="dist-slots">
+              <div class="dist-slot"><div class="dist-chip accepted" draggable="false"><span class="chip-name">Морозова Л.</span><span class="chip-meta">2 курс</span><span class="chip-gpa">7.1</span><span class="dist-status-accepted"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Принят</span></div></div>
+              <div class="dist-slot"><div class="dist-chip accepted" draggable="false"><span class="chip-name">Крылова Е.</span><span class="chip-meta">2 курс</span><span class="chip-gpa">6.8</span><span class="dist-status-accepted"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Принят</span></div></div>
+              <div class="dist-slot"><div class="dist-chip accepted" draggable="false"><span class="chip-name">Николаев И.</span><span class="chip-meta">3 курс</span><span class="chip-gpa">7.2</span><span class="dist-status-accepted"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Принят</span></div></div>
+              <div class="dist-slot empty-slot" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onSlotDrop(event)"><span>Свободное место</span></div>
+            </div>
+            <button class="launch-btn" id="launch-team-a1" onclick="launchTeamFromDist('a1', this)" style="width:100%;margin-top:12px;padding:10px;border:1px solid var(--success);border-radius:8px;background:var(--success-bg);color:var(--success);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s">
+              <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg>
+              Запустить команду
+            </button>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:var(--text-muted);padding:12px 0;border-top:1px solid var(--border-light)">После запуска изменения в составе команды возможны только через координатора.</div>
+      </div>
+
+      <!-- RIGHT: Applicants pool -->
+      <div class="dist-pool">
+        <div style="font-size:15px;font-weight:700;margin-bottom:14px">Пул заявок</div>
+
+        <!-- Подходят по требованиям -->
+        <div class="dist-pool-section">
+          <button class="dist-pool-toggle" onclick="togglePoolSection(this)">
+            <span class="toggle-arrow open">&#9654;</span>
+            Подходят по требованиям
+            <span style="font-size:11px;font-weight:600;color:var(--success);background:var(--success-bg);padding:1px 7px;border-radius:4px">5</span>
+          </button>
+          <div class="dist-pool-body" id="pool-qualified">
+            <div class="dist-priority-grid">
+              <div class="dist-priority-col" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onPoolDrop(event, 'qualified')" data-priority="1">
+                <div class="priority-label">Приоритет 1</div>
+                <div class="dist-chip" draggable="true" data-student-id="ivanova" ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">
+                  <span class="chip-name">Иванова М.</span>
+                  <span class="chip-meta">3 курс</span>
+                  <span class="chip-gpa">7.8</span>
+                </div>
+                <div class="dist-chip" draggable="true" data-student-id="petrova" ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">
+                  <span class="chip-name">Петрова Е.</span>
+                  <span class="chip-meta">3 курс</span>
+                  <span class="chip-gpa">8.1</span>
+                </div>
+              </div>
+              <div class="dist-priority-col" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onPoolDrop(event, 'qualified')" data-priority="2">
+                <div class="priority-label">Приоритет 2</div>
+                <div class="dist-chip" draggable="true" data-student-id="novikova" ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">
+                  <span class="chip-name">Новикова А.</span>
+                  <span class="chip-meta">3 курс</span>
+                  <span class="chip-gpa">7.0</span>
+                </div>
+              </div>
+              <div class="dist-priority-col" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onPoolDrop(event, 'qualified')" data-priority="3">
+                <div class="priority-label">Приоритет 3</div>
+                <div class="dist-chip" draggable="true" data-student-id="belova" ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">
+                  <span class="chip-name">Белова С.</span>
+                  <span class="chip-meta">2 курс</span>
+                  <span class="chip-gpa">6.4</span>
+                </div>
+              </div>
+              <div class="dist-priority-col" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onPoolDrop(event, 'qualified')" data-priority="4">
+                <div class="priority-label">Приоритет 4</div>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0">--</div>
+              </div>
+              <div class="dist-priority-col" ondragover="onSlotDragOver(event)" ondragleave="onSlotDragLeave(event)" ondrop="onPoolDrop(event, 'qualified')" data-priority="5">
+                <div class="priority-label">Приоритет 5</div>
+                <div class="dist-chip" draggable="true" data-student-id="gromov" ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">
+                  <span class="chip-name">Громов К.</span>
+                  <span class="chip-meta">3 курс</span>
+                  <span class="chip-gpa">6.7</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Не подходят по требованиям -->
+        <div class="dist-pool-section">
+          <button class="dist-pool-toggle" onclick="togglePoolSection(this)">
+            <span class="toggle-arrow">&#9654;</span>
+            Не подходят по требованиям
+            <span style="font-size:11px;font-weight:600;color:var(--danger);background:var(--danger-bg);padding:1px 7px;border-radius:4px">1</span>
+          </button>
+          <div class="dist-pool-body collapsed" id="pool-unqualified">
+            <div class="dist-priority-grid">
+              <div class="dist-priority-col" data-priority="1">
+                <div class="priority-label">Приоритет 1</div>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0">--</div>
+              </div>
+              <div class="dist-priority-col" data-priority="2">
+                <div class="priority-label">Приоритет 2</div>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0">--</div>
+              </div>
+              <div class="dist-priority-col" data-priority="3">
+                <div class="priority-label">Приоритет 3</div>
+                <div class="dist-chip" draggable="true" data-student-id="orlov" ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)" style="opacity:0.7">
+                  <span class="chip-name">Орлов В.</span>
+                  <span class="chip-meta">1 курс</span>
+                  <span class="chip-gpa">4.8</span>
+                </div>
+              </div>
+              <div class="dist-priority-col" data-priority="4">
+                <div class="priority-label">Приоритет 4</div>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0">--</div>
+              </div>
+              <div class="dist-priority-col" data-priority="5">
+                <div class="priority-label">Приоритет 5</div>
+                <div style="font-size:11px;color:var(--text-muted);text-align:center;padding:8px 0">--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ═══ Modal: Task (edit/view) ═══ -->
+<div id="student-task-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;background:rgba(0,0,0,0.45);align-items:center;justify-content:center" onclick="if(event.target===this)closeTaskModal()">
+  <div style="background:var(--card);border-radius:12px;width:460px;max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.2)" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h3 id="task-modal-title" style="font-size:17px;font-weight:700;color:var(--text);margin:0">Задача</h3>
+      <span id="task-save-indicator" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--success);font-weight:600">
+        <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 2h9l3 3v9H2V2z" stroke="currentColor" stroke-width="1.3"/><path d="M5 2v4h5V2" stroke="currentColor" stroke-width="1.1"/><path d="M4 9h8v5H4V9z" stroke="currentColor" stroke-width="1.1"/></svg>
+        Сохранено
+      </span>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Название задачи *</label>
+      <input id="st-name" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none" placeholder="Краткое название задачи">
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Описание</label>
+      <textarea id="st-desc" class="modal-field" style="width:100%;min-height:70px;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none" placeholder="Подробное описание задачи..."></textarea>
+    </div>
+    <div style="margin-bottom:14px" id="st-assignee-wrap">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Исполнитель</label>
+      <select id="st-assignee" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none;background:var(--card)">
+        <option value="Стародубов А.">Стародубов А.</option>
+        <option value="Кузнецов М.">Кузнецов М.</option>
+        <option value="Лебедева Н.">Лебедева Н.</option>
+        <option value="Волков Д.">Волков Д.</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Часы (план)</label>
+        <input id="st-hours" class="modal-field" type="number" min="1" max="200" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none" placeholder="8">
+      </div>
+      <div id="st-status-wrap" style="display:none">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Статус</label>
+        <select id="st-status" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none;background:var(--card)">
+          <option value="new">Новая</option>
+          <option value="progress">В работе</option>
+          <option value="review">Ревью</option>
+          <option value="done">Готово</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Дата начала</label>
+        <input id="st-date-start" class="modal-field" type="date" min="2025-03-17" max="2025-04-13" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none">
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Дата окончания</label>
+        <input id="st-date-end" class="modal-field" type="date" min="2025-03-17" max="2025-04-13" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Спринт 2: 17 марта — 13 апреля 2025</div>
+    <div id="st-mr-wrap" style="display:none;margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Merge Request</label>
+      <input id="st-mr" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none" placeholder="!123 или ссылка">
+    </div>
+    <div id="st-work-wrap" style="display:none;margin-bottom:20px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Описание выполненной работы</label>
+      <textarea id="st-work" class="modal-field" style="width:100%;min-height:60px;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none" placeholder="Что было сделано по задаче..."></textarea>
+    </div>
+    <div id="st-buttons" style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;border-top:1px solid var(--border-light)">
+      <button id="st-cancel-btn" onclick="closeTaskModal()" style="padding:9px 20px;border:1px solid var(--border);border-radius:7px;background:var(--white);color:var(--text-secondary);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Отмена</button>
+      <button id="st-submit-btn" onclick="saveMentorTask()" style="padding:9px 24px;border:none;border-radius:7px;background:var(--primary);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Schedule Meeting Modal ═══ -->
+<div id="add-meeting-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:var(--card);border-radius:12px;padding:28px 32px;width:480px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="font-size:18px;font-weight:700">Назначить встречу</h3>
+      <button onclick="document.getElementById('add-meeting-modal').style.display='none'" style="border:none;background:none;cursor:pointer;color:var(--text-muted);font-size:20px">&#10005;</button>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px">Тема встречи *</label>
+      <input style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:7px;font-size:14px;font-family:inherit;outline:none" placeholder="Обзор спринта, постановка задач...">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px">Дата *</label>
+        <input type="date" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;outline:none">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px">Время *</label>
+        <input type="time" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;outline:none">
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px">Длительность *</label>
+      <div style="display:flex;gap:8px">
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer"><input type="radio" name="meet_dur" style="accent-color:var(--primary)"> 30 мин</label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer"><input type="radio" name="meet_dur" checked style="accent-color:var(--primary)"> 45 мин</label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer"><input type="radio" name="meet_dur" style="accent-color:var(--primary)"> 60 мин</label>
+        <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;cursor:pointer"><input type="radio" name="meet_dur" style="accent-color:var(--primary)"> 90 мин</label>
+      </div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px">Повестка</label>
+      <textarea style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;min-height:70px;resize:vertical;outline:none" placeholder="Что будем обсуждать..."></textarea>
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:5px">Ссылка на конференцию</label>
+      <input style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;outline:none" placeholder="https://zoom.us/j/... или https://meet.google.com/...">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button onclick="document.getElementById('add-meeting-modal').style.display='none'" style="padding:10px 20px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text-secondary);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer">Отмена</button>
+      <button class="btn-primary" onclick="document.getElementById('add-meeting-modal').style.display='none';showToast('Встреча назначена')">Назначить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div id="mentor-toast" style="display:none;position:fixed;bottom:28px;left:50%;transform:translateX(-50%);padding:12px 28px;border-radius:10px;background:var(--success);color:#fff;font-size:14px;font-weight:600;font-family:inherit;box-shadow:0 6px 24px rgba(0,0,0,0.18);z-index:9999;transition:opacity 0.3s;white-space:nowrap"></div>
+
+<script src="common.js"></script>
+<script>
+let editingTaskIdx = -1;
+let currentSection = 0;
+let sprintMode = 'simple';
+
+// Init
+document.querySelector('.role-switcher').innerHTML = roleSwitcherHtml('mentor');
+
+// Build Gantt for team view
+function initTeamView() {
+  buildGantt('gantt-sprints-container', null, {canEdit: false, mentorActions: true});
+  renderPersonalReports('personal-reports-container', null, 2);
+  renderPastSprintReports('sprint1-reports-container', 1, 'Хорошая работа на старте. Правильный выбор Django для данной задачи. Обратите внимание на покрытие тестами — в следующем спринте хочу видеть минимум 70%.<br><br><span style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.04em">Индивидуальные оценки:</span><br><span style="font-size:13px">Стародубов А. — <b>9/10</b> · Кузнецов М. — <b>8/10</b> · Лебедева Н. — <b>7/10</b> · Волков Д. — <b>8/10</b></span>', '8/10');
+}
+
+// Override showView for mentor-specific nav
+const _baseShowView = showView;
+showView = function(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.querySelectorAll('.sidebar-nav-item').forEach(b => b.classList.remove('active'));
+  if (id === 'dashboard' || id === 'team') {
+    document.querySelector('[data-nav="dashboard"]').classList.add('active');
+  } else {
+    const navBtn = document.querySelector('[data-nav="' + id + '"]');
+    if (navBtn) navBtn.classList.add('active');
+  }
+  window.scrollTo(0, 0);
+};
+
+// Team Detail
+function openTeam(projectName, teamName) {
+  document.getElementById('team-breadcrumb-project').textContent = projectName;
+  document.getElementById('team-breadcrumb-team').textContent = teamName;
+  document.getElementById('team-detail-title').textContent = teamName;
+  document.getElementById('team-detail-subtitle').textContent = projectName;
+  showView('team');
+  initTeamView();
+}
+
+// Team tabs
+function showTeamTab(id, btn) {
+  document.querySelectorAll('#view-team .tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#view-team .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleReport(el) {
+  el.nextElementSibling.classList.toggle('open');
+}
+
+// Task modal (mentor can edit all tasks)
+function openTaskModal(idx, forceReadonly) {
+  editingTaskIdx = idx;
+  const isEdit = idx >= 0;
+  const t = isEdit ? sTasks[idx] : null;
+  const isLocked = forceReadonly || false;
+
+  document.getElementById('task-modal-title').textContent = isEdit ? t.name : 'Новая задача';
+  document.getElementById('task-save-indicator').style.display = 'none';
+  document.getElementById('st-name').value = isEdit ? t.name : '';
+  document.getElementById('st-name').readOnly = isLocked;
+  document.getElementById('st-desc').value = isEdit ? (t.desc || '') : '';
+  document.getElementById('st-desc').readOnly = isLocked;
+  document.getElementById('st-hours').value = isEdit ? t.hours : '';
+  document.getElementById('st-hours').readOnly = isLocked;
+
+  // Assignee
+  document.getElementById('st-assignee-wrap').style.display = '';
+  if (isEdit) document.getElementById('st-assignee').value = t.person;
+  document.getElementById('st-assignee').disabled = isLocked;
+
+  const sd = isEdit ? new Date(SPRINT2_START) : null;
+  if (isEdit && sd) sd.setDate(sd.getDate() + t.start);
+  const ed = isEdit ? new Date(SPRINT2_START) : null;
+  if (isEdit && ed) ed.setDate(ed.getDate() + t.start + t.dur - 1);
+  document.getElementById('st-date-start').value = isEdit ? sd.toISOString().slice(0,10) : '';
+  document.getElementById('st-date-end').value = isEdit ? ed.toISOString().slice(0,10) : '';
+  document.getElementById('st-date-start').readOnly = isLocked;
+  document.getElementById('st-date-end').readOnly = isLocked;
+
+  document.getElementById('st-status-wrap').style.display = isEdit ? '' : 'none';
+  if (isEdit) { document.getElementById('st-status').value = t.status; document.getElementById('st-status').disabled = isLocked; }
+
+  document.getElementById('st-mr-wrap').style.display = isEdit ? '' : 'none';
+  document.getElementById('st-work-wrap').style.display = isEdit ? '' : 'none';
+  if (isEdit) {
+    document.getElementById('st-mr').value = t.mr || '';
+    document.getElementById('st-mr').readOnly = isLocked;
+    document.getElementById('st-work').value = t.workDesc || '';
+    document.getElementById('st-work').readOnly = isLocked;
+  }
+
+  document.getElementById('st-cancel-btn').style.display = isLocked ? 'none' : '';
+  const btn = document.getElementById('st-submit-btn');
+  btn.textContent = isLocked ? 'Закрыть' : (isEdit ? 'Сохранить' : 'Создать задачу');
+  btn.onclick = isLocked ? closeTaskModal : saveMentorTask;
+  document.getElementById('student-task-modal').style.display = 'flex';
+}
+
+function closeTaskModal() {
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+}
+
+function saveMentorTask() {
+  const name = document.getElementById('st-name').value.trim();
+  const hours = parseInt(document.getElementById('st-hours').value) || 8;
+  const ds = document.getElementById('st-date-start').value;
+  const de = document.getElementById('st-date-end').value;
+  const assignee = document.getElementById('st-assignee').value;
+  if (!name) { alert('Введите название задачи'); return; }
+  if (!ds || !de) { alert('Укажите даты'); return; }
+  const startDate = new Date(ds);
+  const endDate = new Date(de);
+  const startDay = Math.round((startDate - SPRINT2_START) / 86400000);
+  const dur = Math.round((endDate - startDate) / 86400000) + 1;
+  if (startDay < 0 || dur < 1) { alert('Проверьте даты'); return; }
+  const desc = document.getElementById('st-desc').value.trim();
+  if (editingTaskIdx >= 0) {
+    const t = sTasks[editingTaskIdx];
+    t.name = name; t.hours = hours; t.start = startDay; t.dur = dur; t.desc = desc;
+    t.person = assignee;
+    t.status = document.getElementById('st-status').value;
+    t.mr = document.getElementById('st-mr').value.trim() || null;
+    t.workDesc = document.getElementById('st-work').value.trim() || null;
+  } else {
+    sTasks.push({sprint:2, person:assignee, name:name, status:'new', priority:'medium', hours:hours, start:startDay, dur:dur, mr:null, desc:desc, workDesc:null});
+  }
+  closeTaskModal();
+  buildGantt('gantt-sprints-container', null, {canEdit: false, mentorActions: true});
+  renderPersonalReports('personal-reports-container', null, 2);
+}
+
+// Create project form: section navigation
+function showSection(idx) {
+  currentSection = idx;
+  document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + idx).classList.add('active');
+  document.querySelectorAll('.section-nav-item').forEach((b, i) => b.classList.toggle('active', i === idx));
+  document.querySelectorAll('.step-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+  updateFormActions();
+}
+
+function nextSection() { if (currentSection < 3) showSection(currentSection + 1); }
+function prevSection() { if (currentSection > 0) showSection(currentSection - 1); }
+
+function updateFormActions() {
+  const a = document.getElementById('form-actions');
+  let h = '';
+  if (currentSection > 0) h += '<button class="btn-secondary" onclick="prevSection()">Назад</button>';
+  if (currentSection < 3) h += '<button class="btn-primary" onclick="nextSection()">Далее</button>';
+  else h += '<button class="btn-secondary" onclick="showToast(\'Черновик сохранён\')">Сохранить черновик</button><button class="btn-success" onclick="showToast(\'Заявка отправлена координатору\');setTimeout(function(){showView(\'dashboard\')},1500)">Отправить заявку</button>';
+  a.innerHTML = h;
+}
+
+// Sprint configuration
+function setSprintMode(mode) {
+  sprintMode = mode;
+  document.getElementById('sprint-simple').style.display = mode === 'simple' ? 'block' : 'none';
+  document.getElementById('mode-simple').style.background = mode === 'simple' ? 'var(--primary)' : 'var(--white)';
+  document.getElementById('mode-simple').style.color = mode === 'simple' ? '#fff' : 'var(--text-secondary)';
+  document.getElementById('mode-custom').style.background = mode === 'custom' ? 'var(--primary)' : 'var(--white)';
+  document.getElementById('mode-custom').style.color = mode === 'custom' ? '#fff' : 'var(--text-secondary)';
+  renderTimeline();
+}
+
+function fmtDate(d) {
+  const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  return d.getDate() + ' ' + months[d.getMonth()];
+}
+
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+
+function getSimpleDuration() {
+  const checked = document.querySelector('input[name="sprint_dur_s"]:checked');
+  return checked ? parseInt(checked.value) : 2;
+}
+
+function renderTimeline() {
+  const count = parseInt(document.getElementById('sprint-count').value) || 0;
+  const startVal = document.getElementById('sprint-start').value;
+  const container = document.getElementById('sprint-timeline');
+
+  if (count < 2 || count > 10 || !startVal) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--white);border:1px solid var(--border-light);border-radius:8px">Укажите количество спринтов и дату начала, чтобы увидеть расписание</div>';
+    return;
+  }
+
+  const start = new Date(startVal);
+  let html = '<div style="display:flex;flex-direction:column;gap:4px">';
+  html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em">';
+  html += '<span style="min-width:75px">Спринт</span>';
+  if (sprintMode === 'custom') html += '<span style="width:110px">Длительность</span>';
+  html += '<span style="flex:1">Даты</span>';
+  html += '<span style="min-width:60px;text-align:right">Дней</span>';
+  html += '</div>';
+
+  let cursor = new Date(start);
+  for (let i = 1; i <= count; i++) {
+    const weeks = sprintMode === 'simple' ? getSimpleDuration() : 2;
+    const days = weeks * 7;
+    const sprintStart = new Date(cursor);
+    const sprintEnd = addDays(cursor, days - 1);
+    const rowBg = i % 2 === 0 ? 'var(--surface)' : 'var(--white)';
+
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:' + rowBg + ';border:1px solid var(--border-light);border-radius:7px" data-sprint="' + i + '">';
+    html += '<span style="min-width:75px;font-size:13px;font-weight:600;color:var(--primary)">Спринт ' + i + '</span>';
+    if (sprintMode === 'custom') {
+      html += '<select class="sprint-dur-select" data-idx="' + i + '" onchange="recalcDates()" style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:inherit;color:var(--text);background:var(--white);cursor:pointer;outline:none">';
+      html += '<option value="1">1 неделя</option><option value="2" selected>2 недели</option><option value="3">3 недели</option><option value="4">4 недели</option>';
+      html += '</select>';
+    }
+    html += '<span class="sprint-dates" style="flex:1;font-size:13px;color:var(--text)">' + fmtDate(sprintStart) + ' — ' + fmtDate(sprintEnd) + '</span>';
+    html += '<span class="sprint-days" style="min-width:60px;text-align:right;font-size:12px;color:var(--text-muted)">' + days + ' дн.</span>';
+    html += '</div>';
+    cursor = addDays(sprintEnd, 1);
+  }
+
+  const totalEnd = addDays(cursor, -1);
+  const totalDays = Math.round((totalEnd - start) / (1000*60*60*24)) + 1;
+  const totalWeeks = Math.round(totalDays / 7 * 10) / 10;
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;margin-top:2px;background:var(--primary);border-radius:7px;color:#fff;font-size:12px;font-weight:600">';
+  html += '<span>Итого: ' + fmtDate(start) + ' — ' + fmtDate(totalEnd) + '</span>';
+  html += '<span>' + totalDays + ' дн. (~' + totalWeeks + ' нед.)</span>';
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function recalcDates() {
+  const count = parseInt(document.getElementById('sprint-count').value) || 0;
+  const startVal = document.getElementById('sprint-start').value;
+  if (!startVal || count < 2) return;
+
+  const start = new Date(startVal);
+  let cursor = new Date(start);
+  const selects = document.querySelectorAll('.sprint-dur-select');
+  const dateSpans = document.querySelectorAll('.sprint-dates');
+  const daySpans = document.querySelectorAll('.sprint-days');
+
+  selects.forEach((sel, i) => {
+    const weeks = parseInt(sel.value);
+    const days = weeks * 7;
+    const sprintStart = new Date(cursor);
+    const sprintEnd = addDays(cursor, days - 1);
+    if (dateSpans[i]) dateSpans[i].textContent = fmtDate(sprintStart) + ' — ' + fmtDate(sprintEnd);
+    if (daySpans[i]) daySpans[i].textContent = days + ' дн.';
+    cursor = addDays(sprintEnd, 1);
+  });
+
+  const totalEnd = addDays(cursor, -1);
+  const totalDays = Math.round((totalEnd - start) / (1000*60*60*24)) + 1;
+  const totalWeeks = Math.round(totalDays / 7 * 10) / 10;
+  const totalRow = document.querySelector('#sprint-timeline > div > div:last-child');
+  if (totalRow) {
+    totalRow.innerHTML = '<span>Итого: ' + fmtDate(start) + ' — ' + fmtDate(totalEnd) + '</span><span>' + totalDays + ' дн. (~' + totalWeeks + ' нед.)</span>';
+  }
+}
+
+// ─── Distribution: Drag & Drop ───
+let draggedChip = null;
+
+// Attach drag listeners to all draggable chips in teams
+document.querySelectorAll('.dist-slot .dist-chip[draggable="true"]').forEach(function(chip) {
+  chip.addEventListener('dragstart', onChipDragStart);
+  chip.addEventListener('dragend', onChipDragEnd);
+});
+
+// Attach drop listeners to occupied team slots (so chips can be swapped back to pool)
+document.querySelectorAll('.dist-slot:not(.empty-slot)').forEach(function(slot) {
+  // Non-empty slots with draggable chips already have the chip inside
+  // We only need drop on empty slots, but let's also handle occupied for reorder
+});
+
+function onChipDragStart(e) {
+  draggedChip = e.target.closest('.dist-chip');
+  if (!draggedChip || draggedChip.classList.contains('accepted')) {
+    e.preventDefault();
+    return;
+  }
+  draggedChip.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', draggedChip.getAttribute('data-student-id'));
+}
+
+function onChipDragEnd(e) {
+  if (draggedChip) {
+    draggedChip.style.opacity = '';
+    draggedChip = null;
+  }
+}
+
+function onSlotDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onSlotDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onSlotDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedChip) return;
+  var slot = e.currentTarget;
+  var studentId = draggedChip.getAttribute('data-student-id');
+  var chipName = draggedChip.querySelector('.chip-name').textContent;
+  var chipMeta = draggedChip.querySelector('.chip-meta').textContent;
+  var chipGpa = draggedChip.querySelector('.chip-gpa').textContent;
+
+  // Remove from old location
+  var oldParent = draggedChip.parentElement;
+  draggedChip.remove();
+
+  // If old parent was a team slot, restore it as empty
+  if (oldParent && oldParent.classList.contains('dist-slot') && !oldParent.querySelector('.dist-chip')) {
+    oldParent.classList.add('empty-slot');
+    oldParent.innerHTML = '<span>Свободное место</span>';
+    oldParent.setAttribute('ondragover', 'onSlotDragOver(event)');
+    oldParent.setAttribute('ondragleave', 'onSlotDragLeave(event)');
+    oldParent.setAttribute('ondrop', 'onSlotDrop(event)');
+  }
+
+  // Place in new slot
+  slot.classList.remove('empty-slot');
+  slot.innerHTML = '';
+  var team = slot.getAttribute('data-team');
+  var newChip = document.createElement('div');
+  newChip.className = 'dist-chip';
+  newChip.setAttribute('draggable', 'true');
+  newChip.setAttribute('data-student-id', studentId);
+  newChip.innerHTML = '<span class="chip-name">' + chipName + '</span>' +
+    '<span class="chip-meta">' + chipMeta + '</span>' +
+    '<span class="chip-gpa">' + chipGpa + '</span>' +
+    '<span class="dist-status-invited" style="display:none"></span>' +
+    '<button class="dist-invite-btn" onclick="event.stopPropagation();inviteStudent(this)" title="Пригласить в команду">' +
+    '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+  newChip.addEventListener('dragstart', onChipDragStart);
+  newChip.addEventListener('dragend', onChipDragEnd);
+  slot.appendChild(newChip);
+  slot.removeAttribute('ondragover');
+  slot.removeAttribute('ondragleave');
+  slot.removeAttribute('ondrop');
+
+  updateTeamCounts();
+  draggedChip = null;
+}
+
+function onPoolDrop(e, poolType) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!draggedChip) return;
+  var col = e.currentTarget;
+  var studentId = draggedChip.getAttribute('data-student-id');
+  var chipName = draggedChip.querySelector('.chip-name').textContent;
+  var chipMeta = draggedChip.querySelector('.chip-meta').textContent;
+  var chipGpa = draggedChip.querySelector('.chip-gpa').textContent;
+
+  // Remove from old location
+  var oldParent = draggedChip.parentElement;
+  draggedChip.remove();
+
+  // If old parent was a team slot, restore as empty
+  if (oldParent && oldParent.classList.contains('dist-slot') && !oldParent.querySelector('.dist-chip')) {
+    oldParent.classList.add('empty-slot');
+    oldParent.innerHTML = '<span>Свободное место</span>';
+    oldParent.setAttribute('ondragover', 'onSlotDragOver(event)');
+    oldParent.setAttribute('ondragleave', 'onSlotDragLeave(event)');
+    oldParent.setAttribute('ondrop', 'onSlotDrop(event)');
+  }
+
+  // Remove the "--" placeholder if present
+  var placeholder = col.querySelector('div[style*="text-align:center"]');
+  if (placeholder) placeholder.remove();
+
+  // Add chip to pool column
+  var newChip = document.createElement('div');
+  newChip.className = 'dist-chip';
+  newChip.setAttribute('draggable', 'true');
+  newChip.setAttribute('data-student-id', studentId);
+  if (poolType === 'unqualified') newChip.style.opacity = '0.7';
+  newChip.innerHTML = '<span class="chip-name">' + chipName + '</span>' +
+    '<span class="chip-meta">' + chipMeta + '</span>' +
+    '<span class="chip-gpa">' + chipGpa + '</span>';
+  newChip.addEventListener('dragstart', onChipDragStart);
+  newChip.addEventListener('dragend', onChipDragEnd);
+  col.appendChild(newChip);
+
+  updateTeamCounts();
+  draggedChip = null;
+}
+
+function updateTeamCounts() {
+  ['1','2'].forEach(function(teamNum) {
+    var slots = document.getElementById('dist-team' + teamNum + '-slots');
+    if (!slots) return;
+    var filled = slots.querySelectorAll('.dist-chip').length;
+    document.getElementById('dist-team' + teamNum + '-count').textContent = filled + ' / 5';
+  });
+}
+
+function inviteStudent(btn) {
+  var chip = btn.closest('.dist-chip');
+  var name = chip.querySelector('.chip-name').textContent;
+  var statusEl = chip.querySelector('.dist-status-invited');
+  statusEl.style.display = '';
+  statusEl.style.cssText = 'display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;background:var(--warning-bg);color:var(--warning)';
+  statusEl.innerHTML = '<svg width="12" height="12" fill="none" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M6 4v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg> Ожидает подтверждения';
+  btn.style.display = 'none';
+  chip.setAttribute('draggable', 'false');
+  chip.style.cursor = 'default';
+  // Update launch button state for this team
+  updateLaunchButtons();
+}
+
+function updateLaunchButtons() {
+  document.querySelectorAll('.dist-team-card').forEach(function(card) {
+    var launchBtn = card.querySelector('.launch-btn');
+    if (!launchBtn) return;
+    var chips = card.querySelectorAll('.dist-chip');
+    if (chips.length === 0) { disableLaunch(launchBtn, 'Нет участников'); return; }
+    // Check: all chips must be "accepted" (no pending invites, no uninvited)
+    var allAccepted = true;
+    chips.forEach(function(c) {
+      if (!c.classList.contains('accepted')) allAccepted = false;
+    });
+    if (allAccepted && chips.length >= 3) {
+      launchBtn.disabled = false;
+      launchBtn.style.cssText = 'width:100%;margin-top:12px;padding:10px;border:1px solid var(--success);border-radius:8px;background:var(--success-bg);color:var(--success);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.15s';
+      launchBtn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg> Запустить команду';
+    } else if (chips.length < 3) {
+      disableLaunch(launchBtn, 'Минимум 3 участника');
+    } else {
+      disableLaunch(launchBtn, 'Не все участники приняты');
+    }
+  });
+}
+
+function disableLaunch(btn, text) {
+  btn.disabled = true;
+  btn.style.cssText = 'width:100%;margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--surface-alt);color:var(--text-muted);font-size:13px;font-weight:600;font-family:inherit;cursor:not-allowed;display:flex;align-items:center;justify-content:center;gap:6px';
+  btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg> ' + text;
+}
+
+function togglePoolSection(btn) {
+  var arrow = btn.querySelector('.toggle-arrow');
+  var body = btn.nextElementSibling;
+  if (body.classList.contains('collapsed')) {
+    body.classList.remove('collapsed');
+    arrow.classList.add('open');
+  } else {
+    body.classList.add('collapsed');
+    arrow.classList.remove('open');
+  }
+}
+
+// ─── Launch team from distribution view ───
+// ─── Meeting confirm/decline ───
+function confirmMeeting(id) {
+  var actions = document.getElementById('meeting-' + id + '-actions');
+  var badge = actions.closest('.meeting-card, [style]').querySelector('[style*="Ожидает"]') || actions.parentElement.parentElement.querySelector('span:last-child');
+  actions.innerHTML = '<span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--success)"><svg width="14" height="14" fill="none" viewBox="0 0 14 14"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Встреча подтверждена</span>';
+  // Update badge
+  var card = actions.closest('[style*="background:var(--card)"]');
+  if (card) {
+    var badges = card.querySelectorAll('span');
+    badges.forEach(function(b) { if (b.textContent.trim() === 'Ожидает подтверждения') { b.style.background = 'var(--success-bg)'; b.style.color = 'var(--success)'; b.textContent = 'Подтверждена'; } });
+  }
+}
+
+function declineMeeting(id) {
+  var reason = prompt('Причина отклонения:');
+  if (reason === null) return;
+  var actions = document.getElementById('meeting-' + id + '-actions');
+  actions.innerHTML = '<div style="font-size:12px"><span style="display:flex;align-items:center;gap:5px;font-weight:600;color:var(--danger);margin-bottom:4px"><svg width="12" height="12" fill="none" viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Встреча отклонена</span>' + (reason ? '<div style="color:var(--text-muted);font-style:italic">' + reason + '</div>' : '') + '</div>';
+  var card = actions.closest('[style*="background:var(--card)"]');
+  if (card) {
+    var badges = card.querySelectorAll('span');
+    badges.forEach(function(b) { if (b.textContent.trim() === 'Ожидает подтверждения') { b.style.background = 'var(--danger-bg)'; b.style.color = 'var(--danger)'; b.textContent = 'Отклонена'; } });
+  }
+}
+
+function launchTeamFromDist(teamNum, btn) {
+  if (btn.disabled) return;
+  var card = btn.closest('.dist-team-card');
+  // Animate out
+  card.style.transition = 'opacity 0.4s, transform 0.4s';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(0.95) translateY(-10px)';
+  setTimeout(function() {
+    card.remove();
+    // Check if any teams remain
+    var remaining = document.querySelectorAll('#view-distribution .dist-team-card');
+    if (remaining.length === 0) {
+      var teamsContainer = document.querySelector('#view-distribution .dist-teams');
+      if (teamsContainer) teamsContainer.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:14px">Все команды запущены. Перейдите в <a onclick="showView(\'dashboard\')" style="color:var(--accent);cursor:pointer;font-weight:600">Дашборд</a> для просмотра активных команд.</div>';
+    }
+    showToast('Команда ' + teamNum + ' запущена');
+  }, 400);
+}
+
+// ─── Toast notification ───
+var _attentionExpanded = false;
+function toggleAttentionList() {
+  _attentionExpanded = !_attentionExpanded;
+  var items = document.querySelectorAll('.attention-hidden');
+  items.forEach(function(el) { el.style.display = _attentionExpanded ? '' : 'none'; });
+  var btn = document.getElementById('attention-toggle');
+  var hiddenCount = document.querySelectorAll('.attention-hidden').length;
+  btn.textContent = _attentionExpanded ? 'Свернуть ▴' : 'Показать ещё ' + hiddenCount + ' ▾';
+}
+
+function updateAttentionBadge() {
+  var visible = document.querySelectorAll('.attention-item:not([style*="display: none"]),.attention-item:not([style*="display:none"])').length;
+  var badge = document.querySelector('.attention-badge');
+  if (badge) badge.textContent = visible;
+}
+
+function showToast(message) {
+  var toast = document.getElementById('mentor-toast');
+  toast.textContent = message;
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(function() {
+    toast.style.opacity = '0';
+    setTimeout(function() { toast.style.display = 'none'; }, 300);
+  }, 2000);
+}
+
+// ─── Accept report ───
+function acceptReport(btn) {
+  var reportCard = btn.closest('.report-card');
+  var statusBadge = reportCard.querySelector('.report-status');
+  statusBadge.style.background = 'var(--success-bg)';
+  statusBadge.style.color = 'var(--success)';
+  statusBadge.textContent = 'Проверен';
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  btn.style.cursor = 'not-allowed';
+  btn.textContent = 'Отчёт принят';
+  showToast('Отчёт принят');
+}
+</script>
+</body>
+</html>

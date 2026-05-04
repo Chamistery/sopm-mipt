@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>СУПП ВШПИ — Текущий проект</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-sub">ВШПИ МФТИ</div>
+      <div class="sidebar-logo-main">Система управления<br>проектным практикумом</div>
+    </div>
+    <div class="role-switcher-wrap">
+      <div class="role-switcher-label">Тестовый режим — роль</div>
+      <select class="role-switcher" onchange="switchRole(this.value)">
+        <!-- filled by JS -->
+      </select>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item active" data-nav="project" onclick="showView('project')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M6 7h8M6 10h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        Текущий проект
+      </button>
+      <button class="sidebar-nav-item" data-nav="profile" onclick="showView('profile')">
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.4"/></svg>
+        Мой профиль
+      </button>
+    </nav>
+    <div class="sidebar-user" onclick="showView('profile')" style="cursor:pointer">
+      <div class="sidebar-avatar"><svg width="20" height="20" fill="none" viewBox="0 0 20 20" style="color:rgba(255,255,255,0.7)"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 18c0-3.5 3.1-6 7-6s7 2.5 7 6" stroke="currentColor" stroke-width="1.4"/></svg></div>
+      <div><div class="sidebar-user-name">Стародубов А.Ю.</div><div class="sidebar-user-role">Студент (распределён) · 2 курс</div></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- ═══ View: Project ═══ -->
+    <div id="view-project" class="view active">
+      <h1 class="page-title">Текущий проект</h1>
+      <div class="page-context">Система управления проектным практикумом ВШПИ · Команда 1 · Спринт 2 из 5</div>
+
+      <!-- Attention section -->
+      <div class="attention-section" style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+        <div class="attention-item" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border-light);border-radius:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><rect x="3" y="3" width="12" height="12" rx="2" stroke="#fff" stroke-width="1.3"/><path d="M7 9l2 2 3-4" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Новая задача от ментора: «Миграции БД v2»</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Назначена вам для выполнения</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);white-space:nowrap">сегодня</div>
+        </div>
+        <div class="attention-item" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border-light);border-radius:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--purple);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><circle cx="9" cy="9" r="6.5" stroke="#fff" stroke-width="1.3"/><path d="M9 5.5v4l2.5 1.5" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Встреча: обзор спринта 2</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Ревью спринта с ментором</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);white-space:nowrap">завтра, 16:00</div>
+        </div>
+        <div class="attention-item" style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border-light);border-left:3px solid var(--danger);border-radius:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--danger);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            <svg width="18" height="18" fill="none" viewBox="0 0 18 18"><path d="M9 3l6.5 11H2.5L9 3z" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 8v3" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="13" r="0.5" fill="#fff"/></svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--danger)">Дедлайн отчёта по таске: Страница команды (UI)</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Необходимо заполнить описание выполненной работы</div>
+          </div>
+          <div style="font-size:11px;color:var(--danger);font-weight:600;white-space:nowrap">через 2 дня</div>
+        </div>
+      </div>
+
+      <!-- Project info bar -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px">
+        <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;background:var(--surface-alt);color:var(--text-secondary);font-size:12px;font-weight:600">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 15c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.2"/></svg>
+          Ментор: Тимохин В.Н.
+        </span>
+        <span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;background:var(--surface-alt);color:var(--text-secondary);font-size:12px;font-weight:600">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M5 6h6M5 8.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Инициатор: МФТИ
+        </span>
+      </div>
+
+      <!-- Members card -->
+      <div class="members-card" style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:16px 20px;margin-bottom:24px">
+        <div class="members-grid" id="project-members"></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" onclick="showProjectTab('s-gantt',this)">Диаграмма Ганта</button>
+        <button class="tab" onclick="showProjectTab('s-reports',this)">Отчёты</button>
+        <button class="tab" onclick="showProjectTab('s-meetings',this)">Встречи</button>
+      </div>
+
+      <!-- Tab: Gantt -->
+      <div id="ptab-s-gantt" class="tab-content active">
+        <div id="student-gantt-sprints"></div>
+      </div>
+
+      <!-- Tab: Reports -->
+      <div id="ptab-s-reports" class="tab-content">
+        <!-- ═══ Sprint 2: Личные отчёты участников ═══ -->
+        <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:20px;margin-bottom:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <span style="font-size:15px;font-weight:700;color:var(--text)">Личные отчёты — Спринт 2</span>
+            <span style="font-size:12px;color:var(--text-muted)">17 мар — 13 апр</span>
+          </div>
+          <div id="personal-reports-container"></div>
+        </div>
+
+        <!-- ═══ Sprint 1 — reviewed ═══ -->
+        <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:20px;opacity:0.85">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="const c=this.nextElementSibling;c.style.display=c.style.display==='none'?'block':'none';this.querySelector('.collapse-icon').style.transform=c.style.display==='none'?'':'rotate(180deg)'">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="padding:4px 10px;border-radius:5px;background:var(--success-bg);color:var(--success);font-size:11px;font-weight:700">Проверен</span>
+              <span style="font-size:15px;font-weight:700;color:var(--text)">Личные отчёты — Спринт 1</span>
+              <span style="padding:3px 8px;border-radius:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:700">8/10</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;color:var(--text-muted)">24 фев — 16 мар</span>
+              <svg class="collapse-icon" width="16" height="16" fill="none" viewBox="0 0 16 16" style="color:var(--text-muted);transition:transform 0.2s"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border-light)">
+            <div id="sprint1-reports-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Meetings -->
+      <div id="ptab-s-meetings" class="tab-content">
+        <!-- Upcoming meeting -->
+        <div style="margin-bottom:24px">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">Предстоящие</div>
+          <div style="background:var(--card);border:1px solid var(--border-light);border-left:3px solid var(--accent);border-radius:10px;padding:16px 20px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:15px;font-weight:700;color:var(--text)">Обзор спринта 2</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Ревью результатов спринта с ментором и командой</div>
+              </div>
+              <span style="padding:4px 10px;border-radius:5px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;white-space:nowrap">1 апреля</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-secondary)">
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5v4l2.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                16:00 — 17:00
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="10.5" cy="8" r="1" fill="currentColor"/></svg>
+                Zoom
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="5.5" r="3" stroke="currentColor" stroke-width="1.2"/><path d="M2 15c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.2"/></svg>
+                Вся команда + ментор
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Past meetings -->
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px">Прошедшие</div>
+          <div style="background:var(--card);border:1px solid var(--border-light);border-radius:10px;padding:16px 20px;opacity:0.8">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+              <div>
+                <div style="font-size:15px;font-weight:700;color:var(--text)">Постановка спринта 2</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px">Планирование задач и распределение ответственностей</div>
+              </div>
+              <span style="padding:4px 10px;border-radius:5px;background:var(--surface-alt);color:var(--text-muted);font-size:11px;font-weight:700;white-space:nowrap">17 марта</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--text-muted);margin-bottom:12px">
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/><path d="M8 4.5v4l2.5 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                16:00 — 17:00
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:4px">
+                <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><circle cx="5.5" cy="8" r="1" fill="currentColor"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="10.5" cy="8" r="1" fill="currentColor"/></svg>
+                Zoom
+              </span>
+            </div>
+            <div style="padding:12px;background:var(--surface);border-radius:7px;border-left:3px solid var(--border)">
+              <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px">Итоги встречи</div>
+              <div style="font-size:13px;color:var(--text);line-height:1.6">Определены задачи для спринта 2. Стародубов А. — backend API и OAuth. Кузнецов М. — дашборд ментора и форма заявки. Лебедева Н. — Swagger-документация и сценарии. Волков Д. — тесты и CI/CD. Ментор утвердил план и дедлайны.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ View: Profile ═══ -->
+    <div id="view-profile" class="view"></div>
+  </main>
+
+  <!-- ═══ Modal: Task ═══ -->
+  <div id="save-toast" class="save-toast"><svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Изменения сохранены</div>
+
+  <div id="student-task-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:1000;background:rgba(0,0,0,0.45);align-items:center;justify-content:center" onclick="if(event.target===this)closeTaskModal()">
+    <div id="task-modal-card" class="task-modal-card" onclick="event.stopPropagation()">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h3 id="task-modal-title" style="font-size:17px;font-weight:700;color:var(--text);margin:0">Задача</h3>
+        <span id="task-save-indicator" style="display:none;align-items:center;gap:5px;font-size:12px;color:var(--success);font-weight:600">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 2h9l3 3v9H2V2z" stroke="currentColor" stroke-width="1.3"/><path d="M5 2v4h5V2" stroke="currentColor" stroke-width="1.1"/><path d="M4 9h8v5H4V9z" stroke="currentColor" stroke-width="1.1"/></svg>
+          Сохранено
+        </span>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Название задачи *</label>
+        <input id="st-name" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none" placeholder="Краткое название задачи">
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Описание</label>
+        <textarea id="st-desc" class="modal-field" style="width:100%;min-height:70px;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none" placeholder="Подробное описание задачи..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Часы (план)</label>
+          <input id="st-hours" class="modal-field" type="number" min="1" max="200" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none" placeholder="8">
+        </div>
+        <div id="st-status-wrap" style="display:none">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Статус</label>
+          <select id="st-status" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none;background:var(--card)">
+            <option value="new">Новая</option>
+            <option value="progress">В работе</option>
+            <option value="review">Ревью</option>
+            <option value="done">Готово</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Дата начала</label>
+          <input id="st-date-start" class="modal-field" type="date" min="2025-03-17" max="2025-04-13" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Дата окончания</label>
+          <input id="st-date-end" class="modal-field" type="date" min="2025-03-17" max="2025-04-13" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">Спринт 2: 17 марта — 13 апреля 2025</div>
+      <div id="st-mr-wrap" style="display:none;margin-bottom:14px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Merge Request</label>
+        <input id="st-mr" class="modal-field" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);outline:none" placeholder="!123 или ссылка">
+      </div>
+      <div id="st-work-wrap" style="display:none;margin-bottom:20px">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:5px">Описание выполненной работы</label>
+        <textarea id="st-work" class="modal-field" style="width:100%;min-height:60px;padding:8px 12px;border:1px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;outline:none" placeholder="Что было сделано по задаче..."></textarea>
+      </div>
+      <div id="st-buttons" style="display:flex;justify-content:flex-end;gap:10px;padding-top:12px;border-top:1px solid var(--border-light)">
+        <button id="st-submit-btn" style="padding:10px 24px;border:none;border-radius:7px;background:var(--purple);color:#fff;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px">
+          <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Отправить на ревью
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script>
+const currentUser = 'Кузнецов М.';
+let editingTaskIdx = -1;
+
+// Init
+document.querySelector('.role-switcher').innerHTML = roleSwitcherHtml('student_assigned');
+document.getElementById('view-profile').innerHTML = getProfileHtml(studentUserData);
+renderMembers('project-members', currentUser);
+buildGantt('student-gantt-sprints', currentUser, {canEdit: true});
+renderPersonalReports('personal-reports-container', currentUser, 2);
+renderPastSprintReports('sprint1-reports-container', 1, 'Хорошая работа на старте. Правильный выбор Django. Увеличьте покрытие тестами до 70%.', '8/10');
+
+function showProjectTab(id, btn) {
+  document.querySelectorAll('#view-project .tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#view-project .tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('ptab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+let _taskOriginRect = null;
+let _taskDirty = false;
+
+function openTaskModal(idx) {
+  editingTaskIdx = idx;
+  _taskDirty = false;
+  const isEdit = idx >= 0;
+  const t = isEdit ? sTasks[idx] : null;
+  const isLocked = isEdit && (t.status === 'review' || t.status === 'done' || t.status === 'rejected');
+  const ds = isEdit ? calcTaskStatus(t) : null;
+  const isInProgress = isEdit && (ds === 'progress' || ds === 'overdue' || ds === 'returned');
+
+  // Find source element for fly animation
+  _taskOriginRect = null;
+  const row = document.querySelector('[data-task-idx="' + idx + '"]');
+  if (row) { const nameEl = row.querySelector('.task-name-text') || row.querySelector('.col-task'); if (nameEl) _taskOriginRect = nameEl.getBoundingClientRect(); }
+
+  const overdueHtml = (isEdit && t.wasOverdue) ? ' <span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;background:var(--danger-bg);color:var(--danger);vertical-align:middle">Просрочена</span>' : '';
+  document.getElementById('task-modal-title').innerHTML = (isEdit ? t.name : 'Новая задача') + overdueHtml;
+  document.getElementById('task-save-indicator').style.display = 'none';
+  document.getElementById('st-name').value = isEdit ? t.name : '';
+  document.getElementById('st-name').readOnly = isLocked;
+  document.getElementById('st-desc').value = isEdit ? (t.desc || '') : '';
+  document.getElementById('st-desc').readOnly = isLocked;
+  document.getElementById('st-hours').value = isEdit ? t.hours : '';
+  document.getElementById('st-hours').readOnly = isLocked;
+  const sd = isEdit ? new Date(SPRINT2_START) : null;
+  if (isEdit && sd) sd.setDate(sd.getDate() + t.start);
+  const ed = isEdit ? new Date(SPRINT2_START) : null;
+  if (isEdit && ed) ed.setDate(ed.getDate() + t.start + t.dur - 1);
+  document.getElementById('st-date-start').value = isEdit ? sd.toISOString().slice(0,10) : '';
+  document.getElementById('st-date-end').value = isEdit ? ed.toISOString().slice(0,10) : '';
+  document.getElementById('st-date-start').readOnly = true; // студент не меняет даты
+  document.getElementById('st-date-end').readOnly = true;
+  document.getElementById('st-status-wrap').style.display = 'none'; // статус не руками
+  document.getElementById('st-mr-wrap').style.display = isEdit ? '' : 'none';
+  document.getElementById('st-work-wrap').style.display = isEdit ? '' : 'none';
+  if (isEdit) {
+    document.getElementById('st-mr').value = t.mr || '';
+    document.getElementById('st-mr').readOnly = isLocked;
+    document.getElementById('st-work').value = t.workDesc || '';
+    document.getElementById('st-work').readOnly = isLocked;
+  }
+  // Button: "Отправить на ревью" только если задача В работе, иначе скрыть
+  const btnWrap = document.getElementById('st-buttons');
+  const btn = document.getElementById('st-submit-btn');
+  if (isLocked) {
+    btnWrap.style.display = 'none';
+  } else if (isInProgress && isEdit) {
+    btnWrap.style.display = 'flex';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Отправить на ревью';
+    btn.style.background = 'var(--purple)';
+    btn.onclick = sendToReview;
+  } else if (ds === 'pending_approval' && isEdit) {
+    btnWrap.style.display = 'flex';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Отменить задачу';
+    btn.style.background = 'var(--danger)';
+    btn.onclick = function() { cancelTask(editingTaskIdx); };
+  } else if (!isEdit) {
+    btnWrap.style.display = 'flex';
+    btn.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> Создать задачу';
+    btn.style.background = 'var(--primary)';
+    btn.onclick = createNewTask;
+  } else {
+    btnWrap.style.display = 'none';
+  }
+
+  const overlay = document.getElementById('student-task-modal');
+  const card = document.getElementById('task-modal-card');
+
+  // 1. Show overlay + card at full size invisibly to measure position
+  card.style.transition = 'none';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(1)';
+  overlay.style.display = 'flex';
+  void card.offsetHeight; // force layout
+
+  // 2. Calculate transform-origin pointing at task name
+  if (_taskOriginRect) {
+    const cr = card.getBoundingClientRect();
+    const ox = _taskOriginRect.left + _taskOriginRect.width / 2 - cr.left;
+    const oy = _taskOriginRect.top + _taskOriginRect.height / 2 - cr.top;
+    card.style.transformOrigin = ox + 'px ' + oy + 'px';
+  } else {
+    card.style.transformOrigin = 'center center';
+  }
+
+  // 3. Snap to tiny scale, then animate open
+  card.style.transform = 'scale(0.05)';
+  void card.offsetHeight;
+  card.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease';
+  card.style.opacity = '1';
+  card.style.transform = 'scale(1)';
+}
+
+function closeTaskModal() {
+  const card = document.getElementById('task-modal-card');
+  const overlay = document.getElementById('student-task-modal');
+  const changed = autoSaveFields();
+
+  // Animate out: same transform-origin is still set from open
+  card.style.transition = 'transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease';
+  card.style.opacity = '0';
+  card.style.transform = 'scale(0.05)';
+
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    card.style.transition = 'none';
+    card.style.transform = '';
+    card.style.opacity = '';
+    editingTaskIdx = -1;
+    refreshViews();
+    if (changed) showSaveToast();
+  }, 320);
+}
+
+function autoSaveFields() {
+  if (editingTaskIdx < 0) return false;
+  const t = sTasks[editingTaskIdx];
+  if (!t || document.getElementById('st-name').readOnly) return false;
+  const name = document.getElementById('st-name').value.trim();
+  if (!name) return false;
+  let changed = false;
+  const desc = document.getElementById('st-desc').value.trim() || null;
+  const mr = document.getElementById('st-mr').value.trim() || null;
+  const work = document.getElementById('st-work').value.trim() || null;
+  const hours = parseInt(document.getElementById('st-hours').value) || t.hours;
+  if (t.name !== name || t.desc !== desc || t.mr !== mr || t.workDesc !== work || t.hours !== hours) changed = true;
+  t.name = name; t.desc = desc; t.mr = mr; t.workDesc = work; t.hours = hours;
+  return changed;
+}
+
+function sendToReview() {
+  if (editingTaskIdx < 0) return;
+  autoSaveFields();
+  const t = sTasks[editingTaskIdx];
+  if (!t.workDesc && !t.mr) { alert('Заполните описание работы или прикрепите MR перед отправкой'); return; }
+  t.status = 'review';
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+  refreshViews();
+}
+
+function createNewTask() {
+  const name = document.getElementById('st-name').value.trim();
+  const hours = parseInt(document.getElementById('st-hours').value) || 8;
+  const ds = document.getElementById('st-date-start').value;
+  const de = document.getElementById('st-date-end').value;
+  if (!name) { alert('Введите название задачи'); return; }
+  if (!ds || !de) { alert('Укажите даты'); return; }
+  const startDay = Math.round((new Date(ds) - SPRINT2_START) / 86400000);
+  const dur = Math.round((new Date(de) - new Date(ds)) / 86400000) + 1;
+  if (startDay < 0 || dur < 1) { alert('Проверьте даты'); return; }
+  sTasks.push({sprint:2, person:currentUser, name:name, status:'new', priority:'medium', hours:hours, start:startDay, dur:dur, mr:null, desc:document.getElementById('st-desc').value.trim()||null, workDesc:null});
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+  refreshViews();
+}
+
+function cancelTask(idx) {
+  if (!confirm('Отменить создание задачи? Она будет удалена.')) return;
+  sTasks.splice(idx, 1);
+  document.getElementById('student-task-modal').style.display = 'none';
+  editingTaskIdx = -1;
+  refreshViews();
+}
+
+function refreshViews() {
+  buildGantt('student-gantt-sprints', currentUser, {canEdit: true});
+  renderPersonalReports('personal-reports-container', currentUser, 2);
+}
+
+function showSaveToast() {
+  const toast = document.getElementById('save-toast');
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 1500);
+}
+  </script>
+</body>
+</html>

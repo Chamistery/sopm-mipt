@@ -1,0 +1,8 @@
+dist
+storybook-static
+coverage
+playwright-report
+test-results
+node_modules
+src/api/generated/
+package-lock.json

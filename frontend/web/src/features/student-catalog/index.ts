@@ -1,0 +1,1 @@
+export { StudentCatalogPage } from './StudentCatalogPage';

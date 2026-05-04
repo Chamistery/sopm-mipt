@@ -48,10 +48,11 @@ type Project struct {
 	ExpectedResult     string        `json:"expectedResult"`
 	Competencies       string        `json:"competencies"`
 	Resources          string        `json:"resources"`
-	DurationSemesters  int           `json:"durationSemesters"`
-	SubmittedAt        *time.Time    `json:"submittedAt,omitempty"`
-	CreatedAt          time.Time     `json:"createdAt"`
-	UpdatedAt          time.Time     `json:"updatedAt"`
+	DurationSemesters    int           `json:"durationSemesters"`
+	SubmittedAt          *time.Time    `json:"submittedAt,omitempty"`
+	PredecessorProjectID *int          `json:"predecessorProjectId,omitempty"`
+	CreatedAt            time.Time     `json:"createdAt"`
+	UpdatedAt            time.Time     `json:"updatedAt"`
 }
 
 func (l IntList) Value() (driver.Value, error) {

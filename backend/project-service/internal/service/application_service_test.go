@@ -51,6 +51,9 @@ func (s *stubProjectRepo) GetFull(context.Context, int) (*models.ProjectFull, er
 func (s *stubProjectRepo) GetApplicants(context.Context, int) (*models.ProjectApplicantsResponse, error) {
 	return nil, nil
 }
+func (s *stubProjectRepo) GetPredecessor(context.Context, int) (*models.Project, error) {
+	return nil, nil
+}
 func (s *stubProjectRepo) Update(context.Context, *models.Project) error { return nil }
 func (s *stubProjectRepo) Delete(context.Context, int) error             { return nil }
 

@@ -1,0 +1,168 @@
+.card {
+  background: var(--color-card);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.statusChip {
+  padding: 4px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.statusDraft {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.statusSubmitted {
+  background: var(--color-purple-bg);
+  color: var(--color-purple);
+}
+
+.statusReviewed {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.dateRange {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.field {
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 5px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+}
+
+.textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+}
+
+.textareaMain {
+  min-height: 90px;
+}
+
+.textarea[readonly] {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+  align-items: center;
+}
+
+.btnSecondary {
+  padding: 9px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  padding: 9px 24px;
+  border: none;
+  border-radius: 7px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btnPrimary:disabled,
+.btnSecondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.errorInline {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.toast {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.mentorBlock {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: var(--color-surface);
+  border-radius: 7px;
+  border-left: 3px solid var(--color-accent);
+}
+
+.mentorTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mentorText {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
