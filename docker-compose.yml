@@ -1,0 +1,69 @@
+# Production-style bring-up for the СУПП ВШПИ МФТИ system.
+#
+# Single entry point: `docker compose up -d --build` (or `make up`) gives you
+# postgres + Go project-service + nginx-served React SPA on http://localhost:8080.
+#
+# The legacy backend/project-service/docker-compose.yml is intentionally
+# preserved as a backend-only dev convenience.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sopm-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-sopm}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Postgres runs *.sql files in this dir on first init (empty volume).
+      - ./backend/project-service/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sopm}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  project-service:
+    build:
+      context: backend/project-service
+      dockerfile: Dockerfile
+    container_name: sopm-project-service
+    environment:
+      SERVER_PORT: "8080"
+      SERVER_HOST: "0.0.0.0"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DB_NAME: ${POSTGRES_DB:-sopm}
+      DB_SSLMODE: disable
+      STORAGE_DIR: /app/storage
+      MAX_APPLICATION_CHOICES: "5"
+      MAX_UPLOAD_BYTES: "10485760"
+    expose:
+      - "8080"
+    volumes:
+      - project_storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      # Repo root — the frontend Dockerfile copies both frontend/web and
+      # backend/project-service/swagger.yaml (needed by `npm run gen:api`).
+      context: .
+      dockerfile: frontend/web/Dockerfile
+    container_name: sopm-web
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - project-service
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  project_storage:

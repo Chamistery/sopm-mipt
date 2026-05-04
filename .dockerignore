@@ -1,0 +1,53 @@
+# Keep build context small for the frontend image (root-of-repo context).
+
+# VCS / IDE
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Node
+**/node_modules
+**/dist
+**/coverage
+**/.vite
+**/.cache
+**/playwright-report
+**/storybook-static
+**/test-results
+**/.eslintcache
+**/*.tsbuildinfo
+
+# Go build artifacts
+backend/project-service/server
+backend/project-service/coverage.out
+
+# Logs / env / secrets
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local docs / scratch files in repo root
+*.md
+!README.md
+!frontend/web/README.md
+!backend/project-service/README.md
+!frontend/prototypes/architecture.md
+*.docx
+*.docx:Zone.Identifier
+*.html
+*.html:Zone.Identifier
+*.zip
+*.jpg
+*.png
+github_repo
+supp-demo
+Last_session_history.txt
+questions.txt
+text.txt
+
+# OS
+.DS_Store
+Thumbs.db
