@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { actionsFor } from './lib/taskActions';
+import { actionsFor } from './taskActions';
 
 describe('actionsFor', () => {
   it('offers approve + reject for "Ожидает аппрува"', () => {

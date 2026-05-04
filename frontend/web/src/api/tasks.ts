@@ -92,7 +92,7 @@ export function returnTask(id: number, comment: string): Promise<Task> {
 /**
  * Returns true when a mentor needs to act on the task — either approve a
  * fresh task or review a delivered one. Used to drive the "needs action"
- * filter on MentorTaskReviewPage.
+ * filter in the mentor team-page Gantt tab.
  */
 export function taskNeedsMentorAction(status: TaskStatus): boolean {
   return status === 'Ожидает аппрува' || status === 'На ревью';

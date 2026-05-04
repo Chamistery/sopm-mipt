@@ -63,6 +63,12 @@ const state = {
    * fresh task ids or be sequenced.
    */
   taskOverrides: new Map<number, { status: TaskStatus }>(),
+  /*
+   * Per-team leaderId overrides applied on top of `fixtureTeam`. Used by
+   * «Сделать тимлидом» mentor flow so subsequent GET /teams/:id sees the
+   * just-assigned leader.
+   */
+  teamLeaderOverrides: new Map<number, number>(),
 };
 
 type FixtureTask = (typeof fixtureTasks)[number];
@@ -465,8 +471,21 @@ export const handlers = [
 
   http.get(`${API}/teams/:id`, ({ params }) => {
     const id = Number(params.id);
-    if (id === 300) return ok(fixtureTeam);
+    if (id === 300) return ok({ ...fixtureTeam, leaderId: state.teamLeaderOverrides.get(300) ?? fixtureTeam.leaderId });
     if (id === 310) return ok(fixtureArchiveTeam);
+    return err(404, 'team not found');
+  }),
+
+  // Pixel-port из mentor.html «Сделать тимлидом»: PUT /teams/:id с {leaderId}
+  // — фронт делает оптимистичную инвалидцию ['team', teamId], бэк отдаёт
+  // обновлённую команду. Здесь мы лишь меняем leaderId в локальном overrides.
+  http.put(`${API}/teams/:id`, async ({ params, request }) => {
+    const id = Number(params.id);
+    const patch = (await request.json()) as { leaderId?: number };
+    if (id === 300) {
+      if (patch.leaderId != null) state.teamLeaderOverrides.set(300, patch.leaderId);
+      return ok({ ...fixtureTeam, ...patch, leaderId: state.teamLeaderOverrides.get(300) ?? fixtureTeam.leaderId });
+    }
     return err(404, 'team not found');
   }),
 

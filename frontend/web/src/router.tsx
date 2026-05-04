@@ -10,10 +10,9 @@ import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { redirectByRole } from '@/auth/redirectByRole';
 import { MentorDashboardPage } from '@/features/mentor-dashboard/MentorDashboardPage';
 import { NewProjectPage } from '@/features/mentor-dashboard/NewProjectPage';
-import { ProjectDetailPage as MentorProjectDetailPage } from '@/features/mentor-dashboard/ProjectDetailPage';
 import { ApplicantsPage } from '@/features/mentor-dashboard/ApplicantsPage';
-import { MentorTaskReviewPage } from '@/features/mentor-dashboard/MentorTaskReviewPage';
-import { TeamReportReviewPage } from '@/features/mentor-dashboard/TeamReportReviewPage';
+import { MentorTeamPage } from '@/features/mentor-dashboard/MentorTeamPage';
+import { MentorTeamLegacyRedirect } from '@/features/mentor-dashboard/MentorTeamLegacyRedirect';
 import { ArchivePage } from '@/features/mentor-dashboard/ArchivePage';
 import { ArchiveProjectTeamsPage } from '@/features/mentor-dashboard/ArchiveProjectTeamsPage';
 import { ArchiveTeamPage } from '@/features/mentor-dashboard/ArchiveTeamPage';
@@ -39,10 +38,21 @@ export const router = createBrowserRouter([
       { path: 'student/project', element: <StudentProjectPage /> },
       { path: 'mentor', element: <MentorDashboardPage /> },
       { path: 'mentor/projects/new', element: <NewProjectPage /> },
-      { path: 'mentor/projects/:id', element: <MentorProjectDetailPage /> },
+      // Страница детали проекта удалена в team-unification — у ментора есть
+      // только дашборд и страница команды. Старый URL ведёт на дашборд.
+      { path: 'mentor/projects/:id', element: <Navigate to="/mentor" replace /> },
       { path: 'mentor/applicants/:id', element: <ApplicantsPage /> },
-      { path: 'mentor/teams/:teamId/gantt', element: <MentorTaskReviewPage /> },
-      { path: 'mentor/teams/:teamId/reports', element: <TeamReportReviewPage /> },
+      { path: 'mentor/teams/:teamId', element: <MentorTeamPage /> },
+      // Legacy URLs для обратной совместимости (e2e, старые ссылки в письмах
+      // нотификаций и т.п.). Редиректим на новый формат с ?tab=.
+      {
+        path: 'mentor/teams/:teamId/gantt',
+        element: <MentorTeamLegacyRedirect tab="gantt" />,
+      },
+      {
+        path: 'mentor/teams/:teamId/reports',
+        element: <MentorTeamLegacyRedirect tab="reports" />,
+      },
       { path: 'mentor/archive', element: <ArchivePage /> },
       { path: 'mentor/archive/projects/:projectId', element: <ArchiveProjectTeamsPage /> },
       { path: 'mentor/archive/teams/:teamId', element: <ArchiveTeamPage /> },

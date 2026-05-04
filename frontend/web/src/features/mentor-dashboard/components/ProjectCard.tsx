@@ -12,10 +12,9 @@
  *   5. Архивный проект                   (использует override-prop `to`,
  *                                         см. ArchivePage)
  *
- * Все клики ведут на относительные роуты ментора (`/mentor/teams/:id/gantt`,
- * `/mentor/distribution`, `/mentor/projects/new` для черновика). После
- * team-unification роуты будут переименованы — карточка не зависит от
- * конкретных URL'ов сильнее необходимого.
+ * Все клики ведут на относительные роуты ментора (`/mentor/teams/:id` —
+ * объединённая страница команды с табами; default — Гант),
+ * `/mentor/distribution`, `/mentor/projects/new` для черновика).
  */
 
 import type { JSX } from 'react';
@@ -164,7 +163,7 @@ function TeamRow({ team, projectId, onNavigate }: TeamRowProps): JSX.Element {
 
   return (
     <Link
-      to={`/mentor/teams/${team.id}/gantt`}
+      to={`/mentor/teams/${team.id}`}
       className={styles.teamRow}
     >
       <span className={styles.teamName}>{team.name}</span>

@@ -86,8 +86,8 @@ export function ApplicantsPage(): JSX.Element {
 
   return (
     <div className={styles.page}>
-      <Link to={`/mentor/projects/${projectId}`} className={styles.back}>
-        ← К проекту
+      <Link to="/mentor" className={styles.back}>
+        ← К дашборду
       </Link>
       <header className={styles.header}>
         <div>

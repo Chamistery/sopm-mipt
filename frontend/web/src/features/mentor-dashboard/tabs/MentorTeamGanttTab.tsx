@@ -1,5 +1,19 @@
+/*
+ * Таб «Диаграмма Ганта» страницы команды у ментора.
+ *
+ * Перенесено AS-IS из MentorTaskReviewPage: Гант + компактный список
+ * задач к разбору + TaskActionPopup. Контекст команды (имя, шапка,
+ * хлебные крошки) живёт на родительской странице, поэтому свой backLink
+ * и subtitle не рисуем.
+ *
+ * Источник данных не меняется: useTeam → projectId → useProjectSprints
+ * → useTeamGantt(teamId, sprintId). Параметр `sprintId` хранится в URL
+ * рядом с `tab` чтобы при переключении табов выбранный спринт не сбрасывался.
+ */
+
+import type { JSX } from 'react';
 import { useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
@@ -13,25 +27,17 @@ import {
 import { pickDefaultSprint, type Sprint, type TaskDto } from '@/api/teams';
 import { GanttChart } from '@/features/student-project/components/GanttChart';
 import { formatISODate } from '@/features/student-project/lib/dates';
-import { TaskActionPopup, type TaskActionKind } from './components/TaskActionPopup';
-import { useTeam, useProjectSprints } from './hooks/useTeam';
-import { useTeamGantt } from './hooks/useTeamGantt';
-import { actionsFor } from './lib/taskActions';
-import styles from './MentorTaskReviewPage.module.css';
+import { TaskActionPopup, type TaskActionKind } from '../components/TaskActionPopup';
+import { useTeam, useProjectSprints } from '../hooks/useTeam';
+import { useTeamGantt } from '../hooks/useTeamGantt';
+import { actionsFor } from '../lib/taskActions';
+import styles from './MentorTeamGanttTab.module.css';
 
-/**
- * Mentor's task-review screen. Renders the team's Gantt at the top
- * (read-only with mentor click-actions) and a compact "needs action"
- * list below for keyboard-friendly batch review. Both surfaces open the
- * same TaskActionPopup; mutations re-use the gantt cache key so the
- * Gantt repaints on success.
- *
- *   - "Ожидает аппрува" → approve / reject (negative requires comment)
- *   - "На ревью"        → accept / return (negative requires comment)
- */
-export function MentorTaskReviewPage(): JSX.Element {
-  const params = useParams<{ teamId: string }>();
-  const teamId = Number.parseInt(params.teamId ?? '', 10);
+interface Props {
+  teamId: number;
+}
+
+export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -93,17 +99,10 @@ export function MentorTaskReviewPage(): JSX.Element {
     },
   });
 
-  if (!Number.isFinite(teamId) || teamId <= 0) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.error}>Некорректный идентификатор команды</div>
-      </div>
-    );
-  }
-
   const ganttData = ganttQuery.data;
   const tasks = ganttData?.tasks ?? [];
-  const filtered = filter === 'needs-action' ? tasks.filter((t) => taskNeedsMentorAction(t.status)) : tasks;
+  const filtered =
+    filter === 'needs-action' ? tasks.filter((t) => taskNeedsMentorAction(t.status)) : tasks;
   const popupActions = popupTask ? actionsFor(popupTask.status).map((a) => a.kind) : [];
 
   const openTaskPopup = (task: TaskDto): void => {
@@ -115,27 +114,22 @@ export function MentorTaskReviewPage(): JSX.Element {
   const sprintNumber = ganttData?.sprint.number ?? 0;
   const sprintsTotal = sprintsQuery.data?.length ?? 0;
 
+  const setSprintId = (id: number): void => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set('sprintId', String(id));
+    setSearchParams(sp, { replace: true });
+  };
+
   return (
-    <div className={styles.page}>
-      <Link to="/mentor" className={styles.back}>
-        ← К списку проектов
-      </Link>
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Задачи команды</h1>
-          {teamQuery.data ? <div className={styles.subtitle}>{teamQuery.data.name}</div> : null}
-        </div>
-        <div className={styles.headerControls}>
-          <SprintSwitcher
-            sprints={sprintsQuery.data ?? []}
-            currentId={defaultSprintId}
-            onChange={(id) => {
-              setSearchParams({ sprintId: String(id) });
-            }}
-          />
-          <FilterToggle filter={filter} onChange={setFilter} />
-        </div>
-      </header>
+    <div className={styles.tab}>
+      <div className={styles.controls}>
+        <SprintSwitcher
+          sprints={sprintsQuery.data ?? []}
+          currentId={defaultSprintId}
+          onChange={setSprintId}
+        />
+        <FilterToggle filter={filter} onChange={setFilter} />
+      </div>
 
       {ganttQuery.isLoading || sprintsQuery.isLoading ? (
         <div className={styles.placeholder}>Загружаем задачи…</div>

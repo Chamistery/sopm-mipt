@@ -121,11 +121,11 @@ describe('ProjectCard', () => {
     expect(screen.getByText(/Заявка ещё не отправлена/)).toBeInTheDocument();
   });
 
-  it('team-row links to /mentor/teams/:teamId/gantt for launched teams', () => {
+  it('team-row links to /mentor/teams/:teamId for launched teams (default tab — gantt)', () => {
     renderCard(makeProject());
 
     const teamLink = screen.getByRole('link', { name: /Команда 1/ });
-    expect(teamLink).toHaveAttribute('href', '/mentor/teams/11/gantt');
+    expect(teamLink).toHaveAttribute('href', '/mentor/teams/11');
   });
 
   it('shows footer «Начат: <month YYYY>» for active project', () => {
