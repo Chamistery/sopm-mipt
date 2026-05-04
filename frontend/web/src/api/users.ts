@@ -69,3 +69,44 @@ export function updateUserProfile(id: number, payload: UserProfileUpdate): Promi
 export function fullName(user: Pick<UserSummary, 'firstName' | 'lastName'>): string {
   return `${user.lastName} ${user.firstName}`.trim();
 }
+
+/*
+ * Profile files (резюме / сертификаты).
+ *
+ * Backend хранит файлы в локальном storage (см. user_handler.UploadFile),
+ * отдаёт `storagePath` — относительный путь, по которому файл лежит на
+ * диске у бэка. Дедикейтед download-ручки в swagger пока нет; при
+ * добавлении заведём `getUserFileDownloadUrl(userId, fileId)` и используем
+ * её вместо прямой склейки `storagePath`.
+ */
+export interface UserFile {
+  id: number;
+  userId: number;
+  fileName: string;
+  /** bytes */
+  fileSize: number;
+  /** 'pdf' | 'docx' (расширение в нижнем регистре, см. backend) */
+  fileType: string;
+  storagePath: string;
+  /** RFC 3339 timestamp */
+  uploadedAt: string;
+}
+
+export function listUserFiles(userId: number): Promise<UserFile[]> {
+  return apiFetch<UserFile[]>(`/users/${userId}/files`);
+}
+
+export function uploadUserFile(userId: number, file: File): Promise<UserFile> {
+  const form = new FormData();
+  form.append('file', file);
+  return apiFetch<UserFile>(`/users/${userId}/files`, {
+    method: 'POST',
+    body: form,
+  });
+}
+
+export function deleteUserFile(userId: number, fileId: number): Promise<void> {
+  return apiFetch<void>(`/users/${userId}/files/${fileId}`, {
+    method: 'DELETE',
+  });
+}
