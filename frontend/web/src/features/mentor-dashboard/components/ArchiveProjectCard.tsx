@@ -20,7 +20,8 @@ import styles from './ArchiveProjectCard.module.css';
 
 interface Props {
   project: ProjectListItem;
-  /** Override link target. По умолчанию `/mentor/projects/:id`. */
+  /** Override link target. По умолчанию ведёт на дашборд (страницы детали
+   * проекта у ментора нет — ArchivePage всегда передаёт `to` явно). */
   to?: string;
 }
 
@@ -28,7 +29,7 @@ export function ArchiveProjectCard({ project, to }: Props): JSX.Element {
   const ratio = projectFillRatio(project);
   const percent = Math.round(ratio * 100);
   const maxSlots = projectMaxSlots(project);
-  const href = to ?? `/mentor/projects/${project.id}`;
+  const href = to ?? `/mentor/archive/projects/${project.id}`;
 
   return (
     <Link to={href} className={styles.card}>

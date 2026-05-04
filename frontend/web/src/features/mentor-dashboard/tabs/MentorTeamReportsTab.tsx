@@ -1,5 +1,14 @@
+/*
+ * Таб «Отчёты по спринтам» страницы команды у ментора.
+ *
+ * Перенесено AS-IS из TeamReportReviewPage. Контекст команды (имя,
+ * шапка, хлебные крошки) живёт на родительской странице, поэтому
+ * убрали backLink + subtitle и оставили только список карточек отчётов
+ * + ReportCard с инлайн-оценками за спринт.
+ */
+
+import type { JSX } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
@@ -14,73 +23,55 @@ import {
   type SprintScore,
 } from '@/api/sprintScores';
 import { useRequireUser } from '@/auth/useCurrentUser';
-import { SprintScoreInput, type SprintScoreDraft } from './components/SprintScoreInput';
-import { buildScoreDrafts } from './lib/scoreDrafts';
-import { useTeam } from './hooks/useTeam';
-import { useTeamReports } from './hooks/useTeamReports';
-import { useSprintScores } from './hooks/useSprintScores';
-import styles from './TeamReportReviewPage.module.css';
+import { SprintScoreInput, type SprintScoreDraft } from '../components/SprintScoreInput';
+import { buildScoreDrafts } from '../lib/scoreDrafts';
+import { useTeam } from '../hooks/useTeam';
+import { useTeamReports } from '../hooks/useTeamReports';
+import { useSprintScores } from '../hooks/useSprintScores';
+import styles from './MentorTeamReportsTab.module.css';
 
-/**
- * Mentor's report-review screen for a team. Lists reports per sprint;
- * each "Отправлен" report can be reviewed (mentor comment) and graded
- * (per-member sprint scores via the embedded SprintScoreInput rows).
- */
-export function TeamReportReviewPage(): JSX.Element {
-  const params = useParams<{ teamId: string }>();
-  const teamId = Number.parseInt(params.teamId ?? '', 10);
+interface Props {
+  teamId: number;
+}
 
+export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
   const teamQuery = useTeam(teamId);
   const reportsQuery = useTeamReports(teamId);
 
-  if (!Number.isFinite(teamId) || teamId <= 0) {
+  if (reportsQuery.isLoading) {
+    return <div className={styles.placeholder}>Загружаем отчёты…</div>;
+  }
+  if (reportsQuery.error) {
     return (
-      <div className={styles.page}>
-        <div className={styles.error}>Некорректный идентификатор команды</div>
+      <div className={styles.error}>
+        {reportsQuery.error instanceof ApiError
+          ? `Ошибка ${reportsQuery.error.status}: ${reportsQuery.error.message}`
+          : 'Не удалось загрузить отчёты'}
       </div>
     );
   }
 
-  return (
-    <div className={styles.page}>
-      <Link to="/mentor" className={styles.back}>
-        ← К списку проектов
-      </Link>
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Отчёты команды</h1>
-          {teamQuery.data ? <div className={styles.subtitle}>{teamQuery.data.name}</div> : null}
-        </div>
-      </header>
+  const reports = reportsQuery.data ?? [];
+  if (reports.length === 0) {
+    return <div className={styles.empty}>Команда ещё не отправляла отчётов.</div>;
+  }
 
-      {reportsQuery.isLoading ? (
-        <div className={styles.placeholder}>Загружаем отчёты…</div>
-      ) : reportsQuery.error ? (
-        <div className={styles.error}>
-          {reportsQuery.error instanceof ApiError
-            ? `Ошибка ${reportsQuery.error.status}: ${reportsQuery.error.message}`
-            : 'Не удалось загрузить отчёты'}
-        </div>
-      ) : (reportsQuery.data ?? []).length === 0 ? (
-        <div className={styles.empty}>Команда ещё не отправляла отчётов.</div>
-      ) : (
-        <div className={styles.reportList}>
-          {(reportsQuery.data ?? [])
-            .slice()
-            .sort((a, b) => a.sprintId - b.sprintId)
-            .map((report) => (
-              <ReportCard
-                key={report.id}
-                report={report}
-                teamId={teamId}
-                memberSummaries={(teamQuery.data?.members ?? []).map((m) => ({
-                  userId: m.userId,
-                  name: `${m.user.lastName} ${m.user.firstName}`.trim(),
-                }))}
-              />
-            ))}
-        </div>
-      )}
+  return (
+    <div className={styles.reportList}>
+      {reports
+        .slice()
+        .sort((a, b) => a.sprintId - b.sprintId)
+        .map((report) => (
+          <ReportCard
+            key={report.id}
+            report={report}
+            teamId={teamId}
+            memberSummaries={(teamQuery.data?.members ?? []).map((m) => ({
+              userId: m.userId,
+              name: `${m.user.lastName} ${m.user.firstName}`.trim(),
+            }))}
+          />
+        ))}
     </div>
   );
 }

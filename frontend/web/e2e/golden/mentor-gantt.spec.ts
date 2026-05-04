@@ -3,12 +3,12 @@ import { test, expect } from '@playwright/test';
 import { loginAs } from '../utils/login';
 
 /*
- * Golden path для ментора в режиме Гант-ревью: переход на
- * /mentor/teams/300/gantt → видит Гант c режимом mentor →
- * кликает по задаче «Аналитика flow распределения» (статус
- * «Ожидает аппрува») → жмёт «Аппрувить» в попапе → MSW в ответ
- * меняет статус на «Назначена», query инвалидируется и в
- * таблице «к разбору» задача больше не висит.
+ * Golden path для ментора в режиме Гант-ревью на объединённой
+ * странице команды: переход на /mentor/teams/300?tab=gantt → видит
+ * Гант c режимом mentor → кликает по задаче «Аналитика flow
+ * распределения» (статус «Ожидает аппрува») → жмёт «Аппрувить» в
+ * попапе → MSW в ответ меняет статус на «Назначена», query
+ * инвалидируется и в таблице «к разбору» задача больше не висит.
  *
  * Команда 300 / спринт 201 (Активный) — см. fixtures.ts.
  */
@@ -19,10 +19,10 @@ test.describe('mentor gantt golden path', () => {
   });
 
   test('mentor opens gantt, approves a pending-approval task via popup', async ({ page }) => {
-    await page.goto('/mentor/teams/300/gantt?sprintId=201');
+    await page.goto('/mentor/teams/300?tab=gantt&sprintId=201');
 
-    // Шапка
-    await expect(page.getByRole('heading', { name: 'Задачи команды' })).toBeVisible({
+    // Шапка — H1 = название команды
+    await expect(page.getByRole('heading', { level: 1, name: /Команда/ })).toBeVisible({
       timeout: 15_000,
     });
 

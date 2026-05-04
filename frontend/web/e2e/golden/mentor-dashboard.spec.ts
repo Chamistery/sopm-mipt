@@ -50,13 +50,12 @@ test.describe('mentor dashboard golden path', () => {
       page.getByRole('heading', { level: 3, name: /AI чат-бот для абитуриентов/i }),
     ).toBeVisible();
 
-    // Клик по team-row активной карточки → /mentor/teams/300/gantt.
-    // (Линк может повторяться в RequiresAttention тоже — отбираем именно
-    // anchor с href вида /mentor/teams/.../gantt.)
-    const teamLink = page.locator('a[href="/mentor/teams/300/gantt"]');
+    // Клик по team-row активной карточки → /mentor/teams/300 (объединённая
+    // страница команды; default-таб — Гант).
+    const teamLink = page.locator('a[href="/mentor/teams/300"]');
     await expect(teamLink).toBeVisible();
     await teamLink.click();
 
-    await expect(page).toHaveURL(/\/mentor\/teams\/300\/gantt/);
+    await expect(page).toHaveURL(/\/mentor\/teams\/300(\?.*)?$/);
   });
 });

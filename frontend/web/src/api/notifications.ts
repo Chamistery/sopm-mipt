@@ -192,9 +192,13 @@ function linkFor(entity: string, entityId: number): string | undefined {
     case 'meeting':
       return '/student/project';
     case 'team_report':
-      return `/mentor/teams/${entityId}/report`;
+      // entityId здесь — id команды (см. backend notifier для team_report).
+      // Объединённая страница команды открывает таб «Отчёты по спринтам».
+      return `/mentor/teams/${entityId}?tab=reports`;
     case 'project':
-      return `/mentor/projects/${entityId}`;
+      // У ментора больше нет страницы детали проекта — дашборд показывает
+      // карточку проекта с переходами на команды.
+      return '/mentor';
     default:
       return undefined;
   }
