@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { useRequireUser } from '@/auth/useCurrentUser';
 import { ApiError } from '@/api/client';
+import { RequiresAttention } from '@/_shared/RequiresAttention';
 import { useMentorProjects } from './hooks/useMentorProjects';
 import { ProjectCard } from './components/ProjectCard';
 import styles from './MentorDashboardPage.module.css';
@@ -12,6 +13,7 @@ export function MentorDashboardPage(): JSX.Element {
 
   return (
     <div className={styles.page}>
+      <RequiresAttention />
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Мои проекты</h1>
