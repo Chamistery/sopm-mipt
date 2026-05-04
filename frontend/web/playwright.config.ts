@@ -21,9 +21,15 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run preview -- --port ${PORT} --strictPort`,
+    /*
+     * Vite preview сервит `dist/`, который должен быть собран с включённым
+     * MSW: `VITE_ENABLE_MSW=true` подхватывается на этапе bundle (см.
+     * main.tsx). Поэтому build делаем здесь же — это даёт изоляцию от
+     * `dist/` без env-флага и гарантирует, что mock включён ровно в e2e.
+     */
+    command: `VITE_ENABLE_MSW=true npm run build && npm run preview -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });
