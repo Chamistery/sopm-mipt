@@ -98,6 +98,28 @@
   white-space: nowrap;
 }
 
+/* Кнопка «Открыть предшественника» под банером архивной команды. */
+.predecessorLink {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.predecessorLink:hover {
+  background: #ddd6fe;
+  color: #5b21b6;
+  text-decoration: underline;
+}
+
 /* Состав команды */
 .membersCard {
   background: var(--color-card);

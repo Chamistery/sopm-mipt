@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
+import { getProjectPredecessor } from '@/api/projects';
 import { listMeetings } from '@/api/meetings';
 import type { Meeting } from '@/api/types';
 import { listSprintScores, type SprintScore } from '@/api/sprintScores';
@@ -17,9 +18,11 @@ import {
 } from '@/features/student-project/lib/dates';
 import { avatarColor, initials } from '@/features/student-project/lib/people';
 import { formatFinalGradeLabel } from './lib/finalGrade';
+import { chainUrl, parseChain, pushToChain } from './lib/archiveChain';
 import { useProjectSprints, useTeam } from './hooks/useTeam';
 import { useTeamGantt } from './hooks/useTeamGantt';
 import { useProjectDetail } from './hooks/useProjectDetail';
+import { ArchiveBreadcrumbs } from './ArchiveProjectTeamsPage';
 import styles from './ArchiveTeamPage.module.css';
 
 type TabKey = 'gantt' | 'reports' | 'meetings';
@@ -36,12 +39,18 @@ export function ArchiveTeamPage(): JSX.Element {
   const params = useParams<{ teamId: string }>();
   const teamId = Number.parseInt(params.teamId ?? '', 10);
   const [searchParams, setSearchParams] = useSearchParams();
+  const chain = parseChain(searchParams.get('chain'));
 
   const teamQuery = useTeam(teamId);
   const projectId = teamQuery.data?.projectId ?? null;
   const projectQuery = useProjectDetail(projectId ?? 0);
   const sprintsQuery = useProjectSprints(projectId);
   const scoresQuery = useTeamScores(teamId);
+  const predecessorQuery = useQuery({
+    queryKey: ['project', projectId, 'predecessor'],
+    queryFn: () => getProjectPredecessor(projectId ?? 0),
+    enabled: projectId != null && projectId > 0,
+  });
 
   const tabRaw = searchParams.get('tab');
   const tab: TabKey = TAB_KEYS.includes(tabRaw as TabKey) ? (tabRaw as TabKey) : 'gantt';
@@ -100,28 +109,29 @@ export function ArchiveTeamPage(): JSX.Element {
     setSearchParams(sp, { replace: true });
   };
 
+  // «Архив → … → <project>» как chained-крошки. Сам проект — текущая
+  // (некликабельная) точка; chain содержит предшественников выше.
+  // Внутри ArchiveBreadcrumbs мы рендерим всё, кроме последнего листа —
+  // здесь же добавляем сам проект как «текущий», и название команды
+  // как заключительный сегмент.
+  const projectTitle = project?.title ?? 'Проект';
+  const projectId_ = project?.id ?? null;
+  const predecessorId = predecessorQuery.data?.id ?? null;
+  // chain для кнопки «Открыть предшественника»: добавляем текущий проект.
+  const chainForPredecessor =
+    projectId_ != null ? pushToChain(chain, projectId_) : chain;
+
   return (
     <div className={styles.page}>
-      <nav className={styles.crumbs} aria-label="Хлебные крошки">
-        <Link to="/mentor/archive" className={styles.crumbLink}>
-          Архив проектов
-        </Link>
-        <span className={styles.crumbSep} aria-hidden="true">
-          /
-        </span>
-        {project ? (
-          <Link to={`/mentor/archive/projects/${project.id}`} className={styles.crumbLink}>
-            {project.title}
-          </Link>
-        ) : (
-          <span className={styles.crumbCurrent}>Проект</span>
-        )}
-      </nav>
+      <ArchiveBreadcrumbs
+        chain={projectId_ != null ? [...chain, projectId_] : chain}
+        currentTitle={team.name}
+      />
 
       <header className={styles.header}>
         <h1 className={styles.title}>{team.name}</h1>
         <div className={styles.subtitle}>
-          {project ? `${project.title} · команда` : 'Команда архивного проекта'}
+          {projectTitle ? `${projectTitle} · команда` : 'Команда архивного проекта'}
         </div>
       </header>
 
@@ -149,6 +159,25 @@ export function ArchiveTeamPage(): JSX.Element {
           {finalGradeLabel}
         </span>
       </div>
+
+      {predecessorId != null ? (
+        <Link
+          to={chainUrl(`/mentor/archive/projects/${predecessorId}`, chainForPredecessor)}
+          className={styles.predecessorLink}
+          data-testid="archive-open-predecessor"
+        >
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path
+              d="M3 8h10M9 4l4 4-4 4"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Открыть предшественника проекта
+        </Link>
+      ) : null}
 
       <MembersCard team={team} />
 

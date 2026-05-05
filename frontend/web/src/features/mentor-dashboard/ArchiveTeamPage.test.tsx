@@ -62,7 +62,9 @@ function renderWithRoute(ui: () => JSX.Element, initialPath: string, scores: Arr
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   client.setQueryData(['team', 310], ARCHIVE_TEAM);
   client.setQueryData(['project', 110, 'full'], PROJECT);
+  client.setQueryData(['project', 110], PROJECT.project);
   client.setQueryData(['project', 110, 'sprints'], PROJECT.sprints);
+  client.setQueryData(['project', 110, 'predecessor'], null);
   client.setQueryData(['team', 310, 'sprint-scores', 'archive'], scores);
   client.setQueryData(['team', 310, 'gantt', 221], {
     team: { id: 310, name: ARCHIVE_TEAM.name },
