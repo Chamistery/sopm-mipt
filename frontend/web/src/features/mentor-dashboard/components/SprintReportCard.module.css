@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   cursor: pointer;
   background: var(--color-card);
   transition: background var(--transition-fast);
@@ -35,8 +35,8 @@
 
 .title {
   margin: 0;
-  font-size: 15px;
-  font-weight: var(--font-weight-semibold);
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -51,10 +51,10 @@
 }
 
 .badge {
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
@@ -103,10 +103,10 @@
 }
 
 .body {
-  padding: 4px 18px 18px;
+  padding: 0 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   border-top: 1px solid var(--color-border-light);
   margin-top: 0;
 }
@@ -157,12 +157,17 @@
 }
 
 .personalItem {
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 1px solid var(--color-border-light);
   border-radius: 8px;
   display: flex;
   gap: 10px;
   align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.personalItem:last-child {
+  margin-bottom: 0;
 }
 
 .avatar {

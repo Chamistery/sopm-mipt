@@ -1,73 +1,23 @@
+/*
+ * MentorTeamGanttTab CSS — pixel-port из mentor.html (lines 951-967):
+ * только стек GanttChart-блоков. Никаких controls / filter / review-list.
+ */
+
 .tab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-}
-
-.controls {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-end;
-  flex-wrap: wrap;
-}
-
-.sprintPick {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.controlLabel {
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-
-.select {
-  padding: 6px 10px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-card);
-  font-size: var(--font-size-sm);
-  font-family: inherit;
-  color: var(--color-text);
-}
-
-.toggle {
-  display: inline-flex;
-  background: var(--color-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  padding: 2px;
-}
-
-.toggleBtn,
-.toggleActive {
-  padding: 6px 12px;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  border: none;
-  background: transparent;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  color: var(--color-text-muted);
-  font-family: inherit;
-}
-
-.toggleActive {
-  background: var(--color-primary);
-  color: var(--color-white);
+  gap: 0;
 }
 
 .placeholder,
 .empty {
-  padding: var(--space-8);
+  padding: 32px 24px;
   text-align: center;
   background: var(--color-card);
   border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
 }
 
 .error {
@@ -77,84 +27,4 @@
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-}
-
-.reviewList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.reviewListHeader {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-
-.taskList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.task {
-  background: var(--color-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-sm);
-}
-
-.taskNeedsAction {
-  border-color: var(--color-warning);
-  background: var(--color-warning-bg);
-}
-
-.taskButton {
-  width: 100%;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--space-3);
-  align-items: center;
-  padding: var(--space-2) var(--space-3);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
-  color: var(--color-text);
-  border-radius: var(--radius-sm);
-}
-
-.taskButton:hover:not(:disabled) {
-  background: var(--color-surface-alt);
-}
-
-.taskButton:disabled {
-  cursor: default;
-  opacity: 0.7;
-}
-
-.taskName {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.statusTag {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.taskMeta {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  white-space: nowrap;
 }

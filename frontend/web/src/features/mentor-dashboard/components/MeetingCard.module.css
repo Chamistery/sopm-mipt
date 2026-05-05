@@ -89,6 +89,14 @@
   color: var(--color-text-muted);
 }
 
+/* Подпись «Назначил: …» под резюме для прошедших встреч — копия inline-стиля
+   из mentor.html:1146 (font-size:11px, color:text-muted, margin-top:6px). */
+.createdByPast {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+}
+
 .summaryBlock {
   margin-top: 8px;
   padding: 10px 14px;
