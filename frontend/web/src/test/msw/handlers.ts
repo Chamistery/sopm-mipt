@@ -19,6 +19,7 @@ import {
   fixtureArchiveTeam,
   fixtureArchiveTeamReports,
   fixtureDistributionStatus,
+  fixtureMentorDistribution,
   fixtureNotifications,
   fixtureProjectApplicants,
   fixtureProjects,
@@ -35,6 +36,11 @@ import {
   MENTOR_ID,
   TEAMLEAD_ID,
 } from './fixtures';
+import type { ApplicantPriorityBuckets } from '@/api/applications';
+import type {
+  MentorDistributionResponse,
+  MentorDistributionTeamMember,
+} from '@/api/mentorDistribution';
 
 const ok = <T,>(data: T) => HttpResponse.json({ data });
 const err = (status: number, message: string) =>
@@ -78,6 +84,12 @@ const state = {
    */
   meetings: [] as Array<Record<string, unknown> & { id: number; teamId: number; status: string }>,
   nextMeetingId: 9000,
+  /*
+   * Распределение ментора — мутирует напрямую при recommend/unrecommend/invite/launch.
+   * Глубокое клонирование fixture-объекта, чтобы исходный массив остался
+   * детерминированным для других тестов.
+   */
+  mentorDistribution: structuredClone(fixtureMentorDistribution) as MentorDistributionResponse,
 };
 
 type FixtureTask = (typeof fixtureTasks)[number];
@@ -244,6 +256,115 @@ function archiveGanttResponse(request: Request) {
   });
 }
 
+// ─── Mentor distribution helpers ─────────────────────────────────────────
+
+type PriorityKey = keyof ApplicantPriorityBuckets;
+const PRIORITY_KEYS: PriorityKey[] = ['priority1', 'priority2', 'priority3', 'priority4', 'priority5'];
+
+function priorityKey(n: number): PriorityKey | null {
+  const k = `priority${n}` as PriorityKey;
+  return PRIORITY_KEYS.includes(k) ? k : null;
+}
+
+interface MovedApplicant {
+  projectId: number;
+  member: MentorDistributionTeamMember;
+}
+
+/** Находит и удаляет заявку (либо в команде, либо в пуле) — возвращает данные. */
+function takeFromMentorDistribution(
+  resp: MentorDistributionResponse,
+  applicationId: number,
+): MovedApplicant | null {
+  for (const project of resp.projects) {
+    for (const team of project.teams) {
+      const idx = team.members.findIndex((m) => m.applicationId === applicationId);
+      if (idx >= 0) {
+        const [member] = team.members.splice(idx, 1);
+        return { projectId: project.id, member: member! };
+      }
+    }
+    // Поиск в пуле — qualified/unqualified × priority.
+    for (const kind of ['qualified', 'unqualified'] as const) {
+      const buckets = project.pool[kind];
+      for (const k of PRIORITY_KEYS) {
+        const list = buckets[k];
+        const idx = list.findIndex((it) => it.applicationId === applicationId);
+        if (idx >= 0) {
+          const [item] = list.splice(idx, 1);
+          // ApplicantItem.name = «Иванова Мария» (last + first; см. бэк
+          // project_repository: FirstName + ' ' + LastName, но в фикстурах
+          // мы пишем «Фамилия Имя» по convention каталога). Splittим на 2 части.
+          const parts = item!.name.split(' ');
+          const lastName = parts[0] ?? item!.name;
+          const firstName = parts.slice(1).join(' ');
+          const member: MentorDistributionTeamMember = {
+            applicationId: item!.applicationId,
+            studentId: item!.studentId,
+            firstName,
+            lastName,
+            course: item!.course,
+            group: '',
+            gpa: item!.gpa,
+            priority: PRIORITY_KEYS.indexOf(k) + 1,
+            status: item!.status,
+            qualified: kind === 'qualified',
+          };
+          return { projectId: project.id, member };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function findTeamInMentorDistribution(
+  resp: MentorDistributionResponse,
+  teamId: number,
+) {
+  for (const project of resp.projects) {
+    const team = project.teams.find((t) => t.id === teamId);
+    if (team) return team;
+  }
+  return null;
+}
+
+function findMemberInDistribution(
+  resp: MentorDistributionResponse,
+  applicationId: number,
+): { teamId: number; member: MentorDistributionTeamMember } | null {
+  for (const project of resp.projects) {
+    for (const team of project.teams) {
+      const m = team.members.find((mm) => mm.applicationId === applicationId);
+      if (m) return { teamId: team.id, member: m };
+    }
+  }
+  return null;
+}
+
+function putBackToPool(
+  resp: MentorDistributionResponse,
+  projectId: number,
+  member: MentorDistributionTeamMember,
+): void {
+  const project = resp.projects.find((p) => p.id === projectId);
+  if (!project) return;
+  const k = priorityKey(member.priority);
+  if (!k) return;
+  const bucket = member.qualified ? project.pool.qualified : project.pool.unqualified;
+  const list = bucket[k];
+  const name = `${member.lastName} ${member.firstName}`.trim();
+  list.push({
+    applicationId: member.applicationId,
+    studentId: member.studentId,
+    name,
+    course: member.course,
+    gpa: member.gpa,
+    status: 'Не рекомендован' as const,
+    teamId: null,
+  });
+}
+
 export const handlers = [
   // ─── Users ─────────────────────────────────────────────────────────────
   http.get(`${API}/users`, () => ok(fixtureUsers)),
@@ -395,6 +516,58 @@ export const handlers = [
       offset: 0,
     }),
   ),
+
+  // ─── Mentor distribution aggregate (view-distribution) ─────────────────
+  http.get(`${API}/mentor/distribution`, () => ok(state.mentorDistribution)),
+
+  http.put(`${API}/applications/:id/recommend`, async ({ params, request }) => {
+    const id = Number(params.id);
+    const body = (await request.json()) as { teamId: number };
+    const moved = takeFromMentorDistribution(state.mentorDistribution, id);
+    if (!moved) return err(404, 'application not found');
+    const team = findTeamInMentorDistribution(state.mentorDistribution, body.teamId);
+    if (!team) return err(404, 'team not found');
+    const member: MentorDistributionTeamMember = {
+      ...moved.member,
+      status: 'Рекомендован',
+    };
+    team.members.push(member);
+    return ok({
+      id,
+      teamId: body.teamId,
+      status: 'Рекомендован',
+      studentId: member.studentId,
+      priority: member.priority,
+    });
+  }),
+
+  http.put(`${API}/applications/:id/unrecommend`, ({ params }) => {
+    const id = Number(params.id);
+    const moved = takeFromMentorDistribution(state.mentorDistribution, id);
+    if (!moved) return err(404, 'application not found');
+    putBackToPool(state.mentorDistribution, moved.projectId, moved.member);
+    return ok({ id, teamId: null, status: 'Не рекомендован', studentId: moved.member.studentId });
+  }),
+
+  http.put(`${API}/applications/:id/invite`, ({ params }) => {
+    const id = Number(params.id);
+    const found = findMemberInDistribution(state.mentorDistribution, id);
+    if (!found) return err(404, 'application not found');
+    found.member.status = 'Принят';
+    return ok({ id, teamId: found.teamId, status: 'Принят', studentId: found.member.studentId });
+  }),
+
+  http.post(`${API}/teams/:id/launch`, ({ params }) => {
+    const id = Number(params.id);
+    for (const project of state.mentorDistribution.projects) {
+      const before = project.teams.length;
+      project.teams = project.teams.filter((t) => t.id !== id);
+      if (project.teams.length !== before) {
+        return ok({ id, name: 'Команда запущена', launched: true });
+      }
+    }
+    return err(404, 'team not found');
+  }),
 
   // ─── Mentor dashboard aggregate (feature/mentor-dashboard) ─────────────
   http.get(`${API}/mentor/dashboard`, () => {

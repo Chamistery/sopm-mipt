@@ -26,10 +26,12 @@ func setupRoutes(
 	meetingHandler *handlers.MeetingHandler,
 	distributionHandler *handlers.DistributionHandler,
 	mentorDashboardHandler *handlers.MentorDashboardHandler,
+	mentorDistributionHandler *handlers.MentorDistributionHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
 	mux.HandleFunc("GET /api/mentor/dashboard", mentorDashboardHandler.Get)
+	mux.HandleFunc("GET /api/mentor/distribution", mentorDistributionHandler.Get)
 	mux.HandleFunc("GET /api/mentor/projects/archive", projectHandler.GetMentorArchive)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
@@ -66,6 +68,7 @@ func setupRoutes(
 	mux.HandleFunc("GET /api/teams", teamHandler.GetList)
 	mux.HandleFunc("GET /api/teams/{id}", teamHandler.GetByID)
 	mux.HandleFunc("PUT /api/teams/{id}", teamHandler.Update)
+	mux.HandleFunc("POST /api/teams/{id}/launch", teamHandler.Launch)
 	mux.HandleFunc("DELETE /api/teams/{id}", teamHandler.Delete)
 	mux.HandleFunc("POST /api/teams/{id}/members", teamHandler.AddMember)
 	mux.HandleFunc("DELETE /api/teams/{teamId}/members/{userId}", teamHandler.RemoveMember)
@@ -169,6 +172,8 @@ func main() {
 	distributionHandler := handlers.NewDistributionHandler(distributionService)
 	mentorDashboardRepo := repository.NewMentorDashboardRepository(db.Pool)
 	mentorDashboardHandler := handlers.NewMentorDashboardHandler(mentorDashboardRepo)
+	mentorDistributionRepo := repository.NewMentorDistributionRepository(db.Pool)
+	mentorDistributionHandler := handlers.NewMentorDistributionHandler(mentorDistributionRepo)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -183,6 +188,7 @@ func main() {
 		meetingHandler,
 		distributionHandler,
 		mentorDashboardHandler,
+		mentorDistributionHandler,
 	)
 	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port

@@ -91,6 +91,32 @@ func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w, http.StatusOK, updated)
 }
 
+// Launch — POST /api/teams/{id}/launch.
+// Ментор/координатор нажимает «Запустить команду» на странице view-distribution.
+// Это лишь переключает teams.launched=true; кто-куда уже распределён через
+// applications.team_id + invite/accept (отдельные ручки).
+func (h *TeamHandler) Launch(w http.ResponseWriter, r *http.Request) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin) {
+		httputil.RespondError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.repo.SetLaunched(r.Context(), id, true); err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	updated, err := h.repo.GetByID(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	httputil.RespondSuccess(w, http.StatusOK, updated)
+}
+
 func (h *TeamHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")

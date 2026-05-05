@@ -84,6 +84,7 @@ func (s *stubTeamRepo) AddMember(_ context.Context, member *models.TeamMember) e
 }
 func (s *stubTeamRepo) RemoveMember(context.Context, int, int) error     { return nil }
 func (s *stubTeamRepo) IsMember(context.Context, int, int) (bool, error) { return false, nil }
+func (s *stubTeamRepo) SetLaunched(context.Context, int, bool) error     { return nil }
 
 func TestApplicationServiceAcceptAutoDeclinesOtherInvites(t *testing.T) {
 	teamID := 5

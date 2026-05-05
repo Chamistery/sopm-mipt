@@ -1,0 +1,31 @@
+.divider {
+  width: 6px;
+  flex-shrink: 0;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  transition: background 0.15s;
+}
+
+.divider:hover,
+.dragging {
+  background: var(--accent);
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 28px;
+  background: var(--border);
+  border-radius: 2px;
+  transform: translate(-50%, -50%);
+  transition: background 0.15s;
+}
+
+.divider:hover::before,
+.dragging::before {
+  background: var(--white);
+}

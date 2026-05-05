@@ -42,6 +42,7 @@ type TeamRepositoryInterface interface {
 	GetByProjectID(ctx context.Context, projectID int) ([]models.Team, error)
 	Update(ctx context.Context, team *models.Team) error
 	Delete(ctx context.Context, id int) error
+	SetLaunched(ctx context.Context, id int, launched bool) error
 	AddMember(ctx context.Context, member *models.TeamMember) error
 	RemoveMember(ctx context.Context, teamID, userID int) error
 	IsMember(ctx context.Context, teamID, userID int) (bool, error)
