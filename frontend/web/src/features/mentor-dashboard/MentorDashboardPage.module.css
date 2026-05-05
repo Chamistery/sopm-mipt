@@ -2,11 +2,14 @@
  * Дашборд ментора. Layout pixel-port из mentor.html.
  */
 
+/* Без max-width: прототип (mentor.html .main + .dashboard-columns)
+   разрастается на всю доступную ширину контента. Ограничение 1200px
+   отрезало карточки и не давало второй колонке встать справа на широких
+   экранах. */
 .page {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1200px;
 }
 
 .header {
