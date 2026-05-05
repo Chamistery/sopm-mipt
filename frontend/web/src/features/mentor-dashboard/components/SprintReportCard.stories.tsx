@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 
 import type { Sprint } from '@/api/teams';
 import type { TeamReport } from '@/api/teamReports';
+import { ToastProvider } from '@/_shared/Toast';
 
 import { SprintReportCard, type SprintReportCardMember } from './SprintReportCard';
 
@@ -9,6 +10,13 @@ const meta = {
   title: 'mentor-dashboard/SprintReportCard',
   component: SprintReportCard,
   parameters: { layout: 'padded' },
+  decorators: [
+    (Story): JSX.Element => (
+      <ToastProvider>
+        <Story />
+      </ToastProvider>
+    ),
+  ],
 } satisfies Meta<typeof SprintReportCard>;
 
 export default meta;

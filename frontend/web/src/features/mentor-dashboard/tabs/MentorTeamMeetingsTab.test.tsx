@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import type { Meeting } from '@/api/types';
 import type { Team } from '@/api/teams';
+import { ToastProvider } from '@/_shared/Toast';
 
 import { MentorTeamMeetingsTab } from './MentorTeamMeetingsTab';
 
@@ -51,7 +52,9 @@ function renderWith(meetings: Meeting[]) {
   client.setQueryData(['meetings', 300], meetings);
   return render(
     <QueryClientProvider client={client}>
-      <MentorTeamMeetingsTab teamId={300} />
+      <ToastProvider>
+        <MentorTeamMeetingsTab teamId={300} />
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }

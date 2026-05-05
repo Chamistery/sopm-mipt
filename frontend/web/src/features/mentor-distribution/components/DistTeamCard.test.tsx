@@ -111,19 +111,4 @@ describe('DistTeamCard', () => {
     expect(onLaunch).toHaveBeenCalledWith(4);
   });
 
-  it('shows just-launched banner when flag is set', () => {
-    render(
-      <DistTeamCard
-        projectId={1}
-        team={makeTeam()}
-        maxSize={5}
-        onDropApplicant={vi.fn()}
-        onRemoveMember={vi.fn()}
-        onInviteMember={vi.fn()}
-        onLaunch={vi.fn()}
-        justLaunched
-      />,
-    );
-    expect(screen.getByText(/Команда запущена/)).toBeInTheDocument();
-  });
 });

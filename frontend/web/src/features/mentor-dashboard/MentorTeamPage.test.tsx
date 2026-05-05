@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as teamsApi from '@/api/teams';
 import type { Project } from '@/api/projects';
 import type { Team } from '@/api/teams';
+import { ToastProvider } from '@/_shared/Toast';
 import { MentorTeamPage } from './MentorTeamPage';
 
 const PROJECT: Project = {
@@ -79,11 +80,13 @@ function renderAt(initialPath: string, team: Team = makeTeam()) {
   client.setQueryData(['team', 300, 'reports'], []);
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
-          <Route path="/mentor/teams/:teamId" element={<MentorTeamPage />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
+            <Route path="/mentor/teams/:teamId" element={<MentorTeamPage />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }

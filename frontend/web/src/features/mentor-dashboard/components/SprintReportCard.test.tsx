@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import type { SprintScore } from '@/api/sprintScores';
 import type { Sprint } from '@/api/teams';
 import type { TeamReport } from '@/api/teamReports';
+import { ToastProvider } from '@/_shared/Toast';
 
 import { SprintReportCard, type SprintReportCardMember } from './SprintReportCard';
 
@@ -46,17 +47,19 @@ function renderCard(opts: {
   const onAcceptReport =
     opts.onAcceptReport ?? vi.fn(async () => ({ ok: true as const }));
   const utils = render(
-    <SprintReportCard
-      report={{ ...REPORT, status: opts.status ?? REPORT.status }}
-      sprint={SPRINT}
-      members={MEMBERS}
-      scores={opts.scores ?? []}
-      scoresLoading={false}
-      expanded={opts.expanded ?? true}
-      onToggle={onToggle}
-      onSaveScores={onSaveScores}
-      onAcceptReport={onAcceptReport}
-    />,
+    <ToastProvider>
+      <SprintReportCard
+        report={{ ...REPORT, status: opts.status ?? REPORT.status }}
+        sprint={SPRINT}
+        members={MEMBERS}
+        scores={opts.scores ?? []}
+        scoresLoading={false}
+        expanded={opts.expanded ?? true}
+        onToggle={onToggle}
+        onSaveScores={onSaveScores}
+        onAcceptReport={onAcceptReport}
+      />
+    </ToastProvider>,
   );
   return { ...utils, onToggle, onSaveScores, onAcceptReport };
 }
@@ -138,17 +141,19 @@ describe('SprintReportCard', () => {
     expect(btn).toHaveAttribute('aria-expanded', 'false');
 
     rerender(
-      <SprintReportCard
-        report={REPORT}
-        sprint={SPRINT}
-        members={MEMBERS}
-        scores={[]}
-        scoresLoading={false}
-        expanded
-        onToggle={vi.fn()}
-        onSaveScores={vi.fn(async () => ({ ok: true as const, saved: [] }))}
-        onAcceptReport={vi.fn(async () => ({ ok: true as const }))}
-      />,
+      <ToastProvider>
+        <SprintReportCard
+          report={REPORT}
+          sprint={SPRINT}
+          members={MEMBERS}
+          scores={[]}
+          scoresLoading={false}
+          expanded
+          onToggle={vi.fn()}
+          onSaveScores={vi.fn(async () => ({ ok: true as const, saved: [] }))}
+          onAcceptReport={vi.fn(async () => ({ ok: true as const }))}
+        />
+      </ToastProvider>,
     );
     btn = screen.getByRole('button', { expanded: true });
     expect(btn).toHaveAttribute('aria-expanded', 'true');

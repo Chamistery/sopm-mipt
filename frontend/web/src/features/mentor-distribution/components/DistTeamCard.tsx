@@ -12,8 +12,6 @@ export interface DistTeamCardProps {
   onRemoveMember: (applicationId: number) => void;
   onInviteMember: (applicationId: number) => void;
   onLaunch: (teamId: number) => void;
-  /** Показывать success-баннер «Команда запущена» поверх кнопки. */
-  justLaunched?: boolean;
   disabled?: boolean;
 }
 
@@ -31,7 +29,6 @@ export function DistTeamCard({
   onRemoveMember,
   onInviteMember,
   onLaunch,
-  justLaunched,
   disabled,
 }: DistTeamCardProps): JSX.Element {
   const acceptedCount = team.members.filter((m) => m.status === 'Принят').length;
@@ -67,19 +64,15 @@ export function DistTeamCard({
         ))}
       </div>
 
-      {justLaunched ? (
-        <div className={styles.banner}>✓ Команда запущена</div>
-      ) : (
-        <button
-          type="button"
-          className={`${styles.launchBtn} ${readyToLaunch ? styles.launchEnabled : styles.launchDisabled}`}
-          disabled={!readyToLaunch || disabled}
-          onClick={() => onLaunch(team.id)}
-          aria-label={readyToLaunch ? 'Запустить команду' : 'Не все участники приняты'}
-        >
-          {readyToLaunch ? 'Запустить команду' : 'Не все участники приняты'}
-        </button>
-      )}
+      <button
+        type="button"
+        className={`${styles.launchBtn} ${readyToLaunch ? styles.launchEnabled : styles.launchDisabled}`}
+        disabled={!readyToLaunch || disabled}
+        onClick={() => onLaunch(team.id)}
+        aria-label={readyToLaunch ? 'Запустить команду' : 'Не все участники приняты'}
+      >
+        {readyToLaunch ? 'Запустить команду' : 'Не все участники приняты'}
+      </button>
     </article>
   );
 }

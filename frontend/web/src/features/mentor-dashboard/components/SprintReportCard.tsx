@@ -21,6 +21,7 @@ import { MAX_SCORE, MIN_SCORE, validateScore } from '@/api/sprintScores';
 import type { SprintScore } from '@/api/sprintScores';
 import type { Sprint } from '@/api/teams';
 import type { TeamReport, TeamReportStatus } from '@/api/teamReports';
+import { useToast } from '@/_shared/Toast';
 import { avatarColor } from '@/features/student-project/lib/people';
 
 import {
@@ -78,10 +79,9 @@ export function SprintReportCard({
   onSaveScores,
   onAcceptReport,
 }: Props): JSX.Element {
+  const { showSuccess } = useToast();
   const [comment, setComment] = useState(report.mentorComment ?? '');
-  const [scoreBanner, setScoreBanner] = useState<string | null>(null);
   const [scoreError, setScoreError] = useState<string | null>(null);
-  const [acceptBanner, setAcceptBanner] = useState<string | null>(null);
   const [acceptError, setAcceptError] = useState<string | null>(null);
   const [savingScores, setSavingScores] = useState(false);
   const [accepting, setAccepting] = useState(false);
@@ -89,19 +89,6 @@ export function SprintReportCard({
   useEffect(() => {
     setComment(report.mentorComment ?? '');
   }, [report.mentorComment]);
-
-  // Авто-скрытие inline-баннеров через 3 секунды.
-  useEffect(() => {
-    if (!scoreBanner) return;
-    const id = window.setTimeout(() => setScoreBanner(null), 3000);
-    return () => window.clearTimeout(id);
-  }, [scoreBanner]);
-
-  useEffect(() => {
-    if (!acceptBanner) return;
-    const id = window.setTimeout(() => setAcceptBanner(null), 3000);
-    return () => window.clearTimeout(id);
-  }, [acceptBanner]);
 
   const initialDrafts = useMemo<ScoreDraft[]>(() => {
     const byStudent = new Map<number, SprintScore>();
@@ -179,7 +166,7 @@ export function SprintReportCard({
             };
           }),
         );
-        setScoreBanner('Оценки сохранены');
+        showSuccess('Оценки сохранены');
       } else {
         setScoreError(result.error);
       }
@@ -194,7 +181,7 @@ export function SprintReportCard({
     try {
       const result = await onAcceptReport(comment.trim());
       if (result.ok) {
-        setAcceptBanner('Отчёт принят');
+        showSuccess('Отчёт принят');
       } else {
         setAcceptError(result.error);
       }
@@ -295,11 +282,6 @@ export function SprintReportCard({
                   ))}
                 </div>
                 {scoreError ? <div className={styles.error}>{scoreError}</div> : null}
-                {scoreBanner ? (
-                  <div className={styles.banner} role="status" style={{ marginTop: 8 }}>
-                    {scoreBanner}
-                  </div>
-                ) : null}
                 <div className={styles.actionsRow}>
                   <button
                     type="button"
@@ -324,11 +306,6 @@ export function SprintReportCard({
               readOnly={isAccepted && !isReviewable}
             />
             {acceptError ? <div className={styles.error}>{acceptError}</div> : null}
-            {acceptBanner ? (
-              <div className={styles.banner} role="status">
-                {acceptBanner}
-              </div>
-            ) : null}
             {isReviewable ? (
               <div className={styles.actionsRow}>
                 <button

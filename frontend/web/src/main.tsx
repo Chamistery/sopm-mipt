@@ -6,6 +6,7 @@ import { RouterProvider } from 'react-router-dom';
 
 import { router } from './router';
 import { configureApiClient } from './api/client';
+import { ToastProvider } from './_shared/Toast';
 import './styles/tokens.css';
 import './styles/global.css';
 
@@ -46,7 +47,9 @@ void enableMockingIfRequested().then(() => {
   createRoot(rootElement).render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
         {import.meta.env.DEV ? <ReactQueryDevtools initialIsOpen={false} /> : null}
       </QueryClientProvider>
     </StrictMode>,

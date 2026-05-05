@@ -8,6 +8,7 @@ import type * as SprintScoresModule from '@/api/sprintScores';
 import type * as TeamReportsModule from '@/api/teamReports';
 import type { Sprint, Team } from '@/api/teams';
 import type { TeamReport } from '@/api/teamReports';
+import { ToastProvider } from '@/_shared/Toast';
 
 import { MentorTeamReportsTab } from './MentorTeamReportsTab';
 
@@ -100,9 +101,11 @@ function renderTab(reports: TeamReport[] = REPORTS) {
   }
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter>
-        <MentorTeamReportsTab teamId={300} />
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter>
+          <MentorTeamReportsTab teamId={300} />
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>,
   );
 }
