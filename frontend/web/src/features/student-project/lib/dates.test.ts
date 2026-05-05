@@ -61,8 +61,20 @@ describe('calcTodayPct', () => {
 });
 
 describe('calcHistoryMarkerPct', () => {
-  it('clamps an event before sprint start to 0', () => {
-    expect(calcHistoryMarkerPct('2026-03-01', '2026-03-17', '2026-04-13')).toBe(0);
+  it('places day=0 in the middle of the first day cell', () => {
+    expect(calcHistoryMarkerPct(0, '2026-03-17', '2026-04-13')).toBeCloseTo((0.5 / 28) * 100);
+  });
+
+  it('places day=6 in the middle of the seventh day of a 28-day sprint', () => {
+    expect(calcHistoryMarkerPct(6, '2026-03-17', '2026-04-13')).toBeCloseTo((6.5 / 28) * 100);
+  });
+
+  it('clamps a negative offset to day 0', () => {
+    expect(calcHistoryMarkerPct(-3, '2026-03-17', '2026-04-13')).toBeCloseTo((0.5 / 28) * 100);
+  });
+
+  it('clamps an offset past sprint end to the last day', () => {
+    expect(calcHistoryMarkerPct(99, '2026-03-17', '2026-04-13')).toBeCloseTo((27.5 / 28) * 100);
   });
 });
 

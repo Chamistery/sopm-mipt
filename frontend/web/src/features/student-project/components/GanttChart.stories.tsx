@@ -50,6 +50,10 @@ const TASKS: TaskDto[] = [
     endDate: '2026-04-25',
     mr: 'https://git/mr/12',
     workDescription: 'Готово',
+    history: [
+      { day: 4, event: 'review' },
+      { day: 5, event: 'accepted' },
+    ],
   },
   {
     id: 2,
@@ -78,6 +82,7 @@ const TASKS: TaskDto[] = [
     endDate: '2026-05-04',
     mr: 'https://git/mr/27',
     workDescription: 'Готово к ревью',
+    history: [{ day: 13, event: 'review' }],
   },
   {
     id: 4,
@@ -120,6 +125,10 @@ const TASKS: TaskDto[] = [
     endDate: '2026-05-03',
     mr: null,
     workDescription: 'Доработать с учётом комментариев',
+    history: [
+      { day: 11, event: 'review' },
+      { day: 12, event: 'returned' },
+    ],
   },
   {
     id: 7,

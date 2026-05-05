@@ -419,12 +419,17 @@ function EditableBody({
   );
 }
 
-interface ReadonlyBodyProps {
+export interface ReadonlyBodyProps {
   task: TaskDto | null;
   dateRange: string;
 }
 
-function ReadonlyBody({ task, dateRange }: ReadonlyBodyProps): JSX.Element | null {
+/**
+ * Read-only тело попапа задачи. Экспортируется отдельно, чтобы его
+ * мог переиспользовать `MentorTaskPopup` (полная карточка + actions
+ * внизу) — DRY между ролями: студент видит ту же раскладку информации.
+ */
+export function ReadonlyBody({ task, dateRange }: ReadonlyBodyProps): JSX.Element | null {
   if (!task) return null;
   return (
     <div>

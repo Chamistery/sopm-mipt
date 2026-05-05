@@ -162,8 +162,12 @@ export type TaskStatus =
 export type TaskHistoryEvent = 'review' | 'returned' | 'accepted';
 
 export interface TaskHistoryEntry {
-  /** Дата события, ISO YYYY-MM-DD. */
-  date: string;
+  /**
+   * Смещение события в днях от `sprint.startDate` (0 = первый день спринта).
+   * Бэк хранит именно offset (см. backend/project-service/internal/models/task.go),
+   * фронт отображает как абсолютную позицию на ширине бара.
+   */
+  day: number;
   event: TaskHistoryEvent;
 }
 
@@ -291,13 +295,13 @@ function taskToDto(t: BackendTask): TaskDto {
     workDescription: t.workDescription ?? null,
     wasOverdue: t.wasOverdue,
     history: t.history?.map((h) => ({
-      // Backend events use `day` (offset from sprint start). Carry it through
-      // as date by deferring the actual ISO conversion to the Gantt renderer
-      // (which knows the sprint start). For now expose as a synthetic ISO
-      // string so the dto-shape stays consistent; renderers must use `wasOverdue`
-      // and the sprint context to position the marker.
-      date: typeof h.day === 'number' ? `day-${h.day}` : '',
-      event: h.event === 'review' || h.event === 'returned' || h.event === 'accepted' ? h.event : 'review',
+      // Бэк хранит `day` как смещение в днях от начала спринта; фронт
+      // оперирует тем же offset'ом и считает позицию маркера на TaskBar.
+      day: typeof h.day === 'number' ? h.day : 0,
+      event:
+        h.event === 'review' || h.event === 'returned' || h.event === 'accepted'
+          ? h.event
+          : 'review',
     })),
     mentorComments: t.mentorComments?.map((c) => ({ action: c.action, text: c.text })),
   };
