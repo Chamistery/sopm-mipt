@@ -94,9 +94,3 @@ export const WithUnqualified: Story = {
   },
 };
 
-export const JustLaunched: Story = {
-  args: {
-    ...ReadyToLaunch.args,
-    justLaunched: true,
-  },
-};

@@ -16,12 +16,13 @@
  */
 
 import type { JSX } from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
 import { type Team, type TeamMember, updateTeam } from '@/api/teams';
+import { useToast } from '@/_shared/Toast';
 import { useProject } from './hooks/useProject';
 import { useTeam } from './hooks/useTeam';
 import { avatarColor, initials } from '@/features/student-project/lib/people';
@@ -167,22 +168,15 @@ function Tab({ active, label, onClick }: TabProps): JSX.Element {
 
 function MembersCard({ team }: { team: Team }): JSX.Element {
   const queryClient = useQueryClient();
+  const { showSuccess } = useToast();
   const [serverError, setServerError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
-
-  // Авто-скрытие баннера-«тоста» через 3 секунды.
-  useEffect(() => {
-    if (!toast) return;
-    const id = window.setTimeout(() => setToast(null), 3000);
-    return () => window.clearTimeout(id);
-  }, [toast]);
 
   const assignMutation = useMutation({
     mutationFn: ({ userId }: { userId: number; displayName: string }) =>
       updateTeam(team.id, { leaderId: userId }),
     onSuccess: async (_data, vars) => {
       setServerError(null);
-      setToast(`${vars.displayName} назначен тимлидом`);
+      showSuccess(`${vars.displayName} назначен тимлидом`);
       await queryClient.invalidateQueries({ queryKey: ['team', team.id] });
     },
     onError: (err: unknown) => {
@@ -210,12 +204,6 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
           <span>
             Тимлид ещё не назначен. Выберите студента из состава — назначить можно только один раз.
           </span>
-        </div>
-      ) : null}
-
-      {toast ? (
-        <div className={styles.toast} role="status">
-          {toast}
         </div>
       ) : null}
 

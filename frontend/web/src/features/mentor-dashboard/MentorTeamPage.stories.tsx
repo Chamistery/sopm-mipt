@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import type { Project } from '@/api/projects';
 import type { Team } from '@/api/teams';
+import { ToastProvider } from '@/_shared/Toast';
 import { MentorTeamPage } from './MentorTeamPage';
 
 const TEAM_ID = 300;
@@ -98,11 +99,13 @@ function seedClient({
 function withProviders(client: QueryClient, initialPath: string) {
   return (Story: () => JSX.Element): JSX.Element => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <Routes>
-          <Route path="/mentor/teams/:teamId" element={<Story />} />
-        </Routes>
-      </MemoryRouter>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
+            <Route path="/mentor/teams/:teamId" element={<Story />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }

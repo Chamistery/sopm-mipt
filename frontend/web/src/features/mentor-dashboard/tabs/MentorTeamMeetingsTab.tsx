@@ -11,10 +11,11 @@
  */
 
 import type { JSX } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { ApiError } from '@/api/client';
 import type { Meeting } from '@/api/types';
+import { useToast } from '@/_shared/Toast';
 
 import { AddMeetingModal } from '../components/AddMeetingModal';
 import { MeetingCard } from '../components/MeetingCard';
@@ -32,7 +33,6 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
   const teamQuery = useTeam(teamId);
 
   const [showModal, setShowModal] = useState(false);
-  const [banner, setBanner] = useState<string | null>(null);
   const [actionState, setActionState] = useState<{
     meetingId: number;
     decision: 'confirm' | 'decline';
@@ -41,13 +41,7 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
 
   const createMutation = useCreateMeeting(teamId);
   const updateStatusMutation = useUpdateMeetingStatus(teamId);
-
-  // Авто-скрытие inline-баннера через 3 секунды.
-  useEffect(() => {
-    if (!banner) return;
-    const id = window.setTimeout(() => setBanner(null), 3000);
-    return () => window.clearTimeout(id);
-  }, [banner]);
+  const { showSuccess } = useToast();
 
   // Карта createdById → подпись для футера карточки. Берём из team.members
   // + leader. Тимлида подписываем «(тимлид)», остальных — по роли в команде
@@ -142,12 +136,6 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
         </button>
       </div>
 
-      {banner ? (
-        <div className={styles.banner} role="status">
-          {banner}
-        </div>
-      ) : null}
-
       <Section title="Предстоящие">
         {upcoming.length === 0 ? (
           <div className={styles.empty}>Предстоящих встреч пока нет.</div>
@@ -210,7 +198,7 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
             createMutation.mutate(input, {
               onSuccess: () => {
                 setShowModal(false);
-                setBanner('Встреча назначена');
+                showSuccess('Встреча назначена');
                 createMutation.reset();
               },
             })

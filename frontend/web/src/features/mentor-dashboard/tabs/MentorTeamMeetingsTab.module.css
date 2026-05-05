@@ -31,17 +31,6 @@
   background: var(--color-primary-light);
 }
 
-.banner {
-  padding: 8px 14px;
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  animation: bannerIn 0.2s ease-out;
-}
-
 .section {
   display: flex;
   flex-direction: column;
@@ -88,15 +77,4 @@
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-}
-
-@keyframes bannerIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }

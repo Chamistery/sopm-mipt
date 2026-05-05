@@ -12,7 +12,7 @@
  */
 
 import type { JSX } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
@@ -26,6 +26,7 @@ import {
   type TeamReport,
 } from '@/api/teamReports';
 import { useRequireUser } from '@/auth/useCurrentUser';
+import { useToast } from '@/_shared/Toast';
 import { initials, shortName } from '@/features/student-project/lib/people';
 
 import {
@@ -55,13 +56,7 @@ export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
   const sprintsQuery = useProjectSprints(projectId);
 
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportBanner, setExportBanner] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!exportBanner) return;
-    const id = window.setTimeout(() => setExportBanner(null), 3000);
-    return () => window.clearTimeout(id);
-  }, [exportBanner]);
+  const { showSuccess } = useToast();
 
   const sprintsList = sprintsQuery.data;
   const sprintsById = useMemo(() => {
@@ -115,9 +110,9 @@ export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
   function handleExportSubmit(_selection: ExportReportSelection): void {
     // TODO(backend): дернуть POST /api/team-reports/export с параметрами и
     // получить link на скачивание (или blob). Пока что закрываем модалку и
-    // показываем баннер — это согласовано с задачей.
+    // показываем toast — это согласовано с задачей.
     setShowExportModal(false);
-    setExportBanner('Отчёт сформирован');
+    showSuccess('Отчёт сформирован');
   }
 
   if (reportsQuery.isLoading || teamQuery.isLoading) {
@@ -146,12 +141,6 @@ export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
           Выгрузить отчёт
         </button>
       </div>
-
-      {exportBanner ? (
-        <div className={styles.banner} role="status">
-          {exportBanner}
-        </div>
-      ) : null}
 
       {sortedReports.length === 0 ? (
         <div className={styles.empty}>Команда ещё не отправляла отчётов.</div>

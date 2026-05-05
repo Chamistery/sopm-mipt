@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApiError } from '@/api/client';
@@ -7,6 +7,7 @@ import {
   type ApplicantPriorityBuckets,
 } from '@/api/applications';
 import type { MentorDistributionProject } from '@/api/mentorDistribution';
+import { useToast } from '@/_shared/Toast';
 import { useMentorDistribution } from './hooks/useMentorDistribution';
 import { useDistributionMutations } from './hooks/useDistributionMutations';
 import { DistTeamCard } from './components/DistTeamCard';
@@ -36,8 +37,7 @@ export function MentorDistributionPage(): JSX.Element {
   const [poolWidth, setPoolWidth] = useState(POOL_WIDTH_DEFAULT);
   const [pendingApplicationId, setPendingApplicationId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [recentlyLaunched, setRecentlyLaunched] = useState<number | null>(null);
-  const launchedTimer = useRef<number | null>(null);
+  const { showSuccess } = useToast();
 
   useEffect(() => {
     setPoolWidth(loadPoolWidth());
@@ -93,20 +93,11 @@ export function MentorDistributionPage(): JSX.Element {
     setActionError(null);
     launch.mutate(teamId, {
       onSuccess: () => {
-        setRecentlyLaunched(teamId);
-        if (launchedTimer.current != null) window.clearTimeout(launchedTimer.current);
-        launchedTimer.current = window.setTimeout(() => setRecentlyLaunched(null), 3000);
+        showSuccess('Команда запущена');
       },
       onError: handleError,
     });
   };
-
-  useEffect(
-    () => () => {
-      if (launchedTimer.current != null) window.clearTimeout(launchedTimer.current);
-    },
-    [],
-  );
 
   const projects = useMemo(() => dataQuery.data?.projects ?? [], [dataQuery.data]);
 
@@ -157,7 +148,6 @@ export function MentorDistributionPage(): JSX.Element {
                 key={project.id}
                 project={project}
                 pendingApplicationId={pendingApplicationId}
-                recentlyLaunched={recentlyLaunched}
                 onDropApplicant={onDropApplicantInSlot}
                 onRemoveMember={onRemoveMember}
                 onInviteMember={onInviteMember}
@@ -201,7 +191,6 @@ export function MentorDistributionPage(): JSX.Element {
 interface ProjectGroupProps {
   project: MentorDistributionProject;
   pendingApplicationId: number | null;
-  recentlyLaunched: number | null;
   onDropApplicant: (payload: ApplicantDragPayload, slotTeamId: number) => void;
   onRemoveMember: (applicationId: number) => void;
   onInviteMember: (applicationId: number) => void;
@@ -211,7 +200,6 @@ interface ProjectGroupProps {
 function ProjectGroup({
   project,
   pendingApplicationId,
-  recentlyLaunched,
   onDropApplicant,
   onRemoveMember,
   onInviteMember,
@@ -242,7 +230,6 @@ function ProjectGroup({
           onRemoveMember={onRemoveMember}
           onInviteMember={onInviteMember}
           onLaunch={onLaunch}
-          justLaunched={recentlyLaunched === team.id}
           disabled={team.members.some((m) => m.applicationId === pendingApplicationId)}
         />
       ))}

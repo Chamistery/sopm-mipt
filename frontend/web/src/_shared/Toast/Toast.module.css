@@ -1,0 +1,73 @@
+/*
+ * Стиль одного toast'а — pixel-port из mentor.html (#mentor-toast).
+ * Inline-баннеры по фичам выводятся теперь через единый ToastProvider,
+ * чтобы не накапливать дубль-разметку и держать success/error/info/warning
+ * в одном месте.
+ */
+
+.container {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 12px 28px;
+  border-radius: 10px;
+  background: var(--color-success);
+  color: var(--color-white);
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  font-family: inherit;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  text-align: center;
+  max-width: min(560px, calc(100vw - 32px));
+  /* Анимация появления — slide-up + opacity. */
+  animation: toastIn 0.3s ease-out;
+  transition: opacity 0.2s ease;
+}
+
+.toastError {
+  background: var(--color-danger);
+}
+
+.toastInfo {
+  background: var(--color-accent);
+}
+
+.toastWarning {
+  background: var(--color-warning);
+}
+
+/* Состояние «ушёл» — fade-out 0.2s перед удалением из DOM. */
+.toastLeaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
+  }
+}
