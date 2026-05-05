@@ -1,14 +1,15 @@
 /*
  * Таб «Диаграмма Ганта» страницы команды у ментора.
  *
- * Перенесено AS-IS из MentorTaskReviewPage: Гант + компактный список
- * задач к разбору + TaskActionPopup. Контекст команды (имя, шапка,
- * хлебные крошки) живёт на родительской странице, поэтому свой backLink
- * и subtitle не рисуем.
+ * Клик по любой задаче в Ганте открывает полный `MentorTaskPopup` с
+ * описанием/работой/MR/комментариями ментора — независимо от статуса.
+ * Если статус допускает action (approve/reject/accept/return) — кнопки
+ * показываются внизу попапа, и при клике появляется comment-area с
+ * валидацией и confirm-кнопкой.
  *
- * Источник данных не меняется: useTeam → projectId → useProjectSprints
- * → useTeamGantt(teamId, sprintId). Параметр `sprintId` хранится в URL
- * рядом с `tab` чтобы при переключении табов выбранный спринт не сбрасывался.
+ * Источник данных: useTeam → projectId → useProjectSprints →
+ * useTeamGantt(teamId, sprintId). `sprintId` хранится в URL рядом с
+ * `tab`, чтобы при переключении табов выбранный спринт не сбрасывался.
  */
 
 import type { JSX } from 'react';
@@ -27,7 +28,8 @@ import {
 import { pickDefaultSprint, type Sprint, type TaskDto } from '@/api/teams';
 import { GanttChart } from '@/features/student-project/components/GanttChart';
 import { formatISODate } from '@/features/student-project/lib/dates';
-import { TaskActionPopup, type TaskActionKind } from '../components/TaskActionPopup';
+import { MentorTaskPopup } from '../components/MentorTaskPopup';
+import type { TaskActionKind } from '../components/TaskActionPopup';
 import { useTeam, useProjectSprints } from '../hooks/useTeam';
 import { useTeamGantt } from '../hooks/useTeamGantt';
 import { actionsFor } from '../lib/taskActions';
@@ -103,10 +105,11 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
   const tasks = ganttData?.tasks ?? [];
   const filtered =
     filter === 'needs-action' ? tasks.filter((t) => taskNeedsMentorAction(t.status)) : tasks;
-  const popupActions = popupTask ? actionsFor(popupTask.status).map((a) => a.kind) : [];
 
+  // Открываем полный попап для любой задачи. Кнопки действий сами
+  // спрячутся в `MentorTaskPopup`, если у статуса нет actions —
+  // получится read-only вьюер.
   const openTaskPopup = (task: TaskDto): void => {
-    if (actionsFor(task.status).length === 0) return;
     setServerError(null);
     setPopupTask(task);
   };
@@ -148,8 +151,7 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
             canEditAll={false}
             canAddTask={false}
             mode="mentor"
-            onTaskClick={() => undefined}
-            onTaskAction={openTaskPopup}
+            onTaskClick={openTaskPopup}
             onAddTask={() => undefined}
             sprintNumber={sprintNumber}
             sprintsTotal={sprintsTotal}
@@ -180,10 +182,11 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
         </>
       ) : null}
 
-      <TaskActionPopup
+      <MentorTaskPopup
         open={popupTask != null}
-        taskName={popupTask?.name ?? ''}
-        actions={popupActions.length > 0 ? popupActions : ['approve']}
+        task={popupTask}
+        members={ganttData?.members ?? []}
+        todayIso={todayIso}
         isSubmitting={mutation.isPending}
         serverError={serverError}
         onClose={() => {

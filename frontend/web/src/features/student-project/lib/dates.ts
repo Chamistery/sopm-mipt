@@ -96,15 +96,19 @@ export function calcBarPosition(
   };
 }
 
-/** Маркер истории — ISO-дата → процент по ширине таймлайна. */
+/**
+ * Маркер истории — смещение в днях от начала спринта → процент по ширине
+ * таймлайна. Центрирует маркер на середине дня события (`day + 0.5`),
+ * чтобы маркер визуально стоял в ячейке этого дня, а не на её левом краю.
+ */
 export function calcHistoryMarkerPct(
-  eventDateIso: string,
+  dayOffset: number,
   sprintStartIso: string,
   sprintEndIso: string,
 ): number {
   const total = sprintDays(sprintStartIso, sprintEndIso);
-  const day = Math.max(0, Math.min(total - 1, daysBetween(sprintStartIso, eventDateIso)));
-  return (day / total) * 100;
+  const day = Math.max(0, Math.min(total - 1, dayOffset));
+  return ((day + 0.5) / total) * 100;
 }
 
 /** Процент левого края «сегодня» внутри окна спринта; null — если вне окна. */

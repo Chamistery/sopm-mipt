@@ -35,15 +35,21 @@ test.describe('mentor gantt golden path', () => {
     const reviewItem = reviewSection.locator('[data-task-id="506"]');
     await expect(reviewItem).toBeVisible();
 
-    // Click row → попап с кнопками «Аппрувить» / «Отклонить»
+    // Click row → полный mentor-попап с описанием задачи и парой
+    // action-кнопок «Аппрувить» / «Отклонить» внизу.
     await reviewItem.getByRole('button').click();
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByText('«Аналитика flow распределения»')).toBeVisible();
+    // В попапе теперь полный заголовок задачи (а не «в кавычках»),
+    // плюс блок описания + блок выполненной работы (read-only вьюер).
+    await expect(dialog.getByRole('heading', { name: 'Аналитика flow распределения' })).toBeVisible();
+    await expect(dialog.getByText('Описание', { exact: true })).toBeVisible();
 
-    // Approve без комментария — по правилам это разрешено.
+    // Шаг 1: выбираем «Аппрувить» — раскрывается comment-area.
     await dialog.getByRole('button', { name: 'Аппрувить' }).click();
+    // Шаг 2: подтверждаем без комментария — для approve он опционален.
+    await dialog.getByRole('button', { name: 'Подтвердить аппрув' }).click();
 
     // После мутации MSW отдаёт «Назначена» — query инвалидируется и
     // задача пропадает из «к разбору».

@@ -33,14 +33,21 @@ interface Props {
   /**
    * `'student'` (по умолчанию) — обычный режим: клик зовёт `onTaskClick`,
    * показываются иконки-карандаши у своих задач, кнопка добавления и пр.
-   * `'mentor'` — read-only: ни добавления, ни иконок, клик зовёт
-   * `onTaskAction` (для approve/reject/accept/return).
+   * `'mentor'` — read-only диаграмма: ни добавления, ни иконок-карандашей,
+   * клик по любой задаче зовёт `onTaskClick` (или `onTaskAction` если он
+   * передан — для обратной совместимости со старыми вызовами, где
+   * у ментора был только action-popup).
    * `'archive'` — read-only финальный вид завершённого спринта: ни кликов,
    * ни мутаций; зелёно-фиолетовая палитра, своя легенда.
    */
   mode?: GanttMode;
   onTaskClick: (task: TaskDto) => void;
-  /** Обязателен только при `mode='mentor'`. */
+  /**
+   * Опциональный обработчик «кликнули по задаче, по которой ментор
+   * может что-то сделать». Если передан в режиме `'mentor'`, заменяет
+   * `onTaskClick` для всех тасков. Оставлен для обратной совместимости —
+   * в типичной странице ментора достаточно `onTaskClick`.
+   */
   onTaskAction?: (task: TaskDto) => void;
   onAddTask: () => void;
   sprintNumber: number;
@@ -86,11 +93,12 @@ export function GanttChart({
 
   const handleTaskClick = (task: TaskDto): void => {
     if (isArchive) return;
-    if (isMentor) {
-      onTaskAction?.(task);
-    } else {
-      onTaskClick(task);
+    if (isMentor && onTaskAction) {
+      // legacy путь — старые вызовы передавали только onTaskAction
+      onTaskAction(task);
+      return;
     }
+    onTaskClick(task);
   };
 
   return (
@@ -219,6 +227,19 @@ export function GanttChart({
               </span>
             );
           })}
+          <span className={styles.legendDivider} aria-hidden="true" />
+          <span className={styles.legendItem}>
+            <span className={styles.legendEventMarker} style={{ background: '#6d5dd3' }} />
+            На ревью
+          </span>
+          <span className={styles.legendItem}>
+            <span className={styles.legendEventMarker} style={{ background: '#fbbf24' }} />
+            Возвращено
+          </span>
+          <span className={styles.legendItem}>
+            <span className={styles.legendEventMarker} style={{ background: '#34d399' }} />
+            Принято
+          </span>
         </div>
       )}
     </section>

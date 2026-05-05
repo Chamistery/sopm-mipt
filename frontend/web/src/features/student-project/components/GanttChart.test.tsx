@@ -42,7 +42,30 @@ const data: GanttResponseDto = {
 };
 
 describe('GanttChart', () => {
-  it('mentor-mode click invokes onTaskAction, not onTaskClick', async () => {
+  it('mentor-mode click invokes onTaskClick when onTaskAction is not provided', async () => {
+    const onTaskClick = vi.fn();
+    render(
+      <GanttChart
+        data={data}
+        todayIso="2026-05-04"
+        currentUserId={-1}
+        canEditAll={false}
+        canAddTask={false}
+        mode="mentor"
+        onTaskClick={onTaskClick}
+        onAddTask={() => undefined}
+        sprintNumber={2}
+        sprintsTotal={3}
+      />,
+    );
+
+    await userEvent.click(screen.getByText('Каталог UI'));
+
+    expect(onTaskClick).toHaveBeenCalledTimes(1);
+    expect(onTaskClick).toHaveBeenCalledWith(expect.objectContaining({ id: 42 }));
+  });
+
+  it('mentor-mode legacy: when onTaskAction is provided, it takes precedence', async () => {
     const onTaskClick = vi.fn();
     const onTaskAction = vi.fn();
     render(
@@ -64,7 +87,6 @@ describe('GanttChart', () => {
     await userEvent.click(screen.getByText('Каталог UI'));
 
     expect(onTaskAction).toHaveBeenCalledTimes(1);
-    expect(onTaskAction).toHaveBeenCalledWith(expect.objectContaining({ id: 42 }));
     expect(onTaskClick).not.toHaveBeenCalled();
   });
 

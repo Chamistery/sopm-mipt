@@ -1,0 +1,170 @@
+/*
+ * Доп-стили mentor-попапа задачи. Каркас (overlay/card/header/...) берём
+ * из TaskPopup.module.css через `sharedStyles`, а здесь только то, что
+ * специфично для ментора: блок action-кнопок и появляющийся textarea
+ * для комментария.
+ */
+
+.actionsBlock {
+  padding-top: 16px;
+  margin-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.actionButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.actionBtn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--color-white);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.actionBtnPositive {
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.actionBtnPositive.actionBtnSelected,
+.actionBtnPositive:not(:disabled):active {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.actionBtnNegative {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/*
+ * «Вернуть» — это action.return, не reject. По прототипу негативные
+ * кнопки этого типа окрашены в warning, а не в danger. Так как тип
+ * action не различается по класcу, мы используем data-attr на textarea
+ * для подсветки comment-area, а сами кнопки оставляем в красной палитре.
+ * Это нормальное упрощение: «вернуть» и «отклонить» — тоже негативные
+ * действия, отличие в подписи и обязательности комментария.
+ */
+.actionBtnNegative.actionBtnSelected,
+.actionBtnNegative:not(:disabled):active {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.commentArea {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideDown 0.15s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.commentLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.required {
+  color: var(--color-danger);
+}
+
+.commentInput {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-text);
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.commentInput:focus {
+  border-color: var(--color-accent);
+}
+
+/* Цветовая подсветка textarea зависит от выбранного action — даёт
+   контекст «что именно ментор сейчас делает», как в прототипе. */
+.commentInput[data-action='approve']:focus,
+.commentInput[data-action='accept']:focus {
+  border-color: var(--color-success);
+}
+
+.commentInput[data-action='reject']:focus {
+  border-color: var(--color-danger);
+}
+
+.commentInput[data-action='return']:focus {
+  border-color: var(--color-warning);
+}
+
+.confirmBtn {
+  margin-top: 4px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+
+.confirmBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirmPositive {
+  background: var(--color-success);
+}
+
+.confirmNegative {
+  background: var(--color-danger);
+}
+
+.validationError {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.serverError {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}

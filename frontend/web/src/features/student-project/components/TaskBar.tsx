@@ -20,10 +20,16 @@ interface Props {
   archive?: boolean;
 }
 
+/*
+ * Цвета и подписи маркеров событий — выверены по mentor.html:961-963 и
+ * common.css:.gantt-event-marker.ev-{review|returned|accepted}. Используем
+ * именно эти hex'ы (не токены `--color-warning` и пр.), чтобы оттенки
+ * полосок легенды и баров совпадали 1:1 с прототипом.
+ */
 const HISTORY_COLORS: Record<string, string> = {
-  review: 'var(--color-purple)',
-  returned: 'var(--color-warning)',
-  accepted: 'var(--color-success)',
+  review: '#6d5dd3',
+  returned: '#fbbf24',
+  accepted: '#34d399',
 };
 
 const HISTORY_TITLES: Record<string, string> = {
@@ -66,21 +72,19 @@ export function TaskBar({
         }}
         title={`${task.name} · ${status}`}
       />
-      {archive
-        ? null
-        : (task.history ?? []).map((h, idx) => {
-            const pct = calcHistoryMarkerPct(h.date, sprintStartIso, sprintEndIso);
-            const color = HISTORY_COLORS[h.event] ?? 'var(--color-text-muted)';
-            const title = HISTORY_TITLES[h.event] ?? h.event;
-            return (
-              <div
-                key={`${h.date}-${h.event}-${idx}`}
-                className={styles.historyMarker}
-                style={{ left: `${pct}%`, background: color }}
-                title={`${h.date}: ${title}`}
-              />
-            );
-          })}
+      {(task.history ?? []).map((h, idx) => {
+        const pct = calcHistoryMarkerPct(h.day, sprintStartIso, sprintEndIso);
+        const color = HISTORY_COLORS[h.event] ?? 'var(--color-text-muted)';
+        const title = HISTORY_TITLES[h.event] ?? h.event;
+        return (
+          <div
+            key={`${h.day}-${h.event}-${idx}`}
+            className={styles.historyMarker}
+            style={{ left: `calc(${pct}% - 2.5px)`, background: color }}
+            title={`${title} · день ${h.day + 1}`}
+          />
+        );
+      })}
     </>
   );
 }
