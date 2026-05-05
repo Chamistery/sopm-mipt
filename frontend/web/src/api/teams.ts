@@ -113,6 +113,16 @@ export function launchTeam(id: number): Promise<Team> {
   return apiFetch<Team>(`/teams/${id}/launch`, { method: 'POST' });
 }
 
+/** Назначить тимлида (one-shot — повторный вызов вернёт 409). Бэкенд
+ *  проверяет что текущий пользователь — ментор этого проекта или
+ *  координатор/админ. */
+export function assignTeamLeader(teamId: number, userId: number): Promise<Team> {
+  return apiFetch<Team>(`/teams/${teamId}/leader`, {
+    method: 'POST',
+    body: { userId },
+  });
+}
+
 export function addTeamMember(
   teamId: number,
   payload: { userId: number; roleInTeam?: string },

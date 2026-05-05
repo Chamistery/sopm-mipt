@@ -143,9 +143,9 @@ describe('MentorTeamPage', () => {
     expect(screen.getByRole('button', { name: /Назначить встречу/ })).toBeInTheDocument();
   });
 
-  it('calls updateTeam with the chosen userId when «Сделать тимлидом» is clicked', async () => {
-    const updateSpy = vi
-      .spyOn(teamsApi, 'updateTeam')
+  it('calls assignTeamLeader with teamId and userId when «Сделать тимлидом» is clicked', async () => {
+    const assignSpy = vi
+      .spyOn(teamsApi, 'assignTeamLeader')
       .mockResolvedValue(makeTeam({ leaderId: 3, leader: TEAMLEAD }));
     const user = userEvent.setup();
     renderAt('/mentor/teams/300');
@@ -154,7 +154,7 @@ describe('MentorTeamPage', () => {
     await user.click(buttons[0]!);
 
     await waitFor(() => {
-      expect(updateSpy).toHaveBeenCalledWith(300, { leaderId: 3 });
+      expect(assignSpy).toHaveBeenCalledWith(300, 3);
     });
   });
 });
