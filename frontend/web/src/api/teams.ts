@@ -107,6 +107,12 @@ export function deleteTeam(id: number): Promise<void> {
   return apiFetch<void>(`/teams/${id}`, { method: 'DELETE' });
 }
 
+/** Запустить команду — переключает teams.launched=true. Используется на
+ *  странице «Незапущенные команды» у ментора. */
+export function launchTeam(id: number): Promise<Team> {
+  return apiFetch<Team>(`/teams/${id}/launch`, { method: 'POST' });
+}
+
 export function addTeamMember(
   teamId: number,
   payload: { userId: number; roleInTeam?: string },

@@ -11,6 +11,7 @@ import { redirectByRole } from '@/auth/redirectByRole';
 import { MentorDashboardPage } from '@/features/mentor-dashboard/MentorDashboardPage';
 import { NewProjectPage } from '@/features/mentor-dashboard/NewProjectPage';
 import { ApplicantsPage } from '@/features/mentor-dashboard/ApplicantsPage';
+import { MentorDistributionPage } from '@/features/mentor-distribution';
 import { MentorTeamPage } from '@/features/mentor-dashboard/MentorTeamPage';
 import { MentorTeamLegacyRedirect } from '@/features/mentor-dashboard/MentorTeamLegacyRedirect';
 import { ArchivePage } from '@/features/mentor-dashboard/ArchivePage';
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
       // только дашборд и страница команды. Старый URL ведёт на дашборд.
       { path: 'mentor/projects/:id', element: <Navigate to="/mentor" replace /> },
       { path: 'mentor/applicants/:id', element: <ApplicantsPage /> },
+      { path: 'mentor/distribution', element: <MentorDistributionPage /> },
       { path: 'mentor/teams/:teamId', element: <MentorTeamPage /> },
       // Legacy URLs для обратной совместимости (e2e, старые ссылки в письмах
       // нотификаций и т.п.). Редиректим на новый формат с ?tab=.

@@ -59,6 +59,7 @@ func (s *stubTeamRepoForTask) GetByProjectID(context.Context, int) ([]models.Tea
 }
 func (s *stubTeamRepoForTask) Update(context.Context, *models.Team) error          { return nil }
 func (s *stubTeamRepoForTask) Delete(context.Context, int) error                   { return nil }
+func (s *stubTeamRepoForTask) SetLaunched(context.Context, int, bool) error        { return nil }
 func (s *stubTeamRepoForTask) AddMember(context.Context, *models.TeamMember) error { return nil }
 func (s *stubTeamRepoForTask) RemoveMember(context.Context, int, int) error        { return nil }
 func (s *stubTeamRepoForTask) IsMember(_ context.Context, _ int, userID int) (bool, error) {

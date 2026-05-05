@@ -1,0 +1,195 @@
+.slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 2px dashed transparent;
+  transition: all 0.15s;
+  min-width: 0;
+}
+
+.empty {
+  border: 2px dashed var(--border);
+  background: var(--white);
+  justify-content: center;
+}
+
+.empty span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dragOver {
+  border-color: var(--accent);
+  background: var(--surface-alt);
+}
+
+.dragOverEmpty {
+  background: var(--success-bg);
+  border-color: var(--success);
+}
+
+.chip {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  user-select: none;
+  transition:
+    box-shadow 0.15s,
+    transform 0.1s;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.chip > * {
+  flex-shrink: 0;
+}
+
+.chipDraggable {
+  cursor: grab;
+}
+
+.chipDraggable:active {
+  cursor: grabbing;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: scale(1.03);
+}
+
+.chipDragging {
+  opacity: 0.4;
+}
+
+.chipAccepted {
+  cursor: default;
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.chipName {
+  font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chipGpa {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.priorityBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--surface-alt);
+  color: var(--primary);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.unqualBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--warning-bg);
+  color: var(--warning);
+  white-space: nowrap;
+}
+
+.acceptedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.removeBtn {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  padding: 0;
+  margin-left: 4px;
+  font-family: inherit;
+}
+
+.removeBtn:hover:not(:disabled) {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.removeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inviteBtn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid var(--success);
+  background: var(--success-bg);
+  color: var(--success);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  padding: 0;
+  font-family: inherit;
+}
+
+.inviteBtn:hover:not(:disabled) {
+  background: var(--success);
+  color: #fff;
+}
+
+.inviteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

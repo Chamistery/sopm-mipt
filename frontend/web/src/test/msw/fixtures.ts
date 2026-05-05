@@ -539,3 +539,148 @@ export const fixtureDistributionStatus = {
   status: 'idle',
   message: 'Распределение не запускалось',
 };
+
+/*
+ * Mentor distribution fixture — pixel-port из mentor.html view-distribution.
+ *
+ * Один проект (id=100, СУПП) с двумя незапущенными командами:
+ *   - team 901 «Команда 1»: 2 принятых + 1 рекомендованный → не готов к launch
+ *   - team 902 «Команда 2»: пустая → пул заявок здесь же
+ *
+ * Plus отдельный проект (id=120, «Анализ кода») с одной готовой к launch
+ * командой (все приняты, кроме одного пустого слота).
+ */
+export const fixtureMentorDistribution = {
+  projects: [
+    {
+      id: 100,
+      title: 'СУПП ВШПИ МФТИ',
+      status: 'Активный' as const,
+      company: 'ВШПИ МФТИ',
+      teamSizeMin: 3,
+      teamSizeMax: 5,
+      numTeams: 3,
+      sprintsCount: 5,
+      sprintWeeks: 3,
+      deadline: '2026-06-15',
+      requirements: { minCourse: 2, minGpa: 3.5 },
+      teams: [
+        {
+          id: 901,
+          name: 'Команда 1',
+          launched: false,
+          members: [
+            {
+              applicationId: 9001,
+              studentId: 110,
+              firstName: 'Александр',
+              lastName: 'Стародубов',
+              course: 2,
+              group: 'Б05-211',
+              gpa: 7.2,
+              priority: 1,
+              status: 'Принят' as const,
+              qualified: true,
+            },
+            {
+              applicationId: 9002,
+              studentId: 111,
+              firstName: 'Михаил',
+              lastName: 'Кузнецов',
+              course: 2,
+              group: 'Б05-212',
+              gpa: 6.8,
+              priority: 1,
+              status: 'Принят' as const,
+              qualified: true,
+            },
+            {
+              applicationId: 9003,
+              studentId: 112,
+              firstName: 'Дмитрий',
+              lastName: 'Волков',
+              course: 2,
+              group: 'Б05-213',
+              gpa: 6.5,
+              priority: 2,
+              status: 'Рекомендован' as const,
+              qualified: true,
+            },
+          ],
+        },
+        {
+          id: 902,
+          name: 'Команда 2',
+          launched: false,
+          members: [],
+        },
+      ],
+      pool: {
+        qualified: {
+          priority1: [
+            {
+              applicationId: 9101,
+              studentId: 201,
+              name: 'Иванова Мария',
+              course: 3,
+              gpa: 7.8,
+              status: 'Ожидает' as const,
+              teamId: null,
+            },
+          ],
+          priority2: [
+            {
+              applicationId: 9102,
+              studentId: 202,
+              name: 'Новикова Анна',
+              course: 3,
+              gpa: 7.0,
+              status: 'Ожидает' as const,
+              teamId: null,
+            },
+          ],
+          priority3: [
+            {
+              applicationId: 9103,
+              studentId: 203,
+              name: 'Белова Светлана',
+              course: 2,
+              gpa: 6.4,
+              status: 'Ожидает' as const,
+              teamId: null,
+            },
+          ],
+          priority4: [],
+          priority5: [
+            {
+              applicationId: 9104,
+              studentId: 204,
+              name: 'Громов Кирилл',
+              course: 3,
+              gpa: 6.7,
+              status: 'Ожидает' as const,
+              teamId: null,
+            },
+          ],
+        },
+        unqualified: {
+          priority1: [],
+          priority2: [],
+          priority3: [
+            {
+              applicationId: 9105,
+              studentId: 205,
+              name: 'Орлов Владимир',
+              course: 1,
+              gpa: 4.8,
+              status: 'Не подходит' as const,
+              teamId: null,
+            },
+          ],
+          priority4: [],
+          priority5: [],
+        },
+      },
+    },
+  ],
+};

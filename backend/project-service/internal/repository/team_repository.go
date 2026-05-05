@@ -119,6 +119,17 @@ func (r *TeamRepository) Delete(ctx context.Context, id int) error {
 	return CheckRowsAffected(result, "team")
 }
 
+// SetLaunched переключает teams.launched (true/false). Используется
+// distribution-страницей: ментор нажимает «Запустить команду» когда все
+// слоты приняты.
+func (r *TeamRepository) SetLaunched(ctx context.Context, id int, launched bool) error {
+	result, err := r.db.Exec(ctx, "UPDATE teams SET launched = $2 WHERE id = $1", id, launched)
+	if err != nil {
+		return err
+	}
+	return CheckRowsAffected(result, "team")
+}
+
 func (r *TeamRepository) AddMember(ctx context.Context, member *models.TeamMember) error {
 	query := `
 		INSERT INTO team_members (team_id, user_id, role_in_team)
