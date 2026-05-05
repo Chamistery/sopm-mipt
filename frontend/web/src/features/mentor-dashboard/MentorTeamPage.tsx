@@ -25,7 +25,7 @@ import { type Team, type TeamMember, updateTeam } from '@/api/teams';
 import { useToast } from '@/_shared/Toast';
 import { useProject } from './hooks/useProject';
 import { useTeam } from './hooks/useTeam';
-import { avatarColor, initials } from '@/features/student-project/lib/people';
+import { avatarColorByIndex, initials } from '@/features/student-project/lib/people';
 import { MentorTeamGanttTab } from './tabs/MentorTeamGanttTab';
 import { MentorTeamReportsTab } from './tabs/MentorTeamReportsTab';
 import { MentorTeamMeetingsTab } from './tabs/MentorTeamMeetingsTab';
@@ -213,10 +213,11 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
         <div className={styles.empty}>В команде пока нет участников.</div>
       ) : (
         <div className={styles.membersGrid}>
-          {members.map((m) => (
+          {members.map((m, idx) => (
             <MemberChip
               key={m.userId}
               member={m}
+              avatarBg={avatarColorByIndex(idx)}
               isLeader={team.leaderId === m.userId}
               showAssign={!hasLeader}
               isAssigning={
@@ -238,6 +239,7 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
 
 interface MemberChipProps {
   member: TeamMember;
+  avatarBg: string;
   isLeader: boolean;
   showAssign: boolean;
   isAssigning: boolean;
@@ -246,6 +248,7 @@ interface MemberChipProps {
 
 function MemberChip({
   member,
+  avatarBg,
   isLeader,
   showAssign,
   isAssigning,
@@ -259,18 +262,16 @@ function MemberChip({
 
   return (
     <div className={styles.memberChip}>
-      <div className={styles.memberAvatar} style={{ background: avatarColor(member.userId) }}>
+      <div className={styles.memberAvatar} style={{ background: avatarBg }}>
         {initials(person)}
       </div>
       <div className={styles.memberInfo}>
         <div className={styles.memberName}>
           {member.user.lastName} {member.user.firstName.charAt(0)}.
-        </div>
-        <div className={styles.memberRole}>
-          {isLeader ? 'Тимлид' : (member.roleInTeam ?? 'Студент')}
+          {isLeader ? <span className={styles.memberLeaderBadge}>Лидер</span> : null}
         </div>
       </div>
-      {showAssign ? (
+      {!isLeader && showAssign ? (
         <button
           type="button"
           className={styles.assignBtn}

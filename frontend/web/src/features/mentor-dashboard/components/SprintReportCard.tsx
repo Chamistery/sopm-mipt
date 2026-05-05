@@ -22,7 +22,7 @@ import type { SprintScore } from '@/api/sprintScores';
 import type { Sprint } from '@/api/teams';
 import type { TeamReport, TeamReportStatus } from '@/api/teamReports';
 import { useToast } from '@/_shared/Toast';
-import { avatarColor } from '@/features/student-project/lib/people';
+import { avatarColorByIndex } from '@/features/student-project/lib/people';
 
 import {
   averageScore,
@@ -253,8 +253,8 @@ export function SprintReportCard({
               <div className={styles.placeholder}>В команде нет участников.</div>
             ) : (
               <div className={styles.personalList} style={{ marginTop: 8 }}>
-                {drafts.map((d) => (
-                  <PersonalContribution key={d.studentId} draft={d} />
+                {drafts.map((d, idx) => (
+                  <PersonalContribution key={d.studentId} draft={d} index={idx} />
                 ))}
               </div>
             )}
@@ -269,10 +269,11 @@ export function SprintReportCard({
             ) : (
               <>
                 <div className={styles.scoreList} style={{ marginTop: 8 }}>
-                  {drafts.map((d) => (
+                  {drafts.map((d, idx) => (
                     <ScoreRow
                       key={d.studentId}
                       draft={d}
+                      index={idx}
                       onChange={(next) =>
                         setDrafts((prev) =>
                           prev.map((x) => (x.studentId === next.studentId ? next : x)),
@@ -351,10 +352,10 @@ function Badge({ info }: { info: StatusBadgeInfo }): JSX.Element {
   return <span className={`${styles.badge} ${cls}`}>{info.text}</span>;
 }
 
-function PersonalContribution({ draft }: { draft: ScoreDraft }): JSX.Element {
+function PersonalContribution({ draft, index }: { draft: ScoreDraft; index: number }): JSX.Element {
   return (
     <div className={styles.personalItem}>
-      <div className={styles.avatar} style={{ background: avatarColor(draft.studentId) }}>
+      <div className={styles.avatar} style={{ background: avatarColorByIndex(index) }}>
         {draft.avatarInitials}
       </div>
       <div className={styles.personalContent}>
@@ -373,15 +374,16 @@ function PersonalContribution({ draft }: { draft: ScoreDraft }): JSX.Element {
 
 interface ScoreRowProps {
   draft: ScoreDraft;
+  index: number;
   onChange: (next: ScoreDraft) => void;
 }
 
-function ScoreRow({ draft, onChange }: ScoreRowProps): JSX.Element {
+function ScoreRow({ draft, index, onChange }: ScoreRowProps): JSX.Element {
   const error = draft.score == null ? null : validateScore(draft.score);
 
   return (
     <div className={styles.scoreRow}>
-      <div className={styles.avatar} style={{ background: avatarColor(draft.studentId) }}>
+      <div className={styles.avatar} style={{ background: avatarColorByIndex(index) }}>
         {draft.avatarInitials}
       </div>
       <div className={styles.scoreName}>{draft.studentName}</div>

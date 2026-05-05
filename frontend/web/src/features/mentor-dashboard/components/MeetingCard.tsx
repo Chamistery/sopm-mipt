@@ -67,7 +67,9 @@ export function MeetingCard({
         {time ? <div className={styles.time}>{time}</div> : null}
         {meeting.description ? <div className={styles.description}>{meeting.description}</div> : null}
 
-        {(meeting.conferenceLink || createdByLabel) ? (
+        {/* Для предстоящих: Zoom-ссылка + «Назначил» в одну строку (см. mentor.html:1099-1105).
+            Для прошедших: createdBy показываем после summary-блока. */}
+        {!isPast && (meeting.conferenceLink || createdByLabel) ? (
           <div className={styles.metaRow}>
             {meeting.conferenceLink ? (
               <a
@@ -89,6 +91,10 @@ export function MeetingCard({
             <div className={styles.summaryTitle}>Резюме встречи</div>
             <div className={styles.summaryBody}>{meeting.summary}</div>
           </div>
+        ) : null}
+
+        {isPast && createdByLabel ? (
+          <div className={styles.createdByPast}>Назначил: {createdByLabel}</div>
         ) : null}
 
         {meeting.status === 'Отклонена' && meeting.mentorDeclineReason ? (

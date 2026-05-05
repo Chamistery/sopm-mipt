@@ -38,8 +38,9 @@ test.describe('mentor team page golden path', () => {
     await expect(page.getByRole('tab', { name: 'Отчёты по спринтам' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Встречи' })).toBeVisible();
 
-    // Гант реально отрендерился
-    await expect(page.getByRole('region', { name: 'Диаграмма Ганта' })).toBeVisible();
+    // Гант реально отрендерился: ментор видит стек диаграмм по всем
+    // спринтам (по прототипу mentor.html lines 951-967), берём first().
+    await expect(page.getByRole('region', { name: 'Диаграмма Ганта' }).first()).toBeVisible();
   });
 
   test('?tab=reports renders the reports list', async ({ page }) => {

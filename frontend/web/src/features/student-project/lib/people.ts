@@ -45,6 +45,26 @@ export function avatarColor(userId: number): string {
   return AVATAR_PALETTE[idx] ?? AVATAR_PALETTE[0]!;
 }
 
+/*
+ * Цвет аватарки по позиции в команде — соответствие 1:1 с прототипом
+ * mentor.html (linies 909/917/925/933): первый член — accent, второй —
+ * success, третий — warning, четвёртый — purple. Дальше повторяется
+ * циклом по тем же 4 базовым цветам, чтобы команды любого размера
+ * сохраняли узнаваемые «чистые» оттенки бренда (без `#0ea5e9` etc.).
+ */
+const TEAM_AVATAR_PALETTE = [
+  'var(--color-accent)',
+  'var(--color-success)',
+  'var(--color-warning)',
+  'var(--color-purple)',
+];
+
+export function avatarColorByIndex(index: number): string {
+  const len = TEAM_AVATAR_PALETTE.length;
+  const idx = ((index % len) + len) % len;
+  return TEAM_AVATAR_PALETTE[idx] ?? TEAM_AVATAR_PALETTE[0]!;
+}
+
 export function findMember(members: TeamMemberDto[], userId: number): TeamMemberDto | undefined {
   return members.find((m) => m.userId === userId);
 }

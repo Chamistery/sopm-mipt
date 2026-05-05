@@ -10,7 +10,6 @@ import {
 } from '../lib/dates';
 import {
   ARCHIVE_DONE_BG,
-  ARCHIVE_REVIEW_BG,
   archiveStatusVisual,
   calcEffectiveStatus,
   statusVisual,
@@ -52,6 +51,12 @@ interface Props {
   onAddTask: () => void;
   sprintNumber: number;
   sprintsTotal: number;
+  /**
+   * Показывать ли легенду над диаграммой. По умолчанию `true`. Когда у
+   * ментора стек из нескольких спринтов, легенда нужна только сверху —
+   * остальные спринты передают `showLegend={false}`.
+   */
+  showLegend?: boolean;
 }
 
 export function GanttChart({
@@ -66,6 +71,7 @@ export function GanttChart({
   onAddTask,
   sprintNumber,
   sprintsTotal,
+  showLegend = true,
 }: Props): JSX.Element {
   const { sprint, members, tasks } = data;
   const isMentor = mode === 'mentor';
@@ -118,7 +124,7 @@ export function GanttChart({
         ) : null}
       </div>
 
-      {isArchive ? (
+      {!showLegend ? null : isArchive ? (
         <div className={styles.archiveLegend} aria-label="Легенда архивной диаграммы">
           <span className={styles.archiveLegendItem}>
             <span
@@ -127,23 +133,55 @@ export function GanttChart({
             />
             Готово (принято ментором)
           </span>
-          <span className={styles.archiveLegendDivider} aria-hidden="true" />
-          <span className={styles.archiveLegendItem}>
-            <span
-              className={styles.archiveLegendMarker}
-              style={{ background: ARCHIVE_REVIEW_BG }}
-            />
-            На ревью
-          </span>
-          <span className={styles.archiveLegendItem}>
-            <span
-              className={styles.archiveLegendMarker}
-              style={{ background: ARCHIVE_DONE_BG }}
-            />
-            Принято
+          <span className={styles.legendEvents} aria-label="События задач">
+            <span className={styles.legendItem}>
+              <span className={styles.legendEventMarker} style={{ background: '#6d5dd3' }} />
+              На ревью
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendEventMarker} style={{ background: '#34d399' }} />
+              Принято
+            </span>
           </span>
         </div>
-      ) : null}
+      ) : (
+        <div className={styles.legend} aria-label="Легенда">
+          {(['Ожидает аппрува', 'Назначена', 'В работе', 'На ревью', 'Готово', 'Просрочена', 'Возвращена'] as const).map((s) => {
+            const v = statusVisual(s);
+            // «Просрочена» в прототипе — синий бар + outline danger (не border).
+            // «Возвращена» — warning-bg + warning border. Различаем для точности.
+            const isOverdue = s === 'Просрочена';
+            return (
+              <span key={s} className={styles.legendItem}>
+                <span
+                  className={styles.legendDot}
+                  style={{
+                    background: v.bg,
+                    border: !isOverdue && v.border ? `1px solid ${v.border}` : 'none',
+                    outline: isOverdue ? `1px solid var(--color-danger)` : 'none',
+                    outlineOffset: 0,
+                  }}
+                />
+                {s}
+              </span>
+            );
+          })}
+          <span className={styles.legendEvents} aria-label="События задач">
+            <span className={styles.legendItem}>
+              <span className={styles.legendEventMarker} style={{ background: '#6d5dd3' }} />
+              На ревью
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendEventMarker} style={{ background: '#fbbf24' }} />
+              Возвращено
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendEventMarker} style={{ background: '#34d399' }} />
+              Принято
+            </span>
+          </span>
+        </div>
+      )}
 
       {tasks.length === 0 ? (
         <div className={styles.empty}>В этом спринте задач пока нет.</div>
@@ -204,44 +242,6 @@ export function GanttChart({
         </div>
       )}
 
-      {isArchive ? null : (
-        <div className={styles.legend} aria-label="Легенда">
-          {(
-            [
-              ['Ожидает аппрува'],
-              ['Назначена'],
-              ['В работе'],
-              ['На ревью'],
-              ['Возвращена'],
-              ['Готово'],
-            ] as const
-          ).map(([s]) => {
-            const v = statusVisual(s);
-            return (
-              <span key={s} className={styles.legendItem}>
-                <span
-                  className={styles.legendDot}
-                  style={{ background: v.bg, border: v.border ? `1px solid ${v.border}` : 'none' }}
-                />
-                {s}
-              </span>
-            );
-          })}
-          <span className={styles.legendDivider} aria-hidden="true" />
-          <span className={styles.legendItem}>
-            <span className={styles.legendEventMarker} style={{ background: '#6d5dd3' }} />
-            На ревью
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.legendEventMarker} style={{ background: '#fbbf24' }} />
-            Возвращено
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.legendEventMarker} style={{ background: '#34d399' }} />
-            Принято
-          </span>
-        </div>
-      )}
     </section>
   );
 }

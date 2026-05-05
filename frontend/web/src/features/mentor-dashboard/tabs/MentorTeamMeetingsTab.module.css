@@ -2,22 +2,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 16px;
 }
 
+/* .section-title из mentor.html:35 (15px, 700, без margin-bottom — даём
+   только в head через gap). */
 .sectionTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
+/* .btn-primary из mentor.html:14-19 (padding 9px 18px, radius 8px, gap 7px). */
 .btnPrimary {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  border-radius: var(--radius-md);
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 8px;
   background: var(--color-primary);
   color: var(--color-white);
   font-size: 13px;
@@ -25,6 +28,8 @@
   font-family: inherit;
   border: none;
   cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
 }
 
 .btnPrimary:hover {
@@ -34,15 +39,21 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  margin-bottom: 24px;
 }
 
+.section:last-child {
+  margin-bottom: 0;
+}
+
+/* mentor.html:1088 / 1132 — uppercase accent-primary заголовок секции встреч. */
 .sectionHead {
   font-size: 12px;
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  margin-bottom: 10px;
 }
 
 .list {

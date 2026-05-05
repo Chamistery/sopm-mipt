@@ -257,20 +257,25 @@
  * box-shadow + белая обводка). Hover увеличивает scale, чтобы
  * подчеркнуть, что элемент интерактивный (имеет title-tooltip).
  */
+/* Маркер-полоска события на баре — общая геометрия с .gantt-event-marker
+   из common.css прототипа: натянута на всю высоту бара (top:0/bottom:0),
+   width 5px, hover расширяет до 7px + усиливает shadow. */
 .historyMarker {
   position: absolute;
-  top: 7px;
+  top: 0;
+  bottom: 0;
   width: 5px;
-  height: 14px;
   border-radius: 2px;
   z-index: 4;
+  cursor: pointer;
   box-shadow: 0 0 0 1px #fff, 0 1px 3px rgba(0, 0, 0, 0.35);
-  transition: transform 0.12s ease;
+  transition: width 0.15s, box-shadow 0.15s;
   pointer-events: auto;
 }
 
 .historyMarker:hover {
-  transform: scaleY(1.1);
+  width: 7px;
+  box-shadow: 0 0 0 1.5px #fff, 0 2px 5px rgba(0, 0, 0, 0.45);
 }
 
 .todayLine {
@@ -283,15 +288,16 @@
   pointer-events: none;
 }
 
+/* Легенда — над диаграммой по прототипу mentor.html:952-963.
+   Inline-flex с wrap, без рамок и фона; статус-чипы и группа событий
+   разделены вертикальной полоской (border-left на legendEvents). */
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  padding: 8px 20px;
-  font-size: var(--font-size-xs);
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
   color: var(--color-text-muted);
-  border-top: 1px solid var(--color-border-light);
-  background: var(--color-card);
 }
 
 .legendItem {
@@ -301,17 +307,20 @@
 }
 
 .legendDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
 }
 
-/* Разделитель между статус-чипами и событиями (см. mentor.html:960). */
-.legendDivider {
-  width: 1px;
-  align-self: stretch;
-  margin: 0 4px;
-  background: var(--color-border);
+/* Группа event-маркеров отделена вертикальной чертой; внутренний gap=8px,
+   чтобы три полоски стояли плотнее, чем общий 12px между статус-чипами. */
+.legendEvents {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 1px solid var(--color-border);
+  padding-left: 12px;
+  margin-left: 4px;
 }
 
 /* Полоска-маркер события в легенде — той же геометрии, что на баре. */
