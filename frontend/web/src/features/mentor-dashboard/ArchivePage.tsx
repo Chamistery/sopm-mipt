@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 import { useRequireUser } from '@/auth/useCurrentUser';
 import { useMentorArchiveDashboard } from './hooks/useMentorArchiveDashboard';
@@ -47,20 +47,20 @@ export function ArchivePage(): JSX.Element {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Архив проектов</h1>
-          <div className={styles.context}>
-            Завершённые и архивные проекты, которые вы вели
-          </div>
+          <div className={styles.context}>Завершённые проекты прошлых семестров</div>
         </div>
-        <Link to="/mentor" className={styles.createBtn}>
-          К активным
-        </Link>
       </header>
 
       {dashboard.isLoading ? (
         <div className={styles.placeholder}>Загружаем архив…</div>
       ) : null}
 
-      {dashboard.isError ? (
+      {/* Баннер ошибки показываем только когда нет ни одной успешно
+          загруженной карточки. Подзапросы (sprint scores per team)
+          могут падать на отдельных архивных командах, не влияя на
+          главный список — без этой проверки баннер висел над успешно
+          отрендеренными карточками, что выглядит как баг. */}
+      {dashboard.isError && (!dashboard.data || dashboard.data.length === 0) ? (
         <div className={styles.error}>
           <div className={styles.errorTitle}>Не удалось загрузить архив</div>
         </div>

@@ -153,31 +153,35 @@ type ProjectListFilters struct {
 }
 
 func (r *ProjectRepository) GetList(ctx context.Context, filters ProjectListFilters) ([]models.ProjectListItem, int, error) {
+	// where строится с префиксом p. для совместимости с SELECT, который
+	// JOIN'ит applications a — у applications тоже есть колонка status,
+	// без префикса PostgreSQL вернёт «column reference is ambiguous».
 	where := "WHERE 1=1"
 	args := []interface{}{}
 	argPos := 1
 	if filters.Company != "" {
-		where += fmt.Sprintf(" AND company = $%d", argPos)
+		where += fmt.Sprintf(" AND p.company = $%d", argPos)
 		args = append(args, filters.Company)
 		argPos++
 	}
 	if filters.Status != "" {
-		where += fmt.Sprintf(" AND status = $%d", argPos)
+		where += fmt.Sprintf(" AND p.status = $%d", argPos)
 		args = append(args, filters.Status)
 		argPos++
 	}
 	if filters.Course != "" {
-		where += fmt.Sprintf(" AND $%d::int = ANY(courses)", argPos)
+		where += fmt.Sprintf(" AND $%d::int = ANY(p.courses)", argPos)
 		args = append(args, filters.Course)
 		argPos++
 	}
 	if filters.MentorID > 0 {
-		where += fmt.Sprintf(" AND mentor_id = $%d", argPos)
+		where += fmt.Sprintf(" AND p.mentor_id = $%d", argPos)
 		args = append(args, filters.MentorID)
 		argPos++
 	}
 
-	countQuery := "SELECT COUNT(*) FROM projects " + where
+	// Префикс p. в countQuery валиден тоже — добавим алиас в FROM.
+	countQuery := "SELECT COUNT(*) FROM projects p " + where
 	var total int
 	if err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
