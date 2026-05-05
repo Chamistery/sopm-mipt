@@ -24,10 +24,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: '/profile', label: 'Мой профиль' },
   ],
   mentor: [
-    { to: '/mentor', label: 'Мои проекты' },
+    { to: '/mentor', label: 'Дашборд', end: true },
     { to: '/mentor/distribution', label: 'Незапущенные команды' },
     { to: '/mentor/archive', label: 'Архив проектов' },
-    { to: '/profile', label: 'Мой профиль' },
   ],
   coordinator: [
     { to: '/admin', label: 'Координация', end: true },
