@@ -148,11 +148,11 @@ export function flattenPriorityBuckets(
   buckets: ApplicantPriorityBuckets,
 ): Array<{ priority: number; items: ApplicantItem[] }> {
   return [
-    { priority: 1, items: buckets.priority1 },
-    { priority: 2, items: buckets.priority2 },
-    { priority: 3, items: buckets.priority3 },
-    { priority: 4, items: buckets.priority4 },
-    { priority: 5, items: buckets.priority5 },
+    { priority: 1, items: buckets.priority1 ?? [] },
+    { priority: 2, items: buckets.priority2 ?? [] },
+    { priority: 3, items: buckets.priority3 ?? [] },
+    { priority: 4, items: buckets.priority4 ?? [] },
+    { priority: 5, items: buckets.priority5 ?? [] },
   ];
 }
 

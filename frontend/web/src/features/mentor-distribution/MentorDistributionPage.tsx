@@ -426,7 +426,7 @@ function buildHeaderSubtitle(projects: MentorDistributionProject[]): string {
     if (p.deadline) parts.push(`Дедлайн: ${formatDeadline(p.deadline)}`);
     return parts.join(' · ');
   }
-  const totalTeams = projects.reduce((sum, p) => sum + p.teams.length, 0);
+  const totalTeams = projects.reduce((sum, p) => sum + (p.teams?.length ?? 0), 0);
   return `Проектов: ${projects.length} · Команд к запуску: ${totalTeams}`;
 }
 

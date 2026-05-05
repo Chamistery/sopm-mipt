@@ -31,12 +31,13 @@ export function DistTeamCard({
   onLaunch,
   disabled,
 }: DistTeamCardProps): JSX.Element {
-  const acceptedCount = team.members.filter((m) => m.status === 'Принят').length;
-  const totalCount = team.members.length;
+  const members = team.members ?? [];
+  const acceptedCount = members.filter((m) => m.status === 'Принят').length;
+  const totalCount = members.length;
 
   // Слоты — фиксируем максимально возможный размер, заполняем участниками,
   // оставшиеся = empty (drop-targets).
-  const slots = Array.from({ length: maxSize }, (_, i) => team.members[i] ?? null);
+  const slots = Array.from({ length: maxSize }, (_, i) => members[i] ?? null);
 
   // «Готов к запуску» = есть участники, и все они приняты.
   const readyToLaunch = totalCount > 0 && acceptedCount === totalCount;

@@ -116,7 +116,7 @@ func (r *MentorDistributionRepository) GetForMentor(ctx context.Context, mentorI
 				MinCourse: minCourse,
 				MinGPA:    pr.MinGPA,
 			},
-			Teams: teams,
+			Teams: orEmptyDistTeams(teams),
 			Pool:  pool,
 		})
 	}
@@ -221,7 +221,10 @@ func (r *MentorDistributionRepository) loadProjectPool(
 	}
 	defer rows.Close()
 
-	var pool models.MentorDistributionPool
+	pool := models.MentorDistributionPool{
+		Qualified:   emptyPriorityBuckets(),
+		Unqualified: emptyPriorityBuckets(),
+	}
 	for rows.Next() {
 		var (
 			id        int
@@ -269,6 +272,28 @@ func (r *MentorDistributionRepository) loadSprintMeta(ctx context.Context, proje
 		weeksRaw = 0
 	}
 	return count, weeksRaw, deadline, nil
+}
+
+func emptyPriorityBuckets() models.ApplicantPriorityBuckets {
+	return models.ApplicantPriorityBuckets{
+		Priority1: []models.ApplicantItem{},
+		Priority2: []models.ApplicantItem{},
+		Priority3: []models.ApplicantItem{},
+		Priority4: []models.ApplicantItem{},
+		Priority5: []models.ApplicantItem{},
+	}
+}
+
+func orEmptyDistTeams(t []models.MentorDistributionTeam) []models.MentorDistributionTeam {
+	if t == nil {
+		return []models.MentorDistributionTeam{}
+	}
+	for i := range t {
+		if t[i].Members == nil {
+			t[i].Members = []models.MentorDistributionTeamMember{}
+		}
+	}
+	return t
 }
 
 func isQualified(course int, gpa float64, projectCourses []int, minGPA float64) bool {
