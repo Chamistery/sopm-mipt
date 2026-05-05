@@ -147,7 +147,9 @@ UPDATE projects
 -- Project 5 — Стат. анализ: 2 команды + 1 launched=false
 -- Project 6 — Черновик: команд нет
 INSERT INTO teams (id, project_id, name, leader_id, launched) VALUES
-  (1,  1, 'Команда 1', 3,  TRUE),
+  -- Команда 1: leader_id=NULL чтобы соответствовать дефолтному состоянию
+  -- прототипа view-team (баннер «Тимлид ещё не назначен» + кнопки у всех).
+  (1,  1, 'Команда 1', NULL, TRUE),
   (2,  1, 'Команда 2', 10, TRUE),
   (3,  1, 'Команда 3', 11, TRUE),
   (4,  1, 'Команда 4', 12, FALSE),
