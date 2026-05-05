@@ -391,15 +391,15 @@ export const handlers = [
   http.get(`${API}/users/:id/team`, ({ params, request }) => {
     const userId = Number(params.id);
     const role = request.headers.get('X-User-Role');
-    // Студент без команды отдаёт 404, чтобы StudentProjectPage показал
-    // empty-state. Тимлид и student id 4 (распределённый) — отдаём команду.
+    // Бэк отдаёт Team shape (members[].user.firstName). DTO-shape
+    // (TeamContextDto) собирает фронт через адаптер getTeamContext.
     if (userId === TEAMLEAD_ID || userId === 4) {
-      return ok(fixtureTeamContext);
+      return ok(fixtureTeam);
     }
     if (role === 'student') {
       return err(404, 'student is not assigned to a team');
     }
-    return ok(fixtureTeamContext);
+    return ok(fixtureTeam);
   }),
 
   http.get(`${API}/users/:id/notifications`, () => ok(fixtureNotifications)),
