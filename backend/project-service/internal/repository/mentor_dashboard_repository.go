@@ -102,12 +102,26 @@ func (r *MentorDashboardRepository) GetForMentor(ctx context.Context, mentorID i
 			DurationSemesters: pr.DurationSemesters,
 			CurrentSemester:   currentSemester,
 			StartedAt:         pr.CreatedAt.Format("2006-01-02"),
-			Sprints:           sprints,
-			Teams:             teams,
+			Sprints:           orEmptySprints(sprints),
+			Teams:             orEmptyTeams(teams),
 		})
 	}
 
 	return out, nil
+}
+
+func orEmptySprints(s []models.DashboardSprint) []models.DashboardSprint {
+	if s == nil {
+		return []models.DashboardSprint{}
+	}
+	return s
+}
+
+func orEmptyTeams(t []models.DashboardTeam) []models.DashboardTeam {
+	if t == nil {
+		return []models.DashboardTeam{}
+	}
+	return t
 }
 
 func (r *MentorDashboardRepository) loadSprints(ctx context.Context, projectID int) ([]models.DashboardSprint, error) {
