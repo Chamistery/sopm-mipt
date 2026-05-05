@@ -388,6 +388,86 @@ ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('meetings_id_seq', GREATEST((SELECT MAX(id) FROM meetings), 1));
 
+-- ─── Архивные проекты 100, 101 — данные для страницы /mentor/archive ────
+-- Цель: чтобы карточки архивных проектов показывали:
+--   * число команд / спринтов
+--   * Ср. балл команды (вычисляется из sprint_scores)
+--   * Дату завершения (max sprint.end_date)
+--   * Итог проекта (Зачтено / с замечаниями — на фронте)
+--
+-- Project 100 (СУПП 1 семестр) — 2 команды × 3 спринта.
+-- Project 101 (Стат. анализ MVP) — 1 команда × 3 спринта.
+
+INSERT INTO sprints (id, project_id, number, start_date, end_date, status) VALUES
+  -- Project 100 — Осенний 2025/26
+  (100, 100, 1, '2025-09-15', '2025-10-12', 'Завершён'),
+  (101, 100, 2, '2025-10-13', '2025-11-09', 'Завершён'),
+  (102, 100, 3, '2025-11-10', '2025-12-14', 'Завершён'),
+  -- Project 101 — Осенний 2025/26
+  (110, 101, 1, '2025-09-15', '2025-10-12', 'Завершён'),
+  (111, 101, 2, '2025-10-13', '2025-11-09', 'Завершён'),
+  (112, 101, 3, '2025-11-10', '2025-12-14', 'Завершён')
+ON CONFLICT (project_id, number) DO NOTHING;
+
+SELECT setval('sprints_id_seq', GREATEST((SELECT MAX(id) FROM sprints), 1));
+
+INSERT INTO teams (id, project_id, name, leader_id, launched) VALUES
+  (100, 100, 'Команда 1', 10, TRUE),
+  (101, 100, 'Команда 2', 11, TRUE),
+  (102, 101, 'Команда 1', 14, TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval('teams_id_seq', GREATEST((SELECT MAX(id) FROM teams), 1));
+
+INSERT INTO team_members (team_id, user_id, role_in_team) VALUES
+  (100, 10, 'Тимлид'), (100, 12, 'Backend'), (100, 13, 'Frontend'), (100, 14, 'Аналитик'),
+  (101, 11, 'Тимлид'), (101, 15, 'Backend'), (101, 16, 'Frontend'), (101, 17, 'QA'),
+  (102, 14, 'Тимлид'), (102, 18, 'ML'), (102, 19, 'Backend')
+ON CONFLICT (team_id, user_id) DO NOTHING;
+
+-- Sprint_scores для архивных команд: средние ~8.0 у проекта 100 (зачтено),
+-- ~8.6 у проекта 101 (зачтено).
+INSERT INTO sprint_scores (sprint_id, team_id, student_id, score, comment, scored_by_id) VALUES
+  -- Команда 100 (проект 100): средняя ~8.1
+  (100, 100, 10, 8, 'Отличная работа на старте.', 1),
+  (100, 100, 12, 7, 'Хорошо.', 1),
+  (100, 100, 13, 8, 'OK.', 1),
+  (100, 100, 14, 8, 'Сильный анализ.', 1),
+  (101, 100, 10, 8, '', 1),
+  (101, 100, 12, 9, '', 1),
+  (101, 100, 13, 8, '', 1),
+  (101, 100, 14, 8, '', 1),
+  (102, 100, 10, 9, '', 1),
+  (102, 100, 12, 8, '', 1),
+  (102, 100, 13, 8, '', 1),
+  (102, 100, 14, 8, '', 1),
+  -- Команда 101 (проект 100): средняя ~6.9 (зачтено с замечаниями)
+  (100, 101, 11, 7, '', 1),
+  (100, 101, 15, 6, '', 1),
+  (100, 101, 16, 7, '', 1),
+  (100, 101, 17, 7, '', 1),
+  (101, 101, 11, 7, '', 1),
+  (101, 101, 15, 7, '', 1),
+  (101, 101, 16, 7, '', 1),
+  (101, 101, 17, 7, '', 1),
+  (102, 101, 11, 7, '', 1),
+  (102, 101, 15, 7, '', 1),
+  (102, 101, 16, 7, '', 1),
+  (102, 101, 17, 7, '', 1),
+  -- Команда 102 (проект 101): средняя ~8.6
+  (110, 102, 14, 8, '', 1),
+  (110, 102, 18, 9, '', 1),
+  (110, 102, 19, 8, '', 1),
+  (111, 102, 14, 9, '', 1),
+  (111, 102, 18, 9, '', 1),
+  (111, 102, 19, 8, '', 1),
+  (112, 102, 14, 9, '', 1),
+  (112, 102, 18, 9, '', 1),
+  (112, 102, 19, 9, '', 1)
+ON CONFLICT (sprint_id, student_id) DO NOTHING;
+
+SELECT setval('sprint_scores_id_seq', GREATEST((SELECT MAX(id) FROM sprint_scores), 1));
+
 -- ─── Done ───────────────────────────────────────────────────────────────
 SELECT
   (SELECT COUNT(*) FROM users)         AS users,
@@ -398,4 +478,5 @@ SELECT
   (SELECT COUNT(*) FROM sprints)       AS sprints,
   (SELECT COUNT(*) FROM tasks)         AS tasks,
   (SELECT COUNT(*) FROM team_reports)  AS team_reports,
-  (SELECT COUNT(*) FROM meetings)      AS meetings;
+  (SELECT COUNT(*) FROM meetings)      AS meetings,
+  (SELECT COUNT(*) FROM sprint_scores) AS sprint_scores;
