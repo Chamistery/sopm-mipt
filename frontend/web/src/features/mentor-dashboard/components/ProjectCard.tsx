@@ -36,8 +36,10 @@ interface Props {
 export function ProjectCard({ project }: Props): JSX.Element {
   const navigate = useNavigate();
   const isDraft = project.status === 'Черновик';
-  const hasTeams = project.teams.length > 0;
-  const activeSprint = project.sprints.find((s) => s.status === 'Активный') ?? project.sprints[0];
+  const sprints = project.sprints ?? [];
+  const teams = project.teams ?? [];
+  const hasTeams = teams.length > 0;
+  const activeSprint = sprints.find((s) => s.status === 'Активный') ?? sprints[0];
 
   // Header: заголовок + опциональный бейдж «Продолжение» + StatusBadge
   return (
@@ -67,10 +69,10 @@ export function ProjectCard({ project }: Props): JSX.Element {
         Инициатор: {project.company || '—'} · Срок: {formatDuration(project)}
       </div>
 
-      {!isDraft && project.sprints.length > 0 && activeSprint ? (
+      {!isDraft && sprints.length > 0 && activeSprint ? (
         <div className={styles.sprintBar}>
           <span className={styles.sprintCurrent}>
-            Спринт {activeSprint.number} из {project.sprints.length}
+            Спринт {activeSprint.number} из {sprints.length}
           </span>
           <span className={styles.sprintDetail}>
             · по {sprintDurationWeeks(activeSprint.startDate, activeSprint.endDate)}{' '}
@@ -82,7 +84,7 @@ export function ProjectCard({ project }: Props): JSX.Element {
 
       {hasTeams ? (
         <div className={styles.teamList}>
-          {project.teams.map((team) => (
+          {teams.map((team) => (
             <TeamRow
               key={team.id}
               team={team}
@@ -177,7 +179,7 @@ function TeamRow({ team, projectId, onNavigate }: TeamRowProps): JSX.Element {
         </span>
       </div>
       <div className={styles.iterTrack}>
-        {team.sprintStatuses.map((s, idx) => (
+        {(team.sprintStatuses ?? []).map((s, idx) => (
           <IterSquare key={idx} state={s} />
         ))}
       </div>
