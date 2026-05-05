@@ -1,26 +1,25 @@
 /*
  * Таб «Диаграмма Ганта» страницы команды у ментора.
  *
- * Pixel-port из mentor.html (lines 950-967): заголовок-легенда и стек
- * Гантт-блоков по всем спринтам проекта. Никаких sprint-switcher или
- * фильтров «требует действия» — клик по любой задаче открывает полный
- * `MentorTaskPopup` с действиями (approve/reject/accept/return), если
- * статус их допускает.
+ * Layout: над диаграммой — легенда (как в прототипе mentor.html:952-963)
+ * слева и SprintSwitcher (выпадающий список выбора спринта) справа.
+ * Активный спринт по умолчанию; выбор сохраняется в URL `?sprintId=`.
  *
- * Источник данных: useTeam → projectId → useProjectSprints →
- * для каждого спринта `useTeamGantt(teamId, sprintId)`. Сейчас рендерим
- * текущий + завершённые спринты в обратной хронологии.
+ * Источник данных: useTeam → projectId → useProjectSprints; данные одного
+ * спринта подгружаются `useTeamGantt(teamId, sprintId)`.
  */
 
-import type { JSX } from 'react';
-import { useMemo, useState } from 'react';
+import type { ChangeEvent, JSX } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
 import { acceptTask, approveTask, rejectTask, returnTask } from '@/api/tasks';
 import type { Sprint, TaskDto } from '@/api/teams';
 import { GanttChart } from '@/features/student-project/components/GanttChart';
-import { formatISODate } from '@/features/student-project/lib/dates';
+import { GanttLegend } from '@/features/student-project/components/GanttLegend';
+import { formatISODate, formatRuRange } from '@/features/student-project/lib/dates';
 import { MentorTaskPopup } from '../components/MentorTaskPopup';
 import type { TaskActionKind } from '../components/TaskActionPopup';
 import { useTeam, useProjectSprints } from '../hooks/useTeam';
@@ -33,31 +32,46 @@ interface Props {
 
 export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const teamQuery = useTeam(teamId);
   const projectId = teamQuery.data?.projectId ?? null;
   const sprintsQuery = useProjectSprints(projectId);
 
-  const [popupTask, setPopupTask] = useState<TaskDto | null>(null);
-  const [popupSprintId, setPopupSprintId] = useState<number | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
-
   const todayIso = useMemo(() => formatISODate(new Date()), []);
 
-  // Сортировка как в прототипе: текущий спринт сверху, потом по убыванию
-  // номера (Спринт 2 → Спринт 1).
-  const orderedSprints = useMemo<Sprint[]>(() => {
-    const list = (sprintsQuery.data ?? []).slice();
-    list.sort((a, b) => {
-      if (a.status === 'Активный' && b.status !== 'Активный') return -1;
-      if (b.status === 'Активный' && a.status !== 'Активный') return 1;
-      return b.number - a.number;
-    });
-    return list;
-  }, [sprintsQuery.data]);
+  const sprints = sprintsQuery.data ?? [];
+  const defaultSprintId = useMemo(() => pickDefaultSprintId(sprints), [sprints]);
+  const sprintParam = Number.parseInt(searchParams.get('sprintId') ?? '', 10);
+  const selectedSprintId =
+    Number.isFinite(sprintParam) && sprints.some((s) => s.id === sprintParam)
+      ? sprintParam
+      : defaultSprintId;
 
-  const refresh = (sprintId: number | null): Promise<unknown> =>
-    queryClient.invalidateQueries({ queryKey: ['team', teamId, 'gantt', sprintId] });
+  // Если в URL пришёл невалидный sprintId — нормализуем тихо при первом
+  // монтировании, чтобы был bookmark-friendly URL.
+  useEffect(() => {
+    if (selectedSprintId == null) return;
+    if (sprintParam !== selectedSprintId && searchParams.get('sprintId') == null) {
+      const sp = new URLSearchParams(searchParams);
+      sp.set('sprintId', String(selectedSprintId));
+      setSearchParams(sp, { replace: true });
+    }
+  }, [selectedSprintId, sprintParam, searchParams, setSearchParams]);
+
+  const setSprintId = (id: number): void => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set('sprintId', String(id));
+    setSearchParams(sp, { replace: true });
+  };
+
+  const ganttQuery = useTeamGantt(teamId, selectedSprintId);
+
+  const [popupTask, setPopupTask] = useState<TaskDto | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const refresh = (): Promise<unknown> =>
+    queryClient.invalidateQueries({ queryKey: ['team', teamId, 'gantt', selectedSprintId] });
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -68,7 +82,6 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
       task: TaskDto;
       action: TaskActionKind;
       comment: string;
-      sprintId: number | null;
     }) => {
       switch (action) {
         case 'approve':
@@ -81,11 +94,10 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
           return returnTask(task.id, comment);
       }
     },
-    onSuccess: async (_data, vars) => {
+    onSuccess: async () => {
       setServerError(null);
       setPopupTask(null);
-      setPopupSprintId(null);
-      await refresh(vars.sprintId);
+      await refresh();
     },
     onError: (err: unknown) => {
       setServerError(
@@ -97,12 +109,6 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
       );
     },
   });
-
-  const openTaskPopup = (task: TaskDto, sprintId: number): void => {
-    setServerError(null);
-    setPopupTask(task);
-    setPopupSprintId(sprintId);
-  };
 
   if (sprintsQuery.isLoading) {
     return <div className={styles.placeholder}>Загружаем спринты…</div>;
@@ -116,140 +122,106 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
       </div>
     );
   }
-  if (orderedSprints.length === 0) {
+  if (sprints.length === 0) {
     return <div className={styles.empty}>В проекте пока нет спринтов.</div>;
   }
 
+  const selectedSprint = sprints.find((s) => s.id === selectedSprintId) ?? null;
+
   return (
     <div className={styles.tab}>
-      {/* Легенда рендерится прямо внутри GanttChart (см. lines 952-963 prototype) */}
-      {orderedSprints.map((sprint, idx) => (
-        <SprintGantt
-          key={sprint.id}
-          teamId={teamId}
-          sprint={sprint}
-          sprintsTotal={orderedSprints.length}
-          showLegend={idx === 0}
-          todayIso={todayIso}
-          onTaskClick={(task) => openTaskPopup(task, sprint.id)}
+      <div className={styles.controls}>
+        <GanttLegend className={styles.legendInControls} />
+        <SprintSwitcher
+          sprints={sprints}
+          selectedId={selectedSprintId}
+          onChange={setSprintId}
         />
-      ))}
+      </div>
 
-      <PopupHost
-        teamId={teamId}
-        sprintId={popupSprintId}
+      {ganttQuery.isLoading ? (
+        <div className={styles.placeholder}>Загружаем задачи…</div>
+      ) : ganttQuery.error ? (
+        <div className={styles.error}>
+          {ganttQuery.error instanceof ApiError
+            ? `Ошибка ${ganttQuery.error.status}: ${ganttQuery.error.message}`
+            : 'Не удалось загрузить задачи'}
+        </div>
+      ) : ganttQuery.data && selectedSprint ? (
+        <GanttChart
+          data={ganttQuery.data}
+          todayIso={todayIso}
+          currentUserId={-1}
+          canEditAll={false}
+          canAddTask={false}
+          mode="mentor"
+          onTaskClick={(task) => {
+            setServerError(null);
+            setPopupTask(task);
+          }}
+          onAddTask={() => undefined}
+          sprintNumber={selectedSprint.number}
+          sprintsTotal={sprints.length}
+          showLegend={false}
+        />
+      ) : null}
+
+      <MentorTaskPopup
+        open={popupTask != null}
         task={popupTask}
+        members={ganttQuery.data?.members ?? []}
         todayIso={todayIso}
         isSubmitting={mutation.isPending}
         serverError={serverError}
         onClose={() => {
           if (!mutation.isPending) {
             setPopupTask(null);
-            setPopupSprintId(null);
             setServerError(null);
           }
         }}
         onSubmit={(action, comment) => {
           if (!popupTask) return;
-          mutation.mutate({
-            task: popupTask,
-            action,
-            comment,
-            sprintId: popupSprintId,
-          });
+          mutation.mutate({ task: popupTask, action, comment });
         }}
       />
     </div>
   );
 }
 
-interface PopupHostProps {
-  teamId: number;
-  sprintId: number | null;
-  task: TaskDto | null;
-  todayIso: string;
-  isSubmitting: boolean;
-  serverError: string | null;
-  onClose: () => void;
-  onSubmit: (action: TaskActionKind, comment: string) => void;
+interface SprintSwitcherProps {
+  sprints: Sprint[];
+  selectedId: number | null;
+  onChange: (id: number) => void;
 }
 
-/**
- * Подкачивает members конкретного спринта через `useTeamGantt`. Для
- * закрытого попапа не дёргает сеть (sprintId=null → useTeamGantt
- * возвращает пустой результат).
- */
-function PopupHost({
-  teamId,
-  sprintId,
-  task,
-  todayIso,
-  isSubmitting,
-  serverError,
-  onClose,
-  onSubmit,
-}: PopupHostProps): JSX.Element {
-  const ganttQuery = useTeamGantt(teamId, sprintId);
+function SprintSwitcher({ sprints, selectedId, onChange }: SprintSwitcherProps): JSX.Element {
+  const handle = (e: ChangeEvent<HTMLSelectElement>): void => {
+    const id = Number.parseInt(e.target.value, 10);
+    if (Number.isFinite(id)) onChange(id);
+  };
   return (
-    <MentorTaskPopup
-      open={task != null && sprintId != null}
-      task={task}
-      members={ganttQuery.data?.members ?? []}
-      todayIso={todayIso}
-      isSubmitting={isSubmitting}
-      serverError={serverError}
-      onClose={onClose}
-      onSubmit={onSubmit}
-    />
+    <label className={styles.switcher}>
+      <span className={styles.switcherLabel}>Спринт:</span>
+      <select
+        className={styles.switcherSelect}
+        value={selectedId ?? ''}
+        onChange={handle}
+      >
+        {sprints.map((s) => (
+          <option key={s.id} value={s.id}>
+            Спринт {s.number} · {formatRuRange(s.startDate, s.endDate)} · {s.status}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
-interface SprintGanttProps {
-  teamId: number;
-  sprint: Sprint;
-  sprintsTotal: number;
-  showLegend: boolean;
-  todayIso: string;
-  onTaskClick: (task: TaskDto) => void;
-}
-
-function SprintGantt({
-  teamId,
-  sprint,
-  sprintsTotal,
-  showLegend,
-  todayIso,
-  onTaskClick,
-}: SprintGanttProps): JSX.Element {
-  const ganttQuery = useTeamGantt(teamId, sprint.id);
-
-  if (ganttQuery.isLoading) {
-    return <div className={styles.placeholder}>Загружаем задачи спринта {sprint.number}…</div>;
-  }
-  if (ganttQuery.error) {
-    return (
-      <div className={styles.error}>
-        {ganttQuery.error instanceof ApiError
-          ? `Ошибка ${ganttQuery.error.status}: ${ganttQuery.error.message}`
-          : `Не удалось загрузить задачи спринта ${sprint.number}`}
-      </div>
-    );
-  }
-  if (!ganttQuery.data) return <></>;
-
-  return (
-    <GanttChart
-      data={ganttQuery.data}
-      todayIso={todayIso}
-      currentUserId={-1}
-      canEditAll={false}
-      canAddTask={false}
-      mode="mentor"
-      onTaskClick={onTaskClick}
-      onAddTask={() => undefined}
-      sprintNumber={sprint.number}
-      sprintsTotal={sprintsTotal}
-      showLegend={showLegend}
-    />
-  );
+function pickDefaultSprintId(sprints: Sprint[]): number | null {
+  if (sprints.length === 0) return null;
+  const active = sprints.find((s) => s.status === 'Активный');
+  if (active) return active.id;
+  // fallback: последний завершённый или первый
+  const finished = [...sprints].reverse().find((s) => s.status === 'Завершён');
+  return (finished ?? sprints[0])?.id ?? null;
 }
