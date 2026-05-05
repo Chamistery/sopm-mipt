@@ -21,7 +21,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
-import { type Team, type TeamMember, updateTeam } from '@/api/teams';
+import { type Team, type TeamMember, assignTeamLeader } from '@/api/teams';
 import { useToast } from '@/_shared/Toast';
 import { useProject } from './hooks/useProject';
 import { useTeam } from './hooks/useTeam';
@@ -173,7 +173,7 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
 
   const assignMutation = useMutation({
     mutationFn: ({ userId }: { userId: number; displayName: string }) =>
-      updateTeam(team.id, { leaderId: userId }),
+      assignTeamLeader(team.id, userId),
     onSuccess: async (_data, vars) => {
       setServerError(null);
       showSuccess(`${vars.displayName} назначен тимлидом`);

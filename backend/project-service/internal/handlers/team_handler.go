@@ -11,11 +11,15 @@ import (
 )
 
 type TeamHandler struct {
-	repo repository.TeamRepositoryInterface
+	repo     repository.TeamRepositoryInterface
+	projects repository.ProjectRepositoryInterface
 }
 
-func NewTeamHandler(repo repository.TeamRepositoryInterface) *TeamHandler {
-	return &TeamHandler{repo: repo}
+func NewTeamHandler(
+	repo repository.TeamRepositoryInterface,
+	projects repository.ProjectRepositoryInterface,
+) *TeamHandler {
+	return &TeamHandler{repo: repo, projects: projects}
 }
 
 func (h *TeamHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +93,65 @@ func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.RespondSuccess(w, http.StatusOK, updated)
+}
+
+// SetLeader — POST /api/teams/{id}/leader. Ментор/координатор/админ
+// назначает тимлида команде. One-shot: если leader_id уже установлен,
+// возвращаем 409 Conflict (как в прототипе UI: «назначить можно только
+// один раз»).
+func (h *TeamHandler) SetLeader(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin) {
+		httputil.RespondError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	var body struct {
+		UserID int `json:"userId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID <= 0 {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body: userId required")
+		return
+	}
+	team, err := h.repo.GetByID(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	// Mentor — только в собственном проекте.
+	if user.Role == auth.RoleMentor {
+		project, err := h.projects.GetByID(r.Context(), team.ProjectID)
+		if err != nil {
+			respondServiceError(w, err)
+			return
+		}
+		if project.MentorID != user.ID {
+			httputil.RespondError(w, http.StatusForbidden, "forbidden")
+			return
+		}
+	}
+	// One-shot.
+	if team.LeaderID != nil && *team.LeaderID > 0 {
+		httputil.RespondError(w, http.StatusConflict, "team already has a leader")
+		return
+	}
+	updated := *team
+	updated.LeaderID = &body.UserID
+	updated.Name = team.Name
+	if err := h.repo.Update(r.Context(), &updated); err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	fresh, err := h.repo.GetByID(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	httputil.RespondSuccess(w, http.StatusOK, fresh)
 }
 
 // Launch — POST /api/teams/{id}/launch.
