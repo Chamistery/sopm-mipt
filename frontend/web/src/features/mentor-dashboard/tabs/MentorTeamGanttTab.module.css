@@ -1,12 +1,61 @@
 /*
- * MentorTeamGanttTab CSS — pixel-port из mentor.html (lines 951-967):
- * только стек GanttChart-блоков. Никаких controls / filter / review-list.
+ * MentorTeamGanttTab CSS. Над диаграммой — controls-row с легендой
+ * слева (см. mentor.html:952-963) и SprintSwitcher справа.
  */
 
 .tab {
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* Класс передаётся в GanttLegend, чтобы убрать его собственный
+   margin-bottom: row-отступ задаётся controls + tab-margin. */
+.legendInControls {
+  margin-bottom: 0 !important;
+}
+
+.switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.switcherLabel {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+.switcherSelect {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.switcherSelect:hover,
+.switcherSelect:focus-visible {
+  border-color: var(--color-accent);
 }
 
 .placeholder,
