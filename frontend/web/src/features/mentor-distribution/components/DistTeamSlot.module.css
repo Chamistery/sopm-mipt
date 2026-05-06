@@ -60,12 +60,15 @@
 
 .chipDraggable:active {
   cursor: grabbing;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: scale(1.03);
 }
 
+/* Scale+shadow только во время реального drag (после dragstart), а не
+ * на любом mousedown. Иначе клик по кнопке ✕/✓ внутри чипа тригерил
+ * :active на родителе и чип «пульсировал». */
 .chipDragging {
   opacity: 0.4;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: scale(1.03);
 }
 
 .chipAccepted {
