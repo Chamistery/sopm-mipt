@@ -22,14 +22,12 @@
   color: var(--text-muted);
 }
 
-.dragOver {
+/* По прототипу .dist-slot.drag-over (mentor.html:260) — единый
+ *  accent-стиль и для empty, и для filled. */
+.dragOver,
+.dragOverEmpty {
   border-color: var(--accent);
   background: var(--surface-alt);
-}
-
-.dragOverEmpty {
-  background: var(--success-bg);
-  border-color: var(--success);
 }
 
 .chip {
