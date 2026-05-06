@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type DragEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState, type ChangeEvent, type DragEvent } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { ApiError } from '@/api/client';
 import {
@@ -101,9 +101,25 @@ export function MentorDistributionPage(): JSX.Element {
 
   const projects = useMemo(() => dataQuery.data?.projects ?? [], [dataQuery.data]);
 
-  // Метаданные подзаголовка — берём из первого проекта (или несколько,
-  // если их больше; для верхнего хедера используем агрегированную информацию).
-  const headerSubtitle = useMemo(() => buildHeaderSubtitle(projects), [projects]);
+  // Выбор проекта через ?projectId= в URL (bookmark-friendly).
+  // Default — первый проект из списка незапущенных.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const projectParam = Number.parseInt(searchParams.get('projectId') ?? '', 10);
+  const defaultProjectId = projects[0]?.id ?? null;
+  const selectedProjectId =
+    Number.isFinite(projectParam) && projects.some((p) => p.id === projectParam)
+      ? projectParam
+      : defaultProjectId;
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId],
+  );
+
+  const setProjectId = (id: number): void => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set('projectId', String(id));
+    setSearchParams(sp, { replace: true });
+  };
 
   return (
     <div className={styles.page}>
@@ -122,8 +138,27 @@ export function MentorDistributionPage(): JSX.Element {
       </div>
 
       <header className={styles.header}>
-        <h1 className={styles.title}>Незапущенные команды</h1>
-        {headerSubtitle ? <div className={styles.subtitle}>{headerSubtitle}</div> : null}
+        <div>
+          <h1 className={styles.title}>Незапущенные команды</h1>
+          {selectedProject ? (
+            <div className={styles.subtitle}>
+              Проект: {selectedProject.title}
+              {selectedProject.deadline ? (
+                <>
+                  <span className={styles.subtitleDot} />
+                  Дедлайн: {formatDeadline(selectedProject.deadline)}
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        {projects.length > 0 ? (
+          <ProjectSwitcher
+            projects={projects}
+            selectedId={selectedProjectId}
+            onChange={setProjectId}
+          />
+        ) : null}
       </header>
 
       {actionError ? <div className={styles.error}>{actionError}</div> : null}
@@ -140,20 +175,17 @@ export function MentorDistributionPage(): JSX.Element {
         <div className={styles.empty}>
           У вас нет незапущенных команд. Все команды по вашим проектам уже запущены или ещё не сформированы.
         </div>
-      ) : (
+      ) : selectedProject ? (
         <div className={styles.layout}>
           <div className={styles.left}>
-            {projects.map((project) => (
-              <ProjectGroup
-                key={project.id}
-                project={project}
-                pendingApplicationId={pendingApplicationId}
-                onDropApplicant={onDropApplicantInSlot}
-                onRemoveMember={onRemoveMember}
-                onInviteMember={onInviteMember}
-                onLaunch={onLaunch}
-              />
-            ))}
+            <ProjectGroup
+              project={selectedProject}
+              pendingApplicationId={pendingApplicationId}
+              onDropApplicant={onDropApplicantInSlot}
+              onRemoveMember={onRemoveMember}
+              onInviteMember={onInviteMember}
+              onLaunch={onLaunch}
+            />
             <div className={styles.note}>
               После запуска изменения в составе команды возможны только через координатора.
             </div>
@@ -170,19 +202,42 @@ export function MentorDistributionPage(): JSX.Element {
               </div>
             </div>
             <div className={styles.poolBody}>
-              {projects.map((project) => (
-                <ProjectPool
-                  key={project.id}
-                  project={project}
-                  onReturnToPool={(applicationId) => onRemoveMember(applicationId)}
-                  pendingApplicationId={pendingApplicationId}
-                />
-              ))}
+              <ProjectPool
+                project={selectedProject}
+                onReturnToPool={(applicationId) => onRemoveMember(applicationId)}
+                pendingApplicationId={pendingApplicationId}
+              />
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
+  );
+}
+
+interface ProjectSwitcherProps {
+  projects: MentorDistributionProject[];
+  selectedId: number | null;
+  onChange: (id: number) => void;
+}
+
+function ProjectSwitcher({ projects, selectedId, onChange }: ProjectSwitcherProps): JSX.Element {
+  const handle = (e: ChangeEvent<HTMLSelectElement>): void => {
+    const id = Number.parseInt(e.target.value, 10);
+    if (Number.isFinite(id)) onChange(id);
+  };
+  return (
+    <label className={styles.switcher}>
+      <span className={styles.switcherLabel}>Проект:</span>
+      <select className={styles.switcherSelect} value={selectedId ?? ''} onChange={handle}>
+        {projects.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.title} ({p.teams.length}{' '}
+            {pluralizeTeam(p.teams.length)})
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -218,7 +273,6 @@ function ProjectGroup({
 
   return (
     <section className={styles.projectGroup} data-project-id={project.id}>
-      <h2 className={styles.projectName}>{project.title}</h2>
       <div className={styles.projectMeta}>{meta}</div>
       {project.teams.map((team) => (
         <DistTeamCard
@@ -416,18 +470,6 @@ function PriorityGroup({
  */
 function peekPayloadFromTypes(_e: DragEvent<HTMLDivElement>): ApplicantDragPayload | null {
   return null;
-}
-
-function buildHeaderSubtitle(projects: MentorDistributionProject[]): string {
-  if (projects.length === 0) return '';
-  if (projects.length === 1) {
-    const p = projects[0]!;
-    const parts = [`Проект: ${p.title}`];
-    if (p.deadline) parts.push(`Дедлайн: ${formatDeadline(p.deadline)}`);
-    return parts.join(' · ');
-  }
-  const totalTeams = projects.reduce((sum, p) => sum + (p.teams?.length ?? 0), 0);
-  return `Проектов: ${projects.length} · Команд к запуску: ${totalTeams}`;
 }
 
 const RU_MONTHS = [
