@@ -29,31 +29,28 @@ describe('RequiresAttentionView', () => {
     expect(screen.getByText('Сейчас всё под контролем')).toBeInTheDocument();
   });
 
-  it('renders action-required notifications above the toggle and hides info ones initially', async () => {
+  it('shows first 2 items and hides the rest behind «Показать ещё N» toggle', async () => {
     const user = userEvent.setup();
+    // По прототипу mentor.html:548-639 — видно первые 2, остальное под
+    // кнопкой «Показать ещё N ▾».
     const items: Notification[] = [
-      baseNotif({
-        id: 'a',
-        title: 'Нужен аппрув задачи',
-        kind: 'mentor_task_attention',
-        severity: 'warning',
-      }),
-      baseNotif({
-        id: 'b',
-        title: 'Информационное событие',
-        kind: 'task_approved',
-        severity: 'success',
-      }),
+      baseNotif({ id: 'a', title: 'Action-required #1', kind: 'mentor_task_attention', severity: 'warning' }),
+      baseNotif({ id: 'b', title: 'Action-required #2', kind: 'team_report_attention', severity: 'warning' }),
+      baseNotif({ id: 'c', title: 'Info-event #1', kind: 'task_approved', severity: 'success' }),
+      baseNotif({ id: 'd', title: 'Info-event #2', kind: 'task_approved', severity: 'success' }),
     ];
     render(<RequiresAttentionView title="Требует внимания" items={items} isLoading={false} />);
 
-    expect(screen.getByText('Нужен аппрув задачи')).toBeInTheDocument();
-    expect(screen.queryByText('Информационное событие')).toBeNull();
+    expect(screen.getByText('Action-required #1')).toBeInTheDocument();
+    expect(screen.getByText('Action-required #2')).toBeInTheDocument();
+    expect(screen.queryByText('Info-event #1')).toBeNull();
+    expect(screen.queryByText('Info-event #2')).toBeNull();
 
-    const toggle = screen.getByRole('button', { name: /Показать ещё 1/ });
+    const toggle = screen.getByRole('button', { name: /Показать ещё 2/ });
     await user.click(toggle);
-    expect(screen.getByText('Информационное событие')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Свернуть' })).toBeInTheDocument();
+    expect(screen.getByText('Info-event #1')).toBeInTheDocument();
+    expect(screen.getByText('Info-event #2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Свернуть/ })).toBeInTheDocument();
   });
 
   it('renders cards with link as anchor tags', () => {

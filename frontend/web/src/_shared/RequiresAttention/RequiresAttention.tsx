@@ -83,6 +83,14 @@ export function RequiresAttentionView({
   const buckets = useMemo(() => bucketNotifications(items), [items]);
   const total = buckets.actionRequired.length + buckets.informational.length;
 
+  // Прототип (mentor.html:548-639) показывает по умолчанию **первые 2**
+  // элемента из объединённого списка (action + info) и кнопку
+  // «Показать ещё N ▾». При раскрытии — все + «Свернуть ▴».
+  const ordered = [...buckets.actionRequired, ...buckets.informational];
+  const VISIBLE_DEFAULT = 2;
+  const visible = showAll ? ordered : ordered.slice(0, VISIBLE_DEFAULT);
+  const hidden = ordered.length - visible.length;
+
   return (
     <section className={styles.section} aria-label={title}>
       <header className={styles.head}>
@@ -100,33 +108,27 @@ export function RequiresAttentionView({
         <div className={styles.empty}>Сейчас всё под контролем</div>
       ) : (
         <div className={styles.list}>
-          {buckets.actionRequired.map((n) => (
+          {visible.map((n) => (
             <NotificationCard key={n.id} notification={n} />
           ))}
 
-          {buckets.informational.length > 0 && !showAll ? (
+          {hidden > 0 ? (
             <button
               type="button"
               className={styles.toggle}
               onClick={() => setShowAll(true)}
             >
-              Показать ещё {buckets.informational.length}
+              Показать ещё {hidden} ▾
             </button>
           ) : null}
 
-          {showAll
-            ? buckets.informational.map((n) => (
-                <NotificationCard key={n.id} notification={n} />
-              ))
-            : null}
-
-          {showAll && buckets.informational.length > 0 ? (
+          {showAll && ordered.length > VISIBLE_DEFAULT ? (
             <button
               type="button"
               className={styles.toggle}
               onClick={() => setShowAll(false)}
             >
-              Свернуть
+              Свернуть ▴
             </button>
           ) : null}
         </div>
