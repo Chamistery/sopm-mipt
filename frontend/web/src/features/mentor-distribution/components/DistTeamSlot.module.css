@@ -137,6 +137,20 @@
   color: var(--success);
 }
 
+/* «Приглашение отправлено» — пока студент не принял (status «Принято
+ *  ментором»). Жёлтый по прототипу. */
+.invitedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
 .removeBtn {
   width: 22px;
   height: 22px;

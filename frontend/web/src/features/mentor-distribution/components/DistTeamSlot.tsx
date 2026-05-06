@@ -52,7 +52,12 @@ export function DistTeamSlot({
   const [dragOver, setDragOver] = useState(false);
   const [dragging, setDragging] = useState(false);
 
-  const isAccepted = member?.status === 'Принят' || member?.status === 'Принято ментором';
+  // По прототипу: «Принят» (студент сам подтвердил приглашение) =
+  // зафиксирован в команде, не draggable, без крестика. «Принято
+  // ментором» = приглашение отправлено, ментор может ещё передумать
+  // и убрать → draggable, крестик показываем.
+  const isAccepted = member?.status === 'Принят';
+  const isInvited = member?.status === 'Принято ментором';
 
   const onDragOver = (e: DragEvent<HTMLDivElement>): void => {
     if (!hasApplicantDragData(e.dataTransfer)) return;
@@ -141,6 +146,9 @@ export function DistTeamSlot({
           <span className={styles.acceptedBadge}>✓ Принят</span>
         ) : (
           <>
+            {isInvited ? (
+              <span className={styles.invitedBadge}>Приглашение отправлено</span>
+            ) : null}
             <button
               type="button"
               className={styles.removeBtn}
@@ -154,19 +162,21 @@ export function DistTeamSlot({
             >
               ✕
             </button>
-            <button
-              type="button"
-              className={styles.inviteBtn}
-              onClick={(e) => {
-                e.stopPropagation();
-                onInvite(member.applicationId);
-              }}
-              title="Пригласить в команду"
-              aria-label="Пригласить в команду"
-              disabled={disabled}
-            >
-              ✓
-            </button>
+            {!isInvited ? (
+              <button
+                type="button"
+                className={styles.inviteBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onInvite(member.applicationId);
+                }}
+                title="Пригласить в команду"
+                aria-label="Пригласить в команду"
+                disabled={disabled}
+              >
+                ✓
+              </button>
+            ) : null}
           </>
         )}
       </div>
