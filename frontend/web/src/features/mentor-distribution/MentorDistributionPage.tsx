@@ -37,6 +37,12 @@ export function MentorDistributionPage(): JSX.Element {
   const [poolWidth, setPoolWidth] = useState(POOL_WIDTH_DEFAULT);
   const [pendingApplicationId, setPendingApplicationId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Подсветка целевой priority-группы в пуле во время drag из команды.
+  // null когда никто не драгается ИЛИ драгается чип из самого пула.
+  const [poolDragTarget, setPoolDragTarget] = useState<{
+    priority: number;
+    qualified: boolean;
+  } | null>(null);
   const { showSuccess } = useToast();
 
   useEffect(() => {
@@ -183,6 +189,10 @@ export function MentorDistributionPage(): JSX.Element {
               onRemoveMember={onRemoveMember}
               onInviteMember={onInviteMember}
               onLaunch={onLaunch}
+              onChipDragStart={(priority, qualified) =>
+                setPoolDragTarget({ priority, qualified })
+              }
+              onChipDragEnd={() => setPoolDragTarget(null)}
             />
             <div className={styles.note}>
               После запуска изменения в составе команды возможны только через координатора.
@@ -199,11 +209,27 @@ export function MentorDistributionPage(): JSX.Element {
                 Перенос между приоритетами невозможен.
               </div>
             </div>
-            <div className={styles.poolBody}>
+            <div
+              className={styles.poolBody}
+              onDragOver={(e) => {
+                if (poolDragTarget) {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'move';
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const payload = readApplicantDragData(e.dataTransfer);
+                setPoolDragTarget(null);
+                if (!payload || payload.sourceTeamId == null) return;
+                onRemoveMember(payload.applicationId);
+              }}
+            >
               <ProjectPool
                 project={selectedProject}
                 onReturnToPool={(applicationId) => onRemoveMember(applicationId)}
                 pendingApplicationId={pendingApplicationId}
+                dragTarget={poolDragTarget}
               />
             </div>
           </div>
@@ -212,6 +238,7 @@ export function MentorDistributionPage(): JSX.Element {
     </div>
   );
 }
+
 
 interface ProjectSwitcherProps {
   projects: MentorDistributionProject[];
@@ -248,6 +275,8 @@ interface ProjectGroupProps {
   onRemoveMember: (applicationId: number) => void;
   onInviteMember: (applicationId: number) => void;
   onLaunch: (teamId: number) => void;
+  onChipDragStart: (priority: number, qualified: boolean) => void;
+  onChipDragEnd: () => void;
 }
 
 function ProjectGroup({
@@ -257,6 +286,8 @@ function ProjectGroup({
   onRemoveMember,
   onInviteMember,
   onLaunch,
+  onChipDragStart,
+  onChipDragEnd,
 }: ProjectGroupProps): JSX.Element {
   const meta = [
     project.company,
@@ -282,6 +313,8 @@ function ProjectGroup({
           onRemoveMember={onRemoveMember}
           onInviteMember={onInviteMember}
           onLaunch={onLaunch}
+          onChipDragStart={onChipDragStart}
+          onChipDragEnd={onChipDragEnd}
           disabled={team.members.some((m) => m.applicationId === pendingApplicationId)}
         />
       ))}
@@ -295,12 +328,17 @@ interface ProjectPoolProps {
   project: MentorDistributionProject;
   pendingApplicationId: number | null;
   onReturnToPool: (applicationId: number) => void;
+  /** Если задан — выделяем priority-группу (matched по priority+qualified)
+   *  как «куда чип вернётся» при drop. Прототип mentor.html:2754-2768 +
+   *  highlightTargetPoolGroup. */
+  dragTarget: { priority: number; qualified: boolean } | null;
 }
 
 function ProjectPool({
   project,
   onReturnToPool,
   pendingApplicationId,
+  dragTarget,
 }: ProjectPoolProps): JSX.Element {
   return (
     <>
@@ -311,6 +349,7 @@ function ProjectPool({
         buckets={project.pool.qualified}
         onReturnToPool={onReturnToPool}
         pendingApplicationId={pendingApplicationId}
+        dragTarget={dragTarget}
       />
       <PoolSection
         title="Не подходят по требованиям"
@@ -319,6 +358,7 @@ function ProjectPool({
         buckets={project.pool.unqualified}
         onReturnToPool={onReturnToPool}
         pendingApplicationId={pendingApplicationId}
+        dragTarget={dragTarget}
         explanation="Студенты, не соответствующие требованиям по курсу или среднему баллу. Ментор может взять их в команду вручную."
       />
     </>
@@ -332,6 +372,7 @@ interface PoolSectionProps {
   buckets: ApplicantPriorityBuckets;
   onReturnToPool: (applicationId: number) => void;
   pendingApplicationId: number | null;
+  dragTarget: { priority: number; qualified: boolean } | null;
   explanation?: string;
 }
 
@@ -342,6 +383,7 @@ function PoolSection({
   buckets,
   onReturnToPool,
   pendingApplicationId,
+  dragTarget,
   explanation,
 }: PoolSectionProps): JSX.Element {
   const flat = flattenPriorityBuckets(buckets);
@@ -364,6 +406,11 @@ function PoolSection({
           qualified={kind === 'qualified'}
           onReturnToPool={onReturnToPool}
           pendingApplicationId={pendingApplicationId}
+          isDragTarget={
+            dragTarget != null &&
+            dragTarget.priority === priority &&
+            dragTarget.qualified === (kind === 'qualified')
+          }
         />
       ))}
     </div>
@@ -377,6 +424,9 @@ interface PriorityGroupProps {
   qualified: boolean;
   onReturnToPool: (applicationId: number) => void;
   pendingApplicationId: number | null;
+  /** Drag из команды, у студента такой же priority+qualified — подсвечиваем
+   *  эту группу (там окажется чип после drop). */
+  isDragTarget: boolean;
 }
 
 function PriorityGroup({
@@ -386,49 +436,30 @@ function PriorityGroup({
   qualified,
   onReturnToPool,
   pendingApplicationId,
+  isDragTarget,
 }: PriorityGroupProps): JSX.Element {
-  const [dropState, setDropState] = useState<'none' | 'ok' | 'denied'>('none');
-
+  // По прототипу (mentor.html:2754-2758, 2963-2986): drop в **любую**
+  // группу пула возвращает чип в его собственный priority/qualified.
+  // Поэтому никакой priority-проверки на drop не делаем — payload даст
+  // applicationId, бэк положит чип куда нужно. Подсветка целевой
+  // группы — через isDragTarget (управляется state'ом Page).
   const onDragOver = (e: DragEvent<HTMLDivElement>): void => {
     if (!hasApplicantDragData(e.dataTransfer)) return;
-    const payload = peekPayloadFromTypes(e);
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    if (!payload) {
-      setDropState('ok');
-      return;
-    }
-    if (
-      payload.projectId === projectId &&
-      payload.priority === priority &&
-      payload.qualified === qualified
-    ) {
-      setDropState('ok');
-    } else {
-      setDropState('denied');
-    }
   };
-
-  const onDragLeave = (): void => setDropState('none');
 
   const onDrop = (e: DragEvent<HTMLDivElement>): void => {
     e.preventDefault();
-    setDropState('none');
     const payload = readApplicantDragData(e.dataTransfer);
     if (!payload) return;
     if (payload.projectId !== projectId) return;
-    if (payload.priority !== priority || payload.qualified !== qualified) return;
     if (payload.sourceTeamId == null) return; // уже в пуле — нечего делать
     onReturnToPool(payload.applicationId);
   };
 
   const cls = items.length === 0 ? styles.priorityGroupEmpty : '';
-  const listCls =
-    dropState === 'ok'
-      ? styles.priorityDropOk
-      : dropState === 'denied'
-        ? styles.priorityDropDenied
-        : '';
+  const listCls = isDragTarget ? styles.priorityDropOk : '';
 
   return (
     <div className={`${styles.priorityGroup} ${cls}`}>
@@ -439,7 +470,6 @@ function PriorityGroup({
       <div
         className={`${styles.priorityGroupList} ${listCls}`}
         onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
         onDrop={onDrop}
         data-priority={priority}
         data-qualified={qualified}
@@ -457,17 +487,6 @@ function PriorityGroup({
       </div>
     </div>
   );
-}
-
-/**
- * Во время dragover мы не имеем доступа к данным DataTransfer (защита от
- * утечки). Но можем посмотреть на `dataTransfer.types` — там видны custom
- * MIME-типы. Если payload-MIME отсутствует — drag не наш, разрешаем drop
- * по умолчанию (сценарий приоритетной фильтрации не сработает, но это всё
- * равно лишь визуальная подсказка). На drop читаем настоящий payload.
- */
-function peekPayloadFromTypes(_e: DragEvent<HTMLDivElement>): ApplicantDragPayload | null {
-  return null;
 }
 
 const RU_MONTHS = [

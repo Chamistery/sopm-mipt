@@ -22,6 +22,11 @@ export interface DistTeamSlotProps {
   onRemove: (applicationId: number) => void;
   /** Кнопка-галочка «Пригласить» (доступна для recommended). */
   onInvite: (applicationId: number) => void;
+  /** Колбеки для подсветки целевой priority-группы в пуле. На dragstart
+   *  чип сообщает свой priority+qualified — Page подсветит соответствующую
+   *  группу в пуле, куда чип «вернётся» если его сюда дропнуть. */
+  onChipDragStart?: (priority: number, qualified: boolean) => void;
+  onChipDragEnd?: () => void;
   /** Disable actions (mutation pending). */
   disabled?: boolean;
 }
@@ -40,6 +45,8 @@ export function DistTeamSlot({
   onDropApplicant,
   onRemove,
   onInvite,
+  onChipDragStart,
+  onChipDragEnd,
   disabled,
 }: DistTeamSlotProps): JSX.Element {
   const [dragOver, setDragOver] = useState(false);
@@ -79,6 +86,12 @@ export function DistTeamSlot({
       qualified: member.qualified,
     });
     setDragging(true);
+    onChipDragStart?.(member.priority, member.qualified);
+  };
+
+  const endChipDrag = (): void => {
+    setDragging(false);
+    onChipDragEnd?.();
   };
 
   if (!member) {
@@ -110,7 +123,7 @@ export function DistTeamSlot({
         className={`${styles.chip} ${isAccepted ? styles.chipAccepted : styles.chipDraggable} ${dragging ? styles.chipDragging : ''}`}
         draggable={draggable}
         onDragStart={startChipDrag}
-        onDragEnd={() => setDragging(false)}
+        onDragEnd={endChipDrag}
         data-application-id={member.applicationId}
       >
         <span className={styles.priorityBadge} title="Приоритет студента">

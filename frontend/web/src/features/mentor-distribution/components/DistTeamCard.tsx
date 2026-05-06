@@ -12,6 +12,10 @@ export interface DistTeamCardProps {
   onRemoveMember: (applicationId: number) => void;
   onInviteMember: (applicationId: number) => void;
   onLaunch: (teamId: number) => void;
+  /** Колбеки для подсветки целевой priority-группы в пуле. Page хранит
+   *  `poolDragTarget` state и передаёт сюда сеттеры. */
+  onChipDragStart?: (priority: number, qualified: boolean) => void;
+  onChipDragEnd?: () => void;
   disabled?: boolean;
 }
 
@@ -29,6 +33,8 @@ export function DistTeamCard({
   onRemoveMember,
   onInviteMember,
   onLaunch,
+  onChipDragStart,
+  onChipDragEnd,
   disabled,
 }: DistTeamCardProps): JSX.Element {
   const members = team.members ?? [];
@@ -60,6 +66,8 @@ export function DistTeamCard({
             onDropApplicant={onDropApplicant}
             onRemove={onRemoveMember}
             onInvite={onInviteMember}
+            onChipDragStart={onChipDragStart}
+            onChipDragEnd={onChipDragEnd}
             disabled={disabled}
           />
         ))}
