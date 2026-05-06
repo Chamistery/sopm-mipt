@@ -112,13 +112,11 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 	if app.TeamID == nil && app.Status == models.ApplicationStatusNotRecommended {
 		return app, nil
 	}
-	// Прототип (mentor.html логика): из команды можно вытащить
-	// «Рекомендован» (просто recommend) и «Принято ментором»
-	// (приглашение отправлено, но студент ещё не accepted). Только
-	// после самого «Принят» (студент подтвердил) — нельзя без
-	// координатора.
-	if app.Status != models.ApplicationStatusRecommended &&
-		app.Status != models.ApplicationStatusMentorAccepted {
+	// Прототип (mentor.html:3021-3025 inviteStudent): после отправки
+	// приглашения чип становится «зафиксирован» — кнопка remove
+	// скрыта, draggable=false. То есть unrecommend разрешён ТОЛЬКО
+	// до приглашения, для статуса «Рекомендован».
+	if app.Status != models.ApplicationStatusRecommended {
 		return nil, WrapStateError("application cannot be removed from team from status %s", app.Status)
 	}
 	app.TeamID = nil

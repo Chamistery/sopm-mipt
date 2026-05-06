@@ -52,12 +52,14 @@ export function DistTeamSlot({
   const [dragOver, setDragOver] = useState(false);
   const [dragging, setDragging] = useState(false);
 
-  // По прототипу: «Принят» (студент сам подтвердил приглашение) =
-  // зафиксирован в команде, не draggable, без крестика. «Принято
-  // ментором» = приглашение отправлено, ментор может ещё передумать
-  // и убрать → draggable, крестик показываем.
+  // По прототипу (mentor.html:3013-3025 inviteStudent): после отправки
+  // приглашения чип фиксируется — draggable=false, ✕ и ✓ скрыты,
+  // показывается бейдж «Ожидает подтверждения». «Принят» (студент
+  // подтвердил) — то же самое + зелёная рамка, бейдж «✓ Принят».
+  // То есть оба статуса блокируют drag и actions.
   const isAccepted = member?.status === 'Принят';
   const isInvited = member?.status === 'Принято ментором';
+  const isLocked = isAccepted || isInvited;
 
   const onDragOver = (e: DragEvent<HTMLDivElement>): void => {
     if (!hasApplicantDragData(e.dataTransfer)) return;
@@ -74,12 +76,12 @@ export function DistTeamSlot({
     const payload = readApplicantDragData(e.dataTransfer);
     if (!payload) return;
     if (payload.projectId !== projectId) return; // из другого проекта — игнор
-    if (isAccepted) return; // не заменять принятого
+    if (isLocked) return; // не заменять зафиксированного (приглашённого/принятого)
     onDropApplicant(payload, teamId);
   };
 
   const startChipDrag = (e: DragEvent<HTMLDivElement>): void => {
-    if (!member || isAccepted) {
+    if (!member || isLocked) {
       e.preventDefault();
       return;
     }
@@ -114,7 +116,7 @@ export function DistTeamSlot({
     );
   }
 
-  const draggable = !isAccepted && !disabled;
+  const draggable = !isLocked && !disabled;
 
   return (
     <div
@@ -125,7 +127,7 @@ export function DistTeamSlot({
       data-team-id={teamId}
     >
       <div
-        className={`${styles.chip} ${isAccepted ? styles.chipAccepted : styles.chipDraggable} ${dragging ? styles.chipDragging : ''}`}
+        className={`${styles.chip} ${isAccepted ? styles.chipAccepted : isInvited ? styles.chipInvited : styles.chipDraggable} ${dragging ? styles.chipDragging : ''}`}
         draggable={draggable}
         onDragStart={startChipDrag}
         onDragEnd={endChipDrag}
@@ -144,11 +146,13 @@ export function DistTeamSlot({
         ) : null}
         {isAccepted ? (
           <span className={styles.acceptedBadge}>✓ Принят</span>
+        ) : isInvited ? (
+          // Приглашение отправлено: только бейдж, без действий — ментор
+          // больше ничего не может сделать со студентом, ждём ответ
+          // (см. mentor.html:3013-3025).
+          <span className={styles.invitedBadge}>Ожидает подтверждения</span>
         ) : (
           <>
-            {isInvited ? (
-              <span className={styles.invitedBadge}>Приглашение отправлено</span>
-            ) : null}
             <button
               type="button"
               className={styles.removeBtn}
@@ -162,21 +166,19 @@ export function DistTeamSlot({
             >
               ✕
             </button>
-            {!isInvited ? (
-              <button
-                type="button"
-                className={styles.inviteBtn}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onInvite(member.applicationId);
-                }}
-                title="Пригласить в команду"
-                aria-label="Пригласить в команду"
-                disabled={disabled}
-              >
-                ✓
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className={styles.inviteBtn}
+              onClick={(e) => {
+                e.stopPropagation();
+                onInvite(member.applicationId);
+              }}
+              title="Пригласить в команду"
+              aria-label="Пригласить в команду"
+              disabled={disabled}
+            >
+              ✓
+            </button>
           </>
         )}
       </div>
