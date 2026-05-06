@@ -1,6 +1,7 @@
 import type { MentorDistributionTeam } from '@/api/mentorDistribution';
 import { DistTeamSlot } from './DistTeamSlot';
 import type { ApplicantDragPayload } from '../lib/dragData';
+import { arrangeSlots, setSlot, clearApplicantFromTeam } from '../lib/slotLayout';
 import styles from './DistTeamCard.module.css';
 
 export interface DistTeamCardProps {
@@ -41,9 +42,30 @@ export function DistTeamCard({
   const acceptedCount = members.filter((m) => m.status === 'Принят').length;
   const totalCount = members.length;
 
-  // Слоты — фиксируем максимально возможный размер, заполняем участниками,
-  // оставшиеся = empty (drop-targets).
-  const slots = Array.from({ length: maxSize }, (_, i) => members[i] ?? null);
+  // Слоты — пользовательская разметка (localStorage): студент стоит ровно
+  // в той ячейке, в которую был дропнут. Бэк не хранит slot_index, поэтому
+  // расставляем клиентски. Раздаём members по сохранённым позициям, без-
+  // позиционные раскладываются по первым свободным.
+  const slots = arrangeSlots(team.id, maxSize, members);
+
+  const handleSlotDrop = (
+    payload: ApplicantDragPayload,
+    slotTeamId: number,
+    slotIndex: number,
+  ): void => {
+    // Если перетащили из другой команды — очищаем layout исходной,
+    // чтобы там не оставался stale slot reference.
+    if (payload.sourceTeamId != null && payload.sourceTeamId !== slotTeamId) {
+      clearApplicantFromTeam(payload.sourceTeamId, payload.applicationId);
+    }
+    setSlot(slotTeamId, slotIndex, payload.applicationId);
+    onDropApplicant(payload, slotTeamId);
+  };
+
+  const handleRemove = (applicationId: number): void => {
+    clearApplicantFromTeam(team.id, applicationId);
+    onRemoveMember(applicationId);
+  };
 
   // «Готов к запуску» = есть участники, и все они приняты.
   const readyToLaunch = totalCount > 0 && acceptedCount === totalCount;
@@ -63,8 +85,10 @@ export function DistTeamCard({
             projectId={projectId}
             teamId={team.id}
             member={member}
-            onDropApplicant={onDropApplicant}
-            onRemove={onRemoveMember}
+            onDropApplicant={(payload, slotTeamId) =>
+              handleSlotDrop(payload, slotTeamId, idx)
+            }
+            onRemove={handleRemove}
             onInvite={onInviteMember}
             onChipDragStart={onChipDragStart}
             onChipDragEnd={onChipDragEnd}

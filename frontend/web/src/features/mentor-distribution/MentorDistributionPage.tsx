@@ -14,6 +14,7 @@ import { DistTeamCard } from './components/DistTeamCard';
 import { DistPoolChip } from './components/DistPoolChip';
 import { DistResizeDivider } from './components/DistResizeDivider';
 import { POOL_WIDTH_DEFAULT, loadPoolWidth, savePoolWidth } from './lib/poolWidth';
+import { clearApplicantFromTeam } from './lib/slotLayout';
 import {
   hasApplicantDragData,
   readApplicantDragData,
@@ -222,6 +223,7 @@ export function MentorDistributionPage(): JSX.Element {
                 const payload = readApplicantDragData(e.dataTransfer);
                 setPoolDragTarget(null);
                 if (!payload || payload.sourceTeamId == null) return;
+                clearApplicantFromTeam(payload.sourceTeamId, payload.applicationId);
                 onRemoveMember(payload.applicationId);
               }}
             >
@@ -455,6 +457,7 @@ function PriorityGroup({
     if (!payload) return;
     if (payload.projectId !== projectId) return;
     if (payload.sourceTeamId == null) return; // уже в пуле — нечего делать
+    clearApplicantFromTeam(payload.sourceTeamId, payload.applicationId);
     onReturnToPool(payload.applicationId);
   };
 
