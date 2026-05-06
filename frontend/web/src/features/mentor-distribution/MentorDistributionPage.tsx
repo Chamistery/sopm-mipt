@@ -138,20 +138,18 @@ export function MentorDistributionPage(): JSX.Element {
       </div>
 
       <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Незапущенные команды</h1>
-          {selectedProject ? (
-            <div className={styles.subtitle}>
-              Проект: {selectedProject.title}
-              {selectedProject.deadline ? (
-                <>
-                  <span className={styles.subtitleDot} />
-                  Дедлайн: {formatDeadline(selectedProject.deadline)}
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+        <h1 className={styles.title}>Незапущенные команды</h1>
+        {selectedProject ? (
+          <div className={styles.subtitle}>
+            Проект: {selectedProject.title}
+            {selectedProject.deadline ? (
+              <>
+                <span className={styles.subtitleDot} />
+                Дедлайн: {formatDeadline(selectedProject.deadline)}
+              </>
+            ) : null}
+          </div>
+        ) : null}
         {projects.length > 0 ? (
           <ProjectSwitcher
             projects={projects}
