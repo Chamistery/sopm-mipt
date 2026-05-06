@@ -1,8 +1,9 @@
+/* Без max-width: прототип (mentor.html .main + view-team) разрастается
+   на всю доступную ширину контента. */
 .page {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  max-width: 1240px;
 }
 
 .back {
