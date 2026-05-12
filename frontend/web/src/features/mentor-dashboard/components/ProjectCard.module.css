@@ -297,3 +297,18 @@
   text-decoration: none;
   color: #5b21b6;
 }
+
+.infoLink {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.infoLink:hover {
+  text-decoration: none;
+  color: var(--accent-hover);
+}

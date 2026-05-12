@@ -9,9 +9,10 @@ import { loginAs } from '../utils/login';
  *      → видит pill с финальной оценкой проекта («Зачтено» / «Зачтено с замечаниями»)
  *      → видит «Ср. балл: 4.7» в строке команды
  *   → клик «Полная информация»
- *      → открывается модалка с полями proposalData
- *      → видим «Цель проекта», «Технологии»
- *      → Esc закрывает модалку
+ *      → переход на /mentor/archive/projects/110/info
+ *      → жёлтый банер «Карточка завершённого проекта»
+ *      → поля заявки заполнены, инпуты readOnly
+ *      → кнопка «Закрыть» возвращает в архив
  *
  * Без мутаций: тест read-only.
  */
@@ -43,18 +44,24 @@ test.describe('mentor archive details golden path', () => {
     // Ср. балл команды (310): среднее по 6 оценкам = 4.7
     await expect(card.getByText('Ср. балл: 4.7')).toBeVisible();
 
-    // Кнопка «Полная информация» открывает модалку
-    await card.getByRole('button', { name: /Полная информация/ }).click();
+    // Ссылка «Полная информация» ведёт на страницу readonly-просмотра
+    await card.getByTestId('archive-card-info-link').click();
+    await expect(page).toHaveURL(/\/mentor\/archive\/projects\/110\/info/);
 
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('heading', { name: /Цифровой двойник кампуса/ })).toBeVisible();
-    await expect(dialog.getByText('Цель проекта')).toBeVisible();
-    await expect(dialog.getByText('Технологии')).toBeVisible();
-    await expect(dialog.getByText('React, Three.js, PostgreSQL')).toBeVisible();
+    // Жёлтый банер архива
+    const banner = page.getByRole('note');
+    await expect(banner).toContainText('завершённого');
 
-    // Esc закрывает
-    await page.keyboard.press('Escape');
-    await expect(dialog).not.toBeVisible();
+    // Поля заявки заполнены из proposalData
+    const titleInput = page.getByPlaceholder(
+      /Отражает содержание результата и конструктивные особенности/,
+    );
+    await expect(titleInput).toHaveValue(/Цифровой двойник кампуса/);
+    // readOnly: атрибут readonly
+    await expect(titleInput).toHaveAttribute('readonly', '');
+
+    // Возвращаемся в архив
+    await page.getByTestId('info-close').click();
+    await expect(page).toHaveURL(/\/mentor\/archive$/);
   });
 });

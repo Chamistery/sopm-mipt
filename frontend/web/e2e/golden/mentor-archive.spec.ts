@@ -31,7 +31,12 @@ test.describe('mentor archive golden path', () => {
       timeout: 15_000,
     });
 
-    const projectLink = page.getByRole('link', { name: /Цифровой двойник кампуса/i });
+    // Берём ссылку-заголовок (есть ещё ссылка-«Полная информация» с похожим
+    // aria-label — отфильтровываем по точному имени проекта).
+    const projectLink = page.getByRole('link', {
+      name: 'Архивный: Цифровой двойник кампуса',
+      exact: true,
+    });
     await expect(projectLink).toBeVisible();
     await projectLink.click();
 

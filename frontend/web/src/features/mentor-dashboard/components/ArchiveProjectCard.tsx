@@ -9,7 +9,8 @@
  *   - все iter-track-квадратики — reviewed (архив);
  *   - средний балл команды как зелёный pill вместо «Лидер: …»;
  *   - footer: «Завершён: <дата>» + ссылка на предшественника (фиолетовая);
- *   - ссылка «Полная информация →» открывает `ArchiveProjectInfoModal`.
+ *   - ссылка «Полная информация →» ведёт на отдельную страницу
+ *     `/mentor/archive/projects/:id/info` (MentorProjectInfoPage, readonly).
  *
  * Карточка сама по себе не Link — ссылку на конкретную команду рендерим
  * через `team-row`. На уровень проекта (список команд) ведёт клик по
@@ -26,15 +27,12 @@ import styles from './ArchiveProjectCard.module.css';
 
 interface Props {
   project: ArchiveDashboardProject;
-  /** Открыть модалку полной информации (родитель управляет состоянием). */
-  onOpenInfo: (projectId: number) => void;
   /** Подсветка: target=highlight для ?highlight=:id. Опционально. */
   highlighted?: boolean;
 }
 
 export function ArchiveProjectCard({
   project,
-  onOpenInfo,
   highlighted = false,
 }: Props): JSX.Element {
   const isContinuation = project.predecessorId != null;
@@ -88,14 +86,14 @@ export function ArchiveProjectCard({
         <span className={styles.gradeWrap}>
           Итог проекта: <span className={styles.gradePill}>{project.finalGrade}</span>
         </span>
-        <button
-          type="button"
+        <Link
+          to={`/mentor/archive/projects/${project.id}/info`}
           className={styles.infoLink}
-          onClick={() => onOpenInfo(project.id)}
           aria-label={`Полная информация о проекте ${project.title}`}
+          data-testid="archive-card-info-link"
         >
           Полная информация <ArrowRight />
-        </button>
+        </Link>
       </div>
 
       {project.teams.length > 0 ? (

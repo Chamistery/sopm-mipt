@@ -4,7 +4,6 @@ import { useSearchParams } from 'react-router-dom';
 import { useRequireUser } from '@/auth/useCurrentUser';
 import { useMentorArchiveDashboard } from './hooks/useMentorArchiveDashboard';
 import { ArchiveProjectCard } from './components/ArchiveProjectCard';
-import { ArchiveProjectInfoModal } from './components/ArchiveProjectInfoModal';
 import styles from './MentorDashboardPage.module.css';
 
 const HIGHLIGHT_DURATION_MS = 2400;
@@ -28,7 +27,6 @@ export function ArchivePage(): JSX.Element {
   const [searchParams] = useSearchParams();
   const highlightId = Number(searchParams.get('highlight')) || null;
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
-  const [openInfoId, setOpenInfoId] = useState<number | null>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   // Защита от повторного запуска анимации. useQueries в useMentorArchive
   // создаёт новую ссылку `dashboard.data` на каждый под-fetch, поэтому
@@ -95,18 +93,10 @@ export function ArchivePage(): JSX.Element {
               <ArchiveProjectCard
                 project={project}
                 highlighted={highlightedId === project.id}
-                onOpenInfo={(id) => setOpenInfoId(id)}
               />
             </div>
           ))}
         </div>
-      ) : null}
-
-      {openInfoId != null ? (
-        <ArchiveProjectInfoModal
-          projectId={openInfoId}
-          onClose={() => setOpenInfoId(null)}
-        />
       ) : null}
     </div>
   );

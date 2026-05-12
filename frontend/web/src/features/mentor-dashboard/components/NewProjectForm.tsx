@@ -31,8 +31,24 @@ interface PredecessorOption {
   title: string;
 }
 
+/**
+ * Режим работы формы:
+ *  - `create`   — пустая форма, кнопки «Назад/Далее/Создать проект» (текущий
+ *                 экран `/mentor/projects/new`).
+ *  - `edit`     — заполненная форма для редактирования активного проекта;
+ *                 финальная кнопка «Сохранить изменения». Сейчас save отключён
+ *                 (бэк PUT /api/projects/:id/proposal не реализован), кнопка
+ *                 disabled с tooltip — см. MentorProjectInfoPage.
+ *  - `readonly` — только просмотр (архивный проект): все поля disabled / readOnly,
+ *                 кнопок навигации/сохранения нет — единственная кнопка «Закрыть»
+ *                 рендерит вызывающая страница.
+ */
+export type NewProjectFormMode = 'create' | 'edit' | 'readonly';
+
 interface Props {
   initial?: ProposalData;
+  /** Режим: `create` по умолчанию. См. NewProjectFormMode. */
+  mode?: NewProjectFormMode;
   /** Список архивных проектов для селекта «Проект-предшественник». */
   predecessors?: PredecessorOption[];
   /** Загружает заявку выбранного предшественника и подставляет в форму. */
@@ -41,6 +57,17 @@ interface Props {
   onCancel: () => void;
   isSubmitting?: boolean;
   serverError?: string | null;
+  /** Текст финальной кнопки. По умолчанию — «Создать проект» / «Сохранить изменения». */
+  submitLabel?: string;
+  /** Если true (или есть `submitDisabledHint`) — финальная кнопка disabled. */
+  submitDisabled?: boolean;
+  submitDisabledHint?: string;
+  /** Доп. слот в подвале (например, ссылка «Закрыть» в readonly). */
+  footerExtras?: React.ReactNode;
+  /** Доп. слот перед карточкой (банеры edit/readonly). */
+  headerBanner?: React.ReactNode;
+  /** Если true — скрыть «Заявка на проект» / «Заполните все поля…» (для edit/readonly). */
+  hideIntro?: boolean;
 }
 
 /**
@@ -54,12 +81,19 @@ interface Props {
  */
 export function NewProjectForm({
   initial,
+  mode = 'create',
   predecessors = [],
   onFetchPredecessor,
   onSubmit,
   onCancel,
   isSubmitting,
   serverError,
+  submitLabel,
+  submitDisabled,
+  submitDisabledHint,
+  footerExtras,
+  headerBanner,
+  hideIntro,
 }: Props): JSX.Element {
   const [data, setData] = useState<ProposalData>(initial ?? emptyProposalData());
   const [section, setSection] = useState<SectionIndex>(0);
@@ -67,6 +101,16 @@ export function NewProjectForm({
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [templateApplied, setTemplateApplied] = useState(false);
   const fileIdRef = useRef(0);
+
+  const isReadonly = mode === 'readonly';
+  const isEdit = mode === 'edit';
+  // В режиме просмотра/редактирования секция «Является ли продолжением» не
+  // имеет смысла (для edit — флаг уже зафиксирован при создании, для readonly —
+  // просто данные).
+  const hideContinuationBox = isReadonly || isEdit;
+  // В режиме edit спринты уже стартовали — менять конфигурацию нельзя.
+  // Поля sprint-section получают disabled.
+  const sprintSectionLocked = isEdit;
 
   const update = (patch: Partial<ProposalData>): void => {
     setData((prev) => ({ ...prev, ...patch }));
@@ -134,14 +178,20 @@ export function NewProjectForm({
         onSelect={goTo}
       />
       <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Заявка на проект</h2>
-        <p className={styles.cardDesc}>
-          Заполните все поля в соответствии с Приложением 1 Положения о проектном практикуме
-        </p>
+        {headerBanner}
+        {!hideIntro ? (
+          <>
+            <h2 className={styles.cardTitle}>Заявка на проект</h2>
+            <p className={styles.cardDesc}>
+              Заполните все поля в соответствии с Приложением 1 Положения о проектном практикуме
+            </p>
+          </>
+        ) : null}
 
         {/* Section 0 */}
         {section === 0 ? (
           <div className={styles.sectionContent} data-section={0}>
+            {!hideContinuationBox ? (
             <div className={`${styles.extraBox} ${styles.continuationBox}`}>
               <div className={`${styles.extraBoxTitle} ${styles.continuationTitle}`}>
                 Является ли проект продолжением?
@@ -204,6 +254,7 @@ export function NewProjectForm({
                 </div>
               ) : null}
             </div>
+            ) : null}
 
             <Field
               label="Полное название проекта"
@@ -217,6 +268,7 @@ export function NewProjectForm({
                 value={data.title}
                 placeholder="Отражает содержание результата и конструктивные особенности"
                 onChange={(e) => update({ title: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -232,6 +284,7 @@ export function NewProjectForm({
                 value={data.company}
                 placeholder="Название организации"
                 onChange={(e) => update({ company: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -247,12 +300,14 @@ export function NewProjectForm({
                   value={data.mentor.fullName}
                   placeholder="ФИО ментора"
                   onChange={(e) => updateMentor({ fullName: e.target.value })}
+                  readOnly={isReadonly}
                 />
                 <input
                   className={`${styles.input} ${fieldErr('mentor.role') ? styles.inputError : ''}`}
                   value={data.mentor.role}
                   placeholder="Должность"
                   onChange={(e) => updateMentor({ role: e.target.value })}
+                  readOnly={isReadonly}
                 />
                 <input
                   type="email"
@@ -260,18 +315,21 @@ export function NewProjectForm({
                   value={data.mentor.email}
                   placeholder="Электронная почта"
                   onChange={(e) => updateMentor({ email: e.target.value })}
+                  readOnly={isReadonly}
                 />
                 <input
                   className={styles.input}
                   value={data.mentor.telegram}
                   placeholder="Телеграм"
                   onChange={(e) => updateMentor({ telegram: e.target.value })}
+                  readOnly={isReadonly}
                 />
                 <input
                   className={`${styles.input} ${styles.gridFull}`}
                   value={data.mentor.phone}
                   placeholder="Телефон"
                   onChange={(e) => updateMentor({ phone: e.target.value })}
+                  readOnly={isReadonly}
                 />
               </div>
             </Field>
@@ -288,6 +346,7 @@ export function NewProjectForm({
                 value={data.goal}
                 placeholder="Формулирует цель проектной деятельности как решение некоторой проблемы"
                 onChange={(e) => update({ goal: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -303,6 +362,7 @@ export function NewProjectForm({
                 value={data.expectedResult}
                 placeholder="Ожидаемый результат проектной деятельности"
                 onChange={(e) => update({ expectedResult: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
           </div>
@@ -323,6 +383,7 @@ export function NewProjectForm({
                 value={data.technologies}
                 placeholder="Python, Django, PostgreSQL, React..."
                 onChange={(e) => update({ technologies: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -338,6 +399,7 @@ export function NewProjectForm({
                 value={data.competencies}
                 placeholder="Перечислите базовые компетенции"
                 onChange={(e) => update({ competencies: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -354,6 +416,7 @@ export function NewProjectForm({
                     value={data.minRating ?? ''}
                     placeholder="Напр.: 3.5"
                     onChange={(e) => update({ minRating: e.target.value === '' ? null : Number(e.target.value) })}
+                    readOnly={isReadonly}
                   />
                 </div>
                 <div>
@@ -367,6 +430,7 @@ export function NewProjectForm({
                     value={data.minGpa ?? ''}
                     placeholder="Напр.: 7.0"
                     onChange={(e) => update({ minGpa: e.target.value === '' ? null : Number(e.target.value) })}
+                    readOnly={isReadonly}
                   />
                 </div>
                 <div className={styles.gridFull}>
@@ -383,6 +447,7 @@ export function NewProjectForm({
                               : data.allowedCourses.filter((x) => x !== c);
                             update({ allowedCourses: next.sort() });
                           }}
+                          disabled={isReadonly}
                         />
                         {c} курс
                       </label>
@@ -409,6 +474,7 @@ export function NewProjectForm({
                 value={data.description}
                 placeholder="Подробное описание проекта"
                 onChange={(e) => update({ description: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -424,6 +490,7 @@ export function NewProjectForm({
                 value={data.acceptanceCriteria}
                 placeholder="Функциональные требования"
                 onChange={(e) => update({ acceptanceCriteria: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
@@ -439,6 +506,7 @@ export function NewProjectForm({
                 value={data.eduResult}
                 placeholder="Перечень компетенций"
                 onChange={(e) => update({ eduResult: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
           </div>
@@ -461,6 +529,7 @@ export function NewProjectForm({
                       name="durationSemesters"
                       checked={data.durationSemesters === sem}
                       onChange={() => update({ durationSemesters: sem as 1 | 2 | 3 })}
+                      disabled={isReadonly || sprintSectionLocked}
                     />
                     {sem === 1 ? '1 семестр' : `${sem} семестра`}
                   </label>
@@ -485,6 +554,8 @@ export function NewProjectForm({
                     className={`${styles.input} ${fieldErr('sprints.count') ? styles.inputError : ''}`}
                     value={data.sprints.count}
                     onChange={(e) => updateSprints({ count: Number(e.target.value) })}
+                    readOnly={isReadonly}
+                    disabled={sprintSectionLocked}
                   />
                 </div>
                 <div>
@@ -497,6 +568,8 @@ export function NewProjectForm({
                     className={`${styles.input} ${fieldErr('sprints.startDate') ? styles.inputError : ''}`}
                     value={data.sprints.startDate}
                     onChange={(e) => updateSprints({ startDate: e.target.value })}
+                    readOnly={isReadonly}
+                    disabled={sprintSectionLocked}
                   />
                 </div>
               </div>
@@ -506,6 +579,7 @@ export function NewProjectForm({
                   type="button"
                   className={`${styles.modeBtn} ${data.sprints.mode === 'simple' ? styles.modeBtnActive : ''}`}
                   onClick={() => updateSprints({ mode: 'simple' })}
+                  disabled={isReadonly || sprintSectionLocked}
                 >
                   Одинаковая длительность
                 </button>
@@ -516,6 +590,7 @@ export function NewProjectForm({
                     const custom = Array.from({ length: data.sprints.count }, () => data.sprints.durationWeeks);
                     updateSprints({ mode: 'custom', customWeeks: custom });
                   }}
+                  disabled={isReadonly || sprintSectionLocked}
                 >
                   Настроить каждый
                 </button>
@@ -534,6 +609,7 @@ export function NewProjectForm({
                           name="sprint_dur"
                           checked={data.sprints.durationWeeks === w}
                           onChange={() => updateSprints({ durationWeeks: w })}
+                          disabled={isReadonly || sprintSectionLocked}
                         />
                         {w} нед.
                       </label>
@@ -573,6 +649,7 @@ export function NewProjectForm({
                     className={`${styles.input} ${fieldErr('numTeams') ? styles.inputError : ''}`}
                     value={data.numTeams}
                     onChange={(e) => update({ numTeams: Number(e.target.value) })}
+                    readOnly={isReadonly}
                   />
                 </div>
                 <div>
@@ -585,6 +662,7 @@ export function NewProjectForm({
                       className={`${styles.teamSizeInput} ${fieldErr('teamSizeMin') ? styles.inputError : ''}`}
                       value={data.teamSizeMin}
                       onChange={(e) => update({ teamSizeMin: Number(e.target.value) })}
+                      readOnly={isReadonly}
                     />
                     <span className={styles.teamSizeSep}>—</span>
                     <input
@@ -594,6 +672,7 @@ export function NewProjectForm({
                       className={`${styles.teamSizeInput} ${fieldErr('teamSizeMax') ? styles.inputError : ''}`}
                       value={data.teamSizeMax}
                       onChange={(e) => update({ teamSizeMax: Number(e.target.value) })}
+                      readOnly={isReadonly}
                     />
                     <span className={styles.teamSizeUnit}>чел.</span>
                   </div>
@@ -611,20 +690,23 @@ export function NewProjectForm({
                 value={data.resources}
                 placeholder="Оборудование, ПО, доступ к данным..."
                 onChange={(e) => update({ resources: e.target.value })}
+                readOnly={isReadonly}
               />
             </Field>
 
-            <FileDrop
-              files={files}
-              onFilesAdded={(added) => {
-                const next: AttachedFile[] = added.map((f) => {
-                  fileIdRef.current += 1;
-                  return { id: `f-${fileIdRef.current}`, name: f.name, size: f.size };
-                });
-                setFiles((prev) => [...prev, ...next]);
-              }}
-              onFileRemoved={(id) => setFiles((prev) => prev.filter((f) => f.id !== id))}
-            />
+            {!isReadonly ? (
+              <FileDrop
+                files={files}
+                onFilesAdded={(added) => {
+                  const next: AttachedFile[] = added.map((f) => {
+                    fileIdRef.current += 1;
+                    return { id: `f-${fileIdRef.current}`, name: f.name, size: f.size };
+                  });
+                  setFiles((prev) => [...prev, ...next]);
+                }}
+                onFileRemoved={(id) => setFiles((prev) => prev.filter((f) => f.id !== id))}
+              />
+            ) : null}
           </div>
         ) : null}
 
@@ -637,25 +719,35 @@ export function NewProjectForm({
 
         <div className={styles.footer}>
           <StepDots total={4} active={section} onSelect={goTo} />
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={styles.btnSecondary}
-              onClick={section === 0 ? onCancel : goPrev}
-              disabled={isSubmitting}
-            >
-              {section === 0 ? 'Отмена' : 'Назад'}
-            </button>
-            <button
-              type="button"
-              className={styles.btnPrimary}
-              onClick={goNext}
-              disabled={isSubmitting}
-              data-testid="form-next"
-            >
-              {section === 3 ? (isSubmitting ? 'Сохраняем…' : 'Создать проект') : 'Далее'}
-            </button>
-          </div>
+          {isReadonly ? (
+            <div className={styles.actions}>{footerExtras}</div>
+          ) : (
+            <div className={styles.actions}>
+              {footerExtras}
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={section === 0 ? onCancel : goPrev}
+                disabled={isSubmitting}
+              >
+                {section === 0 ? (isEdit ? 'Закрыть' : 'Отмена') : 'Назад'}
+              </button>
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={goNext}
+                disabled={isSubmitting || (section === 3 && Boolean(submitDisabled))}
+                data-testid="form-next"
+                title={section === 3 ? submitDisabledHint : undefined}
+              >
+                {section === 3
+                  ? isSubmitting
+                    ? 'Сохраняем…'
+                    : submitLabel ?? (isEdit ? 'Сохранить изменения' : 'Создать проект')
+                  : 'Далее'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

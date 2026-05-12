@@ -10,6 +10,7 @@ import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { redirectByRole } from '@/auth/redirectByRole';
 import { MentorDashboardPage } from '@/features/mentor-dashboard/MentorDashboardPage';
 import { NewProjectPage } from '@/features/mentor-dashboard/NewProjectPage';
+import { MentorProjectInfoPage } from '@/features/mentor-dashboard/MentorProjectInfoPage';
 import { ApplicantsPage } from '@/features/mentor-dashboard/ApplicantsPage';
 import { MentorDistributionPage } from '@/features/mentor-distribution';
 import { MentorTeamPage } from '@/features/mentor-dashboard/MentorTeamPage';
@@ -42,6 +43,8 @@ export const router = createBrowserRouter([
       // Страница детали проекта удалена в team-unification — у ментора есть
       // только дашборд и страница команды. Старый URL ведёт на дашборд.
       { path: 'mentor/projects/:id', element: <Navigate to="/mentor" replace /> },
+      // «Полная информация о проекте» — отдельная страница (edit / readonly).
+      { path: 'mentor/projects/:projectId/info', element: <MentorProjectInfoPage /> },
       { path: 'mentor/applicants/:id', element: <ApplicantsPage /> },
       { path: 'mentor/distribution', element: <MentorDistributionPage /> },
       { path: 'mentor/teams/:teamId', element: <MentorTeamPage /> },
@@ -57,6 +60,10 @@ export const router = createBrowserRouter([
       },
       { path: 'mentor/archive', element: <ArchivePage /> },
       { path: 'mentor/archive/projects/:projectId', element: <ArchiveProjectTeamsPage /> },
+      {
+        path: 'mentor/archive/projects/:projectId/info',
+        element: <MentorProjectInfoPage />,
+      },
       { path: 'mentor/archive/teams/:teamId', element: <ArchiveTeamPage /> },
       {
         path: 'admin',
