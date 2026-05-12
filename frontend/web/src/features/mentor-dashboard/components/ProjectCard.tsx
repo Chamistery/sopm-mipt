@@ -53,13 +53,14 @@ export function ProjectCard({ project }: Props): JSX.Element {
             {project.title}
           </h3>
           {project.predecessorId ? (
-            <span
-              className={styles.continuationPill}
+            <Link
+              to={`/mentor/archive?highlight=${project.predecessorId}`}
+              className={styles.predecessorLink}
               title="Продолжение проекта из прошлого семестра"
             >
               <ContinuationIcon />
-              Продолжение
-            </span>
+              Открыть предшественника
+            </Link>
           ) : null}
         </div>
         <StatusBadge status={project.status} />
@@ -123,15 +124,6 @@ export function ProjectCard({ project }: Props): JSX.Element {
             Полная информация <ArrowIcon />
           </Link>
         )}
-        {project.predecessorId ? (
-          <Link
-            to={`/mentor/archive?highlight=${project.predecessorId}`}
-            className={styles.predecessorLink}
-          >
-            <ContinuationIcon />
-            Открыть предшественника
-          </Link>
-        ) : null}
       </div>
     </div>
   );
