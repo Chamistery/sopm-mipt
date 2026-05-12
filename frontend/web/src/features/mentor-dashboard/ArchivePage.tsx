@@ -30,12 +30,19 @@ export function ArchivePage(): JSX.Element {
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [openInfoId, setOpenInfoId] = useState<number | null>(null);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  // Защита от повторного запуска анимации. useQueries в useMentorArchive
+  // создаёт новую ссылку `dashboard.data` на каждый под-fetch, поэтому
+  // useEffect без этого флага запускался бесконечно — карточка мигала
+  // снова и снова. Ставим highlightId в ref после первого срабатывания.
+  const highlightedOnceRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!highlightId || !dashboard.data) return;
+    if (highlightedOnceRef.current === highlightId) return;
     if (!dashboard.data.some((p) => p.id === highlightId)) return;
     const node = cardRefs.current.get(highlightId);
     if (!node) return;
+    highlightedOnceRef.current = highlightId;
     node.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setHighlightedId(highlightId);
     const t = window.setTimeout(() => setHighlightedId(null), HIGHLIGHT_DURATION_MS);
