@@ -32,6 +32,7 @@ export const PROJECT_STATUS_OFFICIAL = PROJECT_STATUSES;
 export type ProjectStatusOfficial = ProjectStatus;
 export const PROJECT_STATUS_PENDING: ProjectStatus = 'На утверждении';
 export const PROJECT_STATUS_APPROVED: ProjectStatus = 'Утверждён';
+export const PROJECT_STATUS_COMPLETED: ProjectStatus = 'Завершён';
 
 export interface FieldValue {
   fieldId: string;

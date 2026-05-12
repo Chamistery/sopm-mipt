@@ -1,6 +1,6 @@
 /*
  * ArchiveProjectCard — карточка архивного проекта на странице ментора
- * (`/mentor/archive`). Pixel-port из `mentor.html`:1750-1810.
+ * (`${basePath}`). Pixel-port из `mentor.html`:1750-1810.
  *
  * Отличия от активной `ProjectCard`:
  *   - бейдж «Продолжение» / «Новый» вместо StatusBadge типа «Активен»;
@@ -10,7 +10,7 @@
  *   - средний балл команды как зелёный pill вместо «Лидер: …»;
  *   - footer: «Завершён: <дата>» + ссылка на предшественника (фиолетовая);
  *   - ссылка «Полная информация →» ведёт на отдельную страницу
- *     `/mentor/archive/projects/:id/info` (MentorProjectInfoPage, readonly).
+ *     `${basePath}/projects/:id/info` (MentorProjectInfoPage, readonly).
  *
  * Карточка сама по себе не Link — ссылку на конкретную команду рендерим
  * через `team-row`. На уровень проекта (список команд) ведёт клик по
@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 import { IterSquare } from './ProjectCard';
 import type { ArchiveDashboardProject } from '../hooks/useMentorArchiveDashboard';
 import { formatRuFinishedAt } from '../lib/archiveAggregations';
+import { useArchiveBasePath } from '../lib/archiveBasePath';
 import styles from './ArchiveProjectCard.module.css';
 
 interface Props {
@@ -35,6 +36,7 @@ export function ArchiveProjectCard({
   project,
   highlighted = false,
 }: Props): JSX.Element {
+  const basePath = useArchiveBasePath();
   const isContinuation = project.predecessorId != null;
   const teamsLabel = project.teams.length > 1 ? 'команды' : 'команда';
 
@@ -46,7 +48,7 @@ export function ArchiveProjectCard({
       <div className={styles.header}>
         <div className={styles.titleWrap}>
           <Link
-            to={`/mentor/archive/projects/${project.id}`}
+            to={`${basePath}/projects/${project.id}`}
             className={styles.titleLink}
             title={project.title}
           >
@@ -87,7 +89,7 @@ export function ArchiveProjectCard({
           Итог проекта: <span className={styles.gradePill}>{project.finalGrade}</span>
         </span>
         <Link
-          to={`/mentor/archive/projects/${project.id}/info`}
+          to={`${basePath}/projects/${project.id}/info`}
           className={styles.infoLink}
           aria-label={`Полная информация о проекте ${project.title}`}
           data-testid="archive-card-info-link"
@@ -101,7 +103,7 @@ export function ArchiveProjectCard({
           {project.teams.map((team) => (
             <Link
               key={team.id}
-              to={`/mentor/archive/teams/${team.id}`}
+              to={`${basePath}/teams/${team.id}`}
               className={styles.teamRow}
             >
               <span className={styles.teamName}>{team.name}</span>
@@ -133,7 +135,7 @@ export function ArchiveProjectCard({
         <span>Завершён: {formatRuFinishedAt(project.finishedAt)}</span>
         {project.predecessorId != null ? (
           <Link
-            to={`/mentor/archive?highlight=${project.predecessorId}`}
+            to={`${basePath}?highlight=${project.predecessorId}`}
             className={styles.predecessorLink}
           >
             <ContinuationIcon />

@@ -21,9 +21,16 @@ const HIGHLIGHT_DURATION_MS = 2400;
  * карточке этого проекта и подсвечивает её на 2.4с (см.
  * ArchiveProjectCard.module.css :keyframes archiveHighlightAnim).
  */
-export function ArchivePage(): JSX.Element {
+interface Props {
+  /** mentor (default) — фильтрует архив по X-User-Id; coordinator — все проекты. */
+  scope?: 'mentor' | 'coordinator';
+}
+
+export function ArchivePage({ scope = 'mentor' }: Props = {}): JSX.Element {
   const me = useRequireUser();
-  const dashboard = useMentorArchiveDashboard(me.userId);
+  const dashboard = useMentorArchiveDashboard(
+    scope === 'coordinator' ? { scope: 'coordinator' } : me.userId,
+  );
   const [searchParams] = useSearchParams();
   const highlightId = Number(searchParams.get('highlight')) || null;
   const [highlightedId, setHighlightedId] = useState<number | null>(null);

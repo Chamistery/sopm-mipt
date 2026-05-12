@@ -19,6 +19,7 @@ import {
 import { avatarColor, initials } from '@/features/student-project/lib/people';
 import { formatFinalGradeLabel } from './lib/finalGrade';
 import { chainUrl, parseChain, pushToChain } from './lib/archiveChain';
+import { useArchiveBasePath } from './lib/archiveBasePath';
 import { useProjectSprints, useTeam } from './hooks/useTeam';
 import { useTeamGantt } from './hooks/useTeamGantt';
 import { useProjectDetail } from './hooks/useProjectDetail';
@@ -36,6 +37,7 @@ const TAB_KEYS: TabKey[] = ['gantt', 'reports', 'meetings'];
  * хранит её отдельным полем; когда добавит, заменим на чтение поля.
  */
 export function ArchiveTeamPage(): JSX.Element {
+  const basePath = useArchiveBasePath();
   const params = useParams<{ teamId: string }>();
   const teamId = Number.parseInt(params.teamId ?? '', 10);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -162,7 +164,7 @@ export function ArchiveTeamPage(): JSX.Element {
 
       {predecessorId != null ? (
         <Link
-          to={chainUrl(`/mentor/archive/projects/${predecessorId}`, chainForPredecessor)}
+          to={chainUrl(`${basePath}/projects/${predecessorId}`, chainForPredecessor)}
           className={styles.predecessorLink}
           data-testid="archive-open-predecessor"
         >
@@ -204,8 +206,9 @@ export function ArchiveTeamPage(): JSX.Element {
 }
 
 function BackLink(): JSX.Element {
+  const basePath = useArchiveBasePath();
   return (
-    <Link to="/mentor/archive" className={styles.back}>
+    <Link to={basePath} className={styles.back}>
       ← К архиву проектов
     </Link>
   );

@@ -20,6 +20,8 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import {
   getProjectFull,
   listMentorArchive,
+  listProjects,
+  PROJECT_STATUS_COMPLETED,
   type ProjectFull,
   type ProjectListItem,
 } from '@/api/projects';
@@ -62,18 +64,41 @@ export interface UseMentorArchiveDashboardResult {
   isError: boolean;
 }
 
+export interface UseArchiveDashboardOptions {
+  /** mentor: фильтрует архив по X-User-Id (бэк mentor-archive endpoint).
+   *  coordinator: загружает все завершённые проекты через GET /api/projects. */
+  scope: 'mentor' | 'coordinator';
+  /** Используется только в mentor-режиме — id текущего пользователя для
+   *  локального фильтра кеша. В coord-режиме игнорируется. */
+  mentorId?: number;
+}
+
 export function useMentorArchiveDashboard(
-  mentorId: number,
+  mentorIdOrOptions: number | UseArchiveDashboardOptions,
 ): UseMentorArchiveDashboardResult {
+  const opts: UseArchiveDashboardOptions =
+    typeof mentorIdOrOptions === 'number'
+      ? { scope: 'mentor', mentorId: mentorIdOrOptions }
+      : mentorIdOrOptions;
   const archiveQuery = useQuery({
-    queryKey: ['projects', 'mentor', mentorId, 'archive', 'list'],
+    queryKey:
+      opts.scope === 'coordinator'
+        ? ['projects', 'coordinator', 'archive', 'list']
+        : ['projects', 'mentor', opts.mentorId, 'archive', 'list'],
     queryFn: async (): Promise<ProjectListItem[]> => {
-      // listMentorArchive уже фильтрует по mentor по X-User-Id; дополнительно
-      // перепроверяем mentorId на случай шаринга кеша между ролями.
+      if (opts.scope === 'coordinator') {
+        // Координатор видит ВСЕ завершённые проекты, без mentor-фильтра.
+        const resp = await listProjects({ limit: 200, status: PROJECT_STATUS_COMPLETED });
+        return resp.projects;
+      }
+      // mentor: listMentorArchive фильтрует по X-User-Id; локальный фильтр —
+      // защита от шаринга кеша между ролями.
       const resp = await listMentorArchive({ limit: 200 });
-      return resp.projects.filter((p) => p.mentorId === mentorId);
+      return resp.projects.filter((p) => p.mentorId === opts.mentorId);
     },
-    enabled: Number.isFinite(mentorId) && mentorId > 0,
+    enabled:
+      opts.scope === 'coordinator' ||
+      (Number.isFinite(opts.mentorId) && (opts.mentorId ?? 0) > 0),
   });
 
   const projects = useMemo<ProjectListItem[]>(

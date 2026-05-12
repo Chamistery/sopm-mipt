@@ -7,6 +7,7 @@ import { getProject, type Project } from '@/api/projects';
 import type { Team } from '@/api/teams';
 import { useProjectDetail } from './hooks/useProjectDetail';
 import { chainUrl, parseChain, popToChain } from './lib/archiveChain';
+import { useArchiveBasePath } from './lib/archiveBasePath';
 import styles from './ArchiveProjectTeamsPage.module.css';
 
 /**
@@ -83,8 +84,9 @@ export function ArchiveProjectTeamsPage(): JSX.Element {
 }
 
 function ArchiveBackLink(): JSX.Element {
+  const basePath = useArchiveBasePath();
   return (
-    <Link to="/mentor/archive" className={styles.back}>
+    <Link to={basePath} className={styles.back}>
       ← К архиву проектов
     </Link>
   );
@@ -96,12 +98,13 @@ interface TeamRowProps {
 }
 
 function TeamRow({ team, chain }: TeamRowProps): JSX.Element {
+  const basePath = useArchiveBasePath();
   const memberCount = team.members?.length ?? 0;
   const leaderName = team.leader
     ? `${team.leader.lastName} ${team.leader.firstName}`
     : 'Лидер не назначен';
   // Команда — лист цепочки, поэтому передаём chain без изменений.
-  const href = chainUrl(`/mentor/archive/teams/${team.id}`, chain);
+  const href = chainUrl(`${basePath}/teams/${team.id}`, chain);
 
   return (
     <li>
@@ -128,6 +131,7 @@ interface BreadcrumbsProps {
 }
 
 export function ArchiveBreadcrumbs({ chain, currentTitle }: BreadcrumbsProps): JSX.Element {
+  const basePath = useArchiveBasePath();
   const queries = useQueries({
     queries: chain.map((id) => ({
       queryKey: ['project', id],
@@ -147,13 +151,13 @@ export function ArchiveBreadcrumbs({ chain, currentTitle }: BreadcrumbsProps): J
 
   return (
     <nav className={styles.crumbs} aria-label="Хлебные крошки">
-      <Link to="/mentor/archive" className={styles.crumbLink}>
+      <Link to={basePath} className={styles.crumbLink}>
         Архив проектов
       </Link>
       {titles.map((entry) => {
         // У крошки крошек: chain до этой точки.
         const popped = popToChain(chain, entry.id);
-        const href = chainUrl(`/mentor/archive/projects/${entry.id}`, popped);
+        const href = chainUrl(`${basePath}/projects/${entry.id}`, popped);
         return (
           <span key={entry.id} className={styles.crumbGroup}>
             <span className={styles.crumbSep} aria-hidden="true">/</span>
