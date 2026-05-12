@@ -139,6 +139,293 @@ UPDATE projects
        num_teams = GREATEST(num_teams, 4)
  WHERE id = 1;
 
+-- ─── Proposal data (JSONB) ──────────────────────────────────────────────
+-- Заполняем proposal_data для всех проектов, чтобы страница «Полная информация»
+-- (/mentor/projects/:id/info) открывалась с предзаполненными required-полями.
+-- Значения взяты из common.js (active projects + mentorArchivedProjects);
+-- ментор-контакт — Тимохин В.Н. (mentor_id=1 во всех проектах seed).
+-- Идемпотентно: проставляет полный JSON через UPDATE, безопасно повторять.
+
+UPDATE projects SET proposal_data = '{
+  "title": "Система управления проектным практикумом ВШПИ",
+  "company": "МФТИ",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Достроить полноценную систему управления проектным практикумом поверх базовой архитектуры первого семестра: команды, спринты, задачи, отчёты, итоговое оценивание.",
+  "expectedResult": "Развёрнутая на VDI МФТИ веб-система со всеми ролями и процессами Положения о ПП — от подачи заявки до защиты, готовая к опытной эксплуатации в следующем семестре.",
+  "technologies": "Go 1.24, PostgreSQL 16, React, TypeScript, Docker, goqu, pgx.",
+  "competencies": "Backend (Go), Frontend (React), DevOps (Docker, nginx), проектирование REST API, работа с PostgreSQL.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2, 4],
+  "description": "Система предоставляет возможности по управлению ресурсами: пользователи, проекты (включая детализацию: заявка, спринты, задачи), отчёты. Система ориентирована на реализацию функционала ролей: координатор, ментор, участник команды, эксперт.",
+  "acceptanceCriteria": "Покрытие unit- и интеграционными тестами ≥ 70%. Все ключевые сценарии (распределение, спринты, задачи, отчёты, оценивание) покрыты API. OpenAPI-спецификация актуальна.",
+  "eduResult": "Командная разработка, управление проектами, веб-разработка, базы данных.",
+  "durationSemesters": 2,
+  "sprints": {
+    "count": 5,
+    "startDate": "2026-02-24",
+    "mode": "simple",
+    "durationWeeks": 3
+  },
+  "numTeams": 4,
+  "teamSizeMin": 3,
+  "teamSizeMax": 5,
+  "resources": "VDI-сервер МФТИ, GitLab МФТИ, Яндекс.Диск (для файлов отчётов), консультации ментора.",
+  "isContinuation": true,
+  "predecessorProjectId": 100
+}'::jsonb WHERE id = 1;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Платформа автоматизации тестирования ПО",
+  "company": "Яндекс",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Уменьшить время регрессионного тестирования веб-сервисов за счёт декларативного описания сценариев и автоматических прогонов.",
+  "expectedResult": "Self-hosted платформа с веб-интерфейсом, планировщиком прогонов и дашбордом отчётов, пригодная для подключения к 3+ внутренним сервисам.",
+  "technologies": "Python 3.12, FastAPI, Selenium, pytest, Docker, GitLab CI.",
+  "competencies": "Автоматизация тестирования, CI/CD, работа с контейнерами, проектирование API.",
+  "minRating": null,
+  "minGpa": 5.5,
+  "allowedCourses": [2, 3],
+  "description": "Платформа позволяет описывать тест-сценарии в YAML, запускать по расписанию или вручную, собирать метрики покрытия и генерировать отчёты.",
+  "acceptanceCriteria": "Запуск прогона по расписанию и по webhook. Отчёт покрытия экспортируется в HTML/JSON. Подключение нового сервиса без изменения кода платформы.",
+  "eduResult": "Автоматизация тестирования, CI/CD, работа с контейнерами, проектирование API.",
+  "durationSemesters": 1,
+  "sprints": {
+    "count": 4,
+    "startDate": "2026-02-24",
+    "mode": "simple",
+    "durationWeeks": 2
+  },
+  "numTeams": 2,
+  "teamSizeMin": 4,
+  "teamSizeMax": 5,
+  "resources": "Стенд Инициатора для тестовых прогонов, доступ к внутреннему GitLab.",
+  "isContinuation": false,
+  "predecessorProjectId": null
+}'::jsonb WHERE id = 2;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Рекомендательная система подбора элективных курсов",
+  "company": "МФТИ",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Помочь студентам выбирать элективные курсы, соответствующие их профилю и целям обучения, а учебному отделу — прогнозировать популярность дисциплин.",
+  "expectedResult": "Веб-сервис с рекомендательным API и веб-кабинетом студента: ввод интересов, просмотр топ-5 элективов с объяснением рекомендации.",
+  "technologies": "Python 3.12, scikit-learn, Pandas, FastAPI, React, PostgreSQL.",
+  "competencies": "Машинное обучение, анализ данных, рекомендательные системы.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2, 3],
+  "description": "Система анализирует академический профиль, оценки, выбранные ранее курсы и интересы для формирования персонализированного рейтинга элективов.",
+  "acceptanceCriteria": "Метрика NDCG@5 на отложенной выборке ≥ 0.65. Объяснение рекомендации показывает минимум 3 значимых признака.",
+  "eduResult": "Машинное обучение, анализ данных, рекомендательные системы.",
+  "durationSemesters": 1,
+  "sprints": {
+    "count": 6,
+    "startDate": "2026-03-03",
+    "mode": "simple",
+    "durationWeeks": 2
+  },
+  "numTeams": 4,
+  "teamSizeMin": 3,
+  "teamSizeMax": 5,
+  "resources": "Обезличенная выгрузка БРС/LMS, список элективов МФТИ.",
+  "isContinuation": false,
+  "predecessorProjectId": null
+}'::jsonb WHERE id = 3;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Мобильное приложение расписания МФТИ",
+  "company": "Т-Банк",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Дать студентам удобный мобильный клиент с актуальным расписанием и уведомлениями об изменениях.",
+  "expectedResult": "Кроссплатформенное приложение (iOS/Android) с офлайн-расписанием, push-уведомлениями и просмотром оценок из LMS.",
+  "technologies": "React Native, TypeScript, Node.js, Firebase Cloud Messaging.",
+  "competencies": "Мобильная разработка, кроссплатформенные технологии, работа с API.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2],
+  "description": "Приложение предоставляет актуальное расписание, push-уведомления об изменениях, интеграцию с LMS для просмотра оценок и дедлайнов.",
+  "acceptanceCriteria": "Открытие приложения без сети показывает кешированное расписание. Push-уведомление об изменении приходит за < 5 мин. Оценки из LMS подтягиваются автоматически.",
+  "eduResult": "Мобильная разработка, кроссплатформенные технологии, работа с API.",
+  "durationSemesters": 2,
+  "sprints": {
+    "count": 5,
+    "startDate": "2026-03-10",
+    "mode": "simple",
+    "durationWeeks": 3
+  },
+  "numTeams": 1,
+  "teamSizeMin": 3,
+  "teamSizeMax": 4,
+  "resources": "API LMS МФТИ (read-only), Apple Developer / Google Play аккаунты факультета.",
+  "isContinuation": false,
+  "predecessorProjectId": null
+}'::jsonb WHERE id = 4;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Сервис статического анализа студенческого кода",
+  "company": "МФТИ",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Развить MVP статического анализатора до уровня production-инструмента с расширенным набором правил и автоисправлениями.",
+  "expectedResult": "Docker-образ + GitLab CI job, поддерживающий 40+ правил (PEP 8 + собственные), публикующий замечания и автоправки в MR.",
+  "technologies": "Python 3.12, ast, libcst, GitLab API, Docker.",
+  "competencies": "Статический анализ, AST, DevOps, интеграция с GitLab.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2, 3],
+  "description": "Сервис интегрируется в GitLab, анализирует Python-код на соответствие стандартам, выявляет ошибки и формирует отчёт.",
+  "acceptanceCriteria": "Поддерживается ≥ 40 правил. Ложноположительных срабатываний < 5%. Для ≥ 20 правил доступен AutoFix.",
+  "eduResult": "Статический анализ, AST, DevOps, интеграция с GitLab.",
+  "durationSemesters": 2,
+  "sprints": {
+    "count": 3,
+    "startDate": "2026-02-10",
+    "mode": "simple",
+    "durationWeeks": 4
+  },
+  "numTeams": 3,
+  "teamSizeMin": 3,
+  "teamSizeMax": 4,
+  "resources": "GitLab МФТИ, Docker Registry кафедры, результаты предыдущего семестра.",
+  "isContinuation": true,
+  "predecessorProjectId": 101
+}'::jsonb WHERE id = 5;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Модуль анализа успеваемости студентов",
+  "company": "МФТИ",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Предоставить администрации ВШПИ инструмент для оперативного контроля успеваемости и выявления студентов группы риска.",
+  "expectedResult": "Веб-модуль с дашбордами успеваемости по курсам/группам и прогнозом отчисления на основе исторических данных.",
+  "technologies": "Python 3.12, Django, React, PostgreSQL.",
+  "competencies": "Backend (Django), Frontend (React), работа с аналитическими БД, базовый ML.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2],
+  "description": "Веб-модуль для отображения успеваемости студентов с дашбордами и прогнозом — на этапе проработки требований.",
+  "acceptanceCriteria": "Дашборды по 5+ метрикам. Выгрузка отчётов в Excel. Прогноз отчисления с F1 ≥ 0.7.",
+  "eduResult": "Веб-разработка full-stack, работа с аналитическими данными, базовый ML.",
+  "durationSemesters": 1,
+  "sprints": {
+    "count": 4,
+    "startDate": "2026-04-01",
+    "mode": "simple",
+    "durationWeeks": 3
+  },
+  "numTeams": 1,
+  "teamSizeMin": 3,
+  "teamSizeMax": 4,
+  "resources": "Обезличенная выгрузка БРС, VDI МФТИ.",
+  "isContinuation": false,
+  "predecessorProjectId": null
+}'::jsonb WHERE id = 6;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Система управления проектным практикумом ВШПИ (1 семестр)",
+  "company": "МФТИ",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Построить каркас системы и покрыть ключевые сценарии подачи и распределения заявок студентов.",
+  "expectedResult": "Рабочий прототип с авторизацией, каталогом проектов, подачей заявок и ручным распределением координатором.",
+  "technologies": "Python 3.12, Django 5, Django REST Framework, PostgreSQL 16, Redis, Docker Compose.",
+  "competencies": "Командная full-stack разработка, проектирование REST API, работа с PostgreSQL и миграциями.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2, 4],
+  "description": "В рамках первого семестра реализованы: каркас Django-проекта, модели User/Project/Application/Team, OAuth-авторизация через МФТИ, прототипы дашбордов для всех ролей в Figma, базовое API каталога проектов.",
+  "acceptanceCriteria": "Авторизация через OAuth МФТИ. CRUD проектов. Подача до 5 заявок с приоритетами. Просмотр заявок координатором.",
+  "eduResult": "Командная full-stack разработка, проектирование REST API, работа с PostgreSQL и миграциями.",
+  "durationSemesters": 2,
+  "sprints": {
+    "count": 3,
+    "startDate": "2025-09-08",
+    "mode": "simple",
+    "durationWeeks": 4
+  },
+  "numTeams": 2,
+  "teamSizeMin": 3,
+  "teamSizeMax": 5,
+  "resources": "VDI-сервер МФТИ, Яндекс.Диск, GitLab МФТИ.",
+  "isContinuation": false,
+  "predecessorProjectId": null
+}'::jsonb WHERE id = 100;
+
+UPDATE projects SET proposal_data = '{
+  "title": "Сервис статического анализа студенческого кода (MVP)",
+  "company": "МФТИ",
+  "mentor": {
+    "fullName": "Тимохин Виктор Николаевич",
+    "role": "Доцент кафедры программной инженерии",
+    "email": "timohin@mipt.ru",
+    "telegram": "@vtimohin",
+    "phone": "+7 (495) 408-46-29"
+  },
+  "goal": "Прототипировать сервис автопроверки студенческого кода с минимальным набором правил.",
+  "expectedResult": "Docker-контейнер, разворачиваемый в GitLab CI, анализирующий Python-код в MR и комментирующий нарушения.",
+  "technologies": "Python 3.12, ast, GitLab API, Docker, pytest.",
+  "competencies": "Работа с AST, написание правил статического анализа, интеграция с DevOps-пайплайнами.",
+  "minRating": null,
+  "minGpa": 5.0,
+  "allowedCourses": [2, 3],
+  "description": "В рамках MVP реализован парсер Python-кода на основе AST, набор из 15 базовых правил (PEP 8 + собственные), интеграция с GitLab CI через webhook, выгрузка отчёта в формате Markdown в MR.",
+  "acceptanceCriteria": "Анализ MR с Python-кодом. Публикация отчёта в MR. Минимум 15 правил. Ложноположительных срабатываний < 10%.",
+  "eduResult": "Работа с AST, написание правил статического анализа, интеграция с DevOps-пайплайнами.",
+  "durationSemesters": 2,
+  "sprints": {
+    "count": 3,
+    "startDate": "2025-09-08",
+    "mode": "simple",
+    "durationWeeks": 4
+  },
+  "numTeams": 1,
+  "teamSizeMin": 3,
+  "teamSizeMax": 4,
+  "resources": "GitLab МФТИ, Docker Registry.",
+  "isContinuation": false,
+  "predecessorProjectId": null
+}'::jsonb WHERE id = 101;
+
 -- ─── Teams ──────────────────────────────────────────────────────────────
 -- Project 1 — СУПП: 3 команды launched + 1 ожидает запуска (id=4).
 -- Project 2 — Тестирование ПО: 2 команды
