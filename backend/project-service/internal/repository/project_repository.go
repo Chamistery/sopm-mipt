@@ -75,7 +75,9 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 		       team_size_min, team_size_max, num_teams, COALESCE(min_gpa, 0),
 		       COALESCE(edu_result, ''), COALESCE(acceptance_criteria, ''), COALESCE(goal, ''),
 		       COALESCE(expected_result, ''), COALESCE(competencies, ''), COALESCE(resources, ''),
-		       duration_semesters, submitted_at, proposal_data, created_at, updated_at
+		       duration_semesters, submitted_at, proposal_data,
+		       pending_proposal_data, pending_submitted_at, pending_submitted_by_id,
+		       created_at, updated_at
 		FROM projects
 		WHERE id = $1
 	`
@@ -83,6 +85,7 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 	project := &models.Project{}
 	var courses models.IntList
 	var proposalRaw []byte
+	var pendingRaw []byte
 	scanFunc := func(s Scanner) error {
 		return s.Scan(
 			&project.ID,
@@ -107,6 +110,9 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 			&project.DurationSemesters,
 			&project.SubmittedAt,
 			&proposalRaw,
+			&pendingRaw,
+			&project.PendingSubmittedAt,
+			&project.PendingSubmittedByID,
 			&project.CreatedAt,
 			&project.UpdatedAt,
 		)
@@ -120,8 +126,41 @@ func (r *ProjectRepository) GetByID(ctx context.Context, id int) (*models.Projec
 		raw := json.RawMessage(append([]byte(nil), proposalRaw...))
 		project.ProposalData = &raw
 	}
+	if len(pendingRaw) > 0 {
+		raw := json.RawMessage(append([]byte(nil), pendingRaw...))
+		project.PendingProposalData = &raw
+	}
 
 	return project, nil
+}
+
+// SubmitChangeRequest сохраняет JSON-документ предложенных изменений в
+// pending_proposal_data, проставляет автора и timestamp. Если pending
+// уже был — перезаписываем (ментор передумал, отправил новую версию).
+//
+// Возвращает свежий Project с уже подгруженным pending-блоком, чтобы
+// фронт мог отрендерить banner без дополнительного round-trip.
+func (r *ProjectRepository) SubmitChangeRequest(
+	ctx context.Context,
+	projectID int,
+	proposalData json.RawMessage,
+	userID int,
+) (*models.Project, error) {
+	query := `
+		UPDATE projects
+		SET pending_proposal_data = $2::jsonb,
+		    pending_submitted_at = NOW(),
+		    pending_submitted_by_id = $3
+		WHERE id = $1
+	`
+	result, err := r.db.Exec(ctx, query, projectID, []byte(proposalData), userID)
+	if err != nil {
+		return nil, err
+	}
+	if err := CheckRowsAffected(result, "project"); err != nil {
+		return nil, err
+	}
+	return r.GetByID(ctx, projectID)
 }
 
 // GetProposal возвращает только proposal_data (или nil, если не задан) +

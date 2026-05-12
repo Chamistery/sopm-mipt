@@ -245,6 +245,71 @@ func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w, http.StatusOK, updated)
 }
 
+// SubmitChangeRequest — ментор (или координатор/админ) отправляет
+// заявку на изменение существующего проекта. Тело: `{ proposalData: <object> }`,
+// произвольный JSON-документ той же формы, что и `proposalData` при
+// создании проекта (см. ProposalData на фронте).
+//
+// Поведение:
+//   * сохраняет proposalData в колонку pending_proposal_data
+//   * выставляет pending_submitted_at = NOW(), pending_submitted_by_id = user.id
+//   * сам проект (proposal_data, title, status …) НЕ трогает — это change
+//     request, координатор решит, применять ли (отдельный endpoint позже).
+//   * если pending уже был — перезаписываем (ментор передумал, отправил
+//     новую версию).
+//
+// Доступ: ментор-владелец проекта, координатор или админ. Анонимам — 401.
+type submitChangeRequestPayload struct {
+	ProposalData *json.RawMessage `json:"proposalData"`
+}
+
+func (h *ProjectHandler) SubmitChangeRequest(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.IsAuthenticated() {
+		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var payload submitChangeRequestPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if payload.ProposalData == nil || len(*payload.ProposalData) == 0 {
+		httputil.RespondError(w, http.StatusBadRequest, "proposalData is required")
+		return
+	}
+
+	// Доступ: разрешён ментору данного проекта либо координатору/админу.
+	// Чтобы понять «свой ли проект», тянем mentor_id через GetProposal
+	// (он же делает 404, если проекта нет).
+	_, mentorID, err := h.repo.GetProposal(r.Context(), id)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	allowed := user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) ||
+		(user.HasAnyRole(auth.RoleMentor) && user.ID == mentorID)
+	if !allowed {
+		httputil.RespondError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	updated, err := h.repo.SubmitChangeRequest(r.Context(), id, *payload.ProposalData, user.ID)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+
+	httputil.RespondSuccess(w, http.StatusOK, updated)
+}
+
 func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {

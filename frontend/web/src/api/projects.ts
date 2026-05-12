@@ -96,6 +96,15 @@ export interface Project {
   updatedAt: string;
   /** Legacy template field values, used by the catalog detail modal. */
   fieldValues?: FieldValue[];
+  /**
+   * Change request: ментор отредактировал заявку утверждённого проекта,
+   * координатор ещё не применил изменения. Здесь — предложенная новая
+   * версия `proposalData`. См. POST /projects/:id/change-request.
+   */
+  pendingProposalData?: ProposalData | null;
+  /** ISO timestamp когда был отправлен change request. */
+  pendingSubmittedAt?: string | null;
+  pendingSubmittedById?: number | null;
 }
 
 /** Coordinator-side trimmed team view for project detail page. */
@@ -200,6 +209,30 @@ export function getProjectProposal(id: number): Promise<ProposalData | null> {
 
 export function updateProject(id: number, payload: Partial<Project>): Promise<Project> {
   return apiFetch<Project>(`/projects/${id}`, { method: 'PUT', body: payload });
+}
+
+export interface ProjectChangeRequestPayload {
+  /** Полная новая версия заявки. Бэк хранит как-есть в pending_proposal_data. */
+  proposalData: ProposalData;
+}
+
+/**
+ * Отправляет change request — заявку на изменение существующего проекта.
+ * Изменения **не применяются сразу**: бэк сохраняет proposalData в колонку
+ * `pending_proposal_data`, координатор увидит и решит, применять ли.
+ *
+ * Если на проекте уже есть pending-заявка — перезаписывается (ментор может
+ * прислать новую версию). Возвращается обновлённый Project с заполненными
+ * pendingProposalData / pendingSubmittedAt.
+ */
+export function submitProjectChangeRequest(
+  id: number,
+  payload: ProjectChangeRequestPayload,
+): Promise<Project> {
+  return apiFetch<Project>(`/projects/${id}/change-request`, {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export function deleteProject(id: number): Promise<void> {

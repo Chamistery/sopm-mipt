@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/hsse/project-service/internal/auth"
@@ -34,6 +35,12 @@ type stubProjectRepo struct {
 	proposalMentorID    int
 	proposalErr         error
 	proposalCalledID    int
+	// SubmitChangeRequest capture
+	submitCalledID      int
+	submitCalledUserID  int
+	submitCalledPayload json.RawMessage
+	submitResult        *models.Project
+	submitErr           error
 }
 
 func (s *stubProjectRepo) Create(context.Context, *models.Project) error { return nil }
@@ -59,6 +66,12 @@ func (s *stubProjectRepo) GetProposal(_ context.Context, id int) (*json.RawMessa
 }
 func (s *stubProjectRepo) Update(context.Context, *models.Project) error { return nil }
 func (s *stubProjectRepo) Delete(context.Context, int) error             { return nil }
+func (s *stubProjectRepo) SubmitChangeRequest(_ context.Context, projectID int, proposalData json.RawMessage, userID int) (*models.Project, error) {
+	s.submitCalledID = projectID
+	s.submitCalledUserID = userID
+	s.submitCalledPayload = append(s.submitCalledPayload[:0], proposalData...)
+	return s.submitResult, s.submitErr
+}
 
 func newRequestWithUser(method, target string, user *auth.CurrentUser) *http.Request {
 	req := httptest.NewRequest(method, target, nil)
@@ -353,3 +366,139 @@ func TestProjectHandler_GetPredecessor_UnauthenticatedRejected(t *testing.T) {
 	}
 }
 
+// ─── SubmitChangeRequest ────────────────────────────────────────────────
+
+func submitChangeRequestRequest(target string, user *auth.CurrentUser, body string) *http.Request {
+	req := httptest.NewRequest(http.MethodPost, target, strings.NewReader(body))
+	if user != nil {
+		req = req.WithContext(auth.WithCurrentUser(req.Context(), user))
+	}
+	return req
+}
+
+func TestProjectHandler_SubmitChangeRequest_MentorOfProjectAccepted(t *testing.T) {
+	repo := &stubProjectRepo{
+		proposalMentorID: 99,
+		submitResult: &models.Project{
+			ID:                  42,
+			Title:               "Проект",
+			MentorID:            99,
+			PendingProposalData: rawProposal(`{"title":"новая версия"}`),
+		},
+	}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := submitChangeRequestRequest(
+		"/api/projects/42/change-request",
+		user,
+		`{"proposalData":{"title":"новая версия"}}`,
+	)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.SubmitChangeRequest(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.submitCalledID != 42 {
+		t.Fatalf("expected repo called with id=42, got %d", repo.submitCalledID)
+	}
+	if repo.submitCalledUserID != 99 {
+		t.Fatalf("expected userID=99, got %d", repo.submitCalledUserID)
+	}
+	if string(repo.submitCalledPayload) != `{"title":"новая версия"}` {
+		t.Fatalf("unexpected payload: %s", string(repo.submitCalledPayload))
+	}
+}
+
+func TestProjectHandler_SubmitChangeRequest_OtherMentorForbidden(t *testing.T) {
+	repo := &stubProjectRepo{proposalMentorID: 7}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := submitChangeRequestRequest(
+		"/api/projects/42/change-request",
+		user,
+		`{"proposalData":{"title":"x"}}`,
+	)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.SubmitChangeRequest(w, req)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProjectHandler_SubmitChangeRequest_CoordinatorAccepted(t *testing.T) {
+	repo := &stubProjectRepo{
+		proposalMentorID: 7,
+		submitResult:     &models.Project{ID: 42, MentorID: 7},
+	}
+	h := NewProjectHandler(repo)
+
+	user := &auth.CurrentUser{ID: 1, Role: auth.RoleCoordinator}
+	req := submitChangeRequestRequest(
+		"/api/projects/42/change-request",
+		user,
+		`{"proposalData":{"title":"x"}}`,
+	)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.SubmitChangeRequest(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProjectHandler_SubmitChangeRequest_AnonymousRejected(t *testing.T) {
+	repo := &stubProjectRepo{}
+	h := NewProjectHandler(repo)
+	req := submitChangeRequestRequest(
+		"/api/projects/42/change-request",
+		&auth.CurrentUser{Role: auth.RoleAnonymous},
+		`{"proposalData":{"title":"x"}}`,
+	)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.SubmitChangeRequest(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestProjectHandler_SubmitChangeRequest_MissingPayloadRejected(t *testing.T) {
+	repo := &stubProjectRepo{proposalMentorID: 99}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := submitChangeRequestRequest(
+		"/api/projects/42/change-request",
+		user,
+		`{}`,
+	)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.SubmitChangeRequest(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
+	}
+}
+
+func TestProjectHandler_SubmitChangeRequest_NotFound(t *testing.T) {
+	repo := &stubProjectRepo{proposalErr: errors.New("project not found")}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 99, Role: auth.RoleMentor}
+	req := submitChangeRequestRequest(
+		"/api/projects/999/change-request",
+		user,
+		`{"proposalData":{"title":"x"}}`,
+	)
+	req.SetPathValue("id", "999")
+	w := httptest.NewRecorder()
+	h.SubmitChangeRequest(w, req)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}

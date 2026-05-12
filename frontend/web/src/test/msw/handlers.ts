@@ -85,6 +85,16 @@ const state = {
   meetings: [] as Array<Record<string, unknown> & { id: number; teamId: number; status: string }>,
   nextMeetingId: 9000,
   /*
+   * Change requests на проекты — ментор отредактировал заявку утверждённого
+   * проекта, координатор ещё не утвердил. Mapping projectId → pending payload
+   * + timestamp. Перезапись pending-заявки полностью валидна (ментор
+   * передумал, прислал новую версию).
+   */
+  projectChangeRequests: new Map<
+    number,
+    { pendingProposalData: unknown; pendingSubmittedAt: string; pendingSubmittedById: number }
+  >(),
+  /*
    * Распределение ментора — мутирует напрямую при recommend/unrecommend/invite/launch.
    * Глубокое клонирование fixture-объекта, чтобы исходный массив остался
    * детерминированным для других тестов.
@@ -423,7 +433,41 @@ export const handlers = [
   http.get(`${API}/projects/:id`, ({ params }) => {
     const id = Number(params.id);
     const project = fixtureProjects.find((p) => p.id === id);
-    return project ? ok(project) : err(404, 'project not found');
+    if (!project) return err(404, 'project not found');
+    const pending = state.projectChangeRequests.get(id);
+    if (pending) {
+      return ok({
+        ...project,
+        pendingProposalData: pending.pendingProposalData,
+        pendingSubmittedAt: pending.pendingSubmittedAt,
+        pendingSubmittedById: pending.pendingSubmittedById,
+      });
+    }
+    return ok(project);
+  }),
+
+  http.post(`${API}/projects/:id/change-request`, async ({ params, request }) => {
+    const id = Number(params.id);
+    const project = fixtureProjects.find((p) => p.id === id);
+    if (!project) return err(404, 'project not found');
+    const body = (await request.json()) as { proposalData?: unknown };
+    if (!body || typeof body !== 'object' || body.proposalData == null) {
+      return err(400, 'proposalData is required');
+    }
+    const userIdHeader = request.headers.get('X-User-Id');
+    const userId = userIdHeader ? Number(userIdHeader) : MENTOR_ID;
+    const entry = {
+      pendingProposalData: body.proposalData,
+      pendingSubmittedAt: new Date().toISOString(),
+      pendingSubmittedById: userId,
+    };
+    state.projectChangeRequests.set(id, entry);
+    return ok({
+      ...project,
+      pendingProposalData: entry.pendingProposalData,
+      pendingSubmittedAt: entry.pendingSubmittedAt,
+      pendingSubmittedById: entry.pendingSubmittedById,
+    });
   }),
 
   http.get(`${API}/projects/:id/full`, ({ params }) => {
@@ -473,6 +517,40 @@ export const handlers = [
         teamSizeMin: 3,
         teamSizeMax: 5,
         resources: 'Доступ к данным кампуса.',
+        isContinuation: false,
+        predecessorProjectId: null,
+      });
+    }
+    if (id === 100) {
+      // Активный проект — полная заявка, чтобы edit-форма проходила
+      // валидацию «Далее» на всех 4 секциях. Используется e2e
+      // mentor-project-info-edit.spec.ts.
+      return ok({
+        title: 'СУПП ВШПИ МФТИ',
+        company: 'ВШПИ МФТИ',
+        mentor: {
+          fullName: 'Тимохин В.Н.',
+          role: 'Профессор',
+          email: 'timokhin@mipt.ru',
+          telegram: '@vtimokhin',
+          phone: '+7 (495) 000-00-00',
+        },
+        goal: 'Автоматизировать управление проектным практикумом ВШПИ МФТИ.',
+        expectedResult: 'Веб-приложение с ролями студента, ментора, координатора.',
+        technologies: 'React, TypeScript, Go, PostgreSQL',
+        competencies: 'JavaScript/TypeScript, базовое понимание SQL, навыки командной работы.',
+        minRating: null,
+        minGpa: 3.5,
+        allowedCourses: [2],
+        description: 'Подробное описание проекта СУПП ВШПИ МФТИ.',
+        acceptanceCriteria: 'Все роли работают, тесты зелёные, развёрнут на VDI.',
+        eduResult: 'Backend, Frontend, командная работа, code review.',
+        durationSemesters: 1,
+        sprints: { count: 3, startDate: '2026-03-30', mode: 'simple', durationWeeks: 3 },
+        numTeams: 1,
+        teamSizeMin: 3,
+        teamSizeMax: 5,
+        resources: 'VDI МФТИ, доступ к git.',
         isContinuation: false,
         predecessorProjectId: null,
       });
