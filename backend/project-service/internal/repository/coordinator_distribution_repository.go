@@ -183,7 +183,45 @@ func (r *CoordinatorDistributionRepository) loadTeamMembers(ctx context.Context,
 		m.Qualified = true // координатор не фильтрует по требованиям проекта
 		members = append(members, m)
 	}
-	return members, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Подгружаем все приоритеты каждого студента для drawer'а. По одному
+	// запросу на студента — дашборд distribution маленький (< 100 чипов).
+	for i := range members {
+		priorities, err := r.loadStudentPriorities(ctx, members[i].StudentID)
+		if err != nil {
+			return nil, err
+		}
+		members[i].AllPriorities = priorities
+	}
+	return members, nil
+}
+
+func (r *CoordinatorDistributionRepository) loadStudentPriorities(ctx context.Context, studentID int) ([]models.TeamMemberPriority, error) {
+	const q = `
+		SELECT a.id, a.project_id, p.title, a.priority, a.status
+		FROM applications a
+		JOIN projects p ON p.id = a.project_id
+		WHERE a.student_id = $1
+		ORDER BY a.priority ASC
+	`
+	rows, err := r.db.Query(ctx, q, studentID)
+	if err != nil {
+		return nil, fmt.Errorf("coord distribution: query student priorities: %w", err)
+	}
+	defer rows.Close()
+
+	var out []models.TeamMemberPriority
+	for rows.Next() {
+		var p models.TeamMemberPriority
+		if err := rows.Scan(&p.ApplicationID, &p.ProjectID, &p.ProjectTitle, &p.Priority, &p.Status); err != nil {
+			return nil, fmt.Errorf("coord distribution: scan priority: %w", err)
+		}
+		out = append(out, p)
+	}
+	return out, rows.Err()
 }
 
 // loadGlobalPool — все студенты, у которых есть заявка на любой проект

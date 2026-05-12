@@ -24,6 +24,16 @@ export interface MentorDistributionTeamMember {
   priority: number;
   status: ApplicationStatus;
   qualified: boolean;
+  /** Заполняется только в coord distribution endpoint (mentor не использует). */
+  allPriorities?: TeamMemberPriority[];
+}
+
+export interface TeamMemberPriority {
+  applicationId: number;
+  projectId: number;
+  projectTitle: string;
+  priority: number;
+  status: ApplicationStatus;
 }
 
 export interface MentorDistributionTeam {

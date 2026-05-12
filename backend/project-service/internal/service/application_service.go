@@ -83,10 +83,16 @@ func (s *ApplicationService) Recommend(ctx context.Context, user *auth.CurrentUs
 	if err != nil {
 		return nil, err
 	}
+	// Ментор: только из «холодных» статусов (Ожидает / Не рекомендован /
+	// Не подходит). Координатор/админ может перевести из любого статуса
+	// (admin.html status-menu разрешает «Заявка не отправлена» как обратный
+	// шаг от Принят/Принято ментором).
 	if app.Status != models.ApplicationStatusPending &&
 		app.Status != models.ApplicationStatusNotRecommended &&
 		app.Status != models.ApplicationStatusUnqualified {
-		return nil, WrapStateError("application cannot be recommended from status %s", app.Status)
+		if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+			return nil, WrapStateError("application cannot be recommended from status %s", app.Status)
+		}
 	}
 	team, err := s.teams.GetByID(ctx, teamID)
 	if err != nil {
@@ -132,8 +138,16 @@ func (s *ApplicationService) Invite(ctx context.Context, user *auth.CurrentUser,
 	if err != nil {
 		return nil, err
 	}
+	// Ментор только из 'Рекомендован' (стандартный flow). Координатор/админ
+	// может в admin.html status-menu переключать туда-обратно — поэтому
+	// допускаем 'Принят' тоже (как deescalation от accepted).
 	if app.Status != models.ApplicationStatusRecommended {
-		return nil, WrapStateError("application cannot be invited from status %s", app.Status)
+		if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) &&
+			app.Status == models.ApplicationStatusAccepted {
+			// OK — coordinator deescalates accepted → invited
+		} else {
+			return nil, WrapStateError("application cannot be invited from status %s", app.Status)
+		}
 	}
 	now := time.Now()
 	app.Status = models.ApplicationStatusMentorAccepted
@@ -146,7 +160,7 @@ func (s *ApplicationService) Invite(ctx context.Context, user *auth.CurrentUser,
 }
 
 func (s *ApplicationService) Accept(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, error) {
-	if err := RequireRoles(user, auth.RoleStudent, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleStudent, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
 		return nil, err
 	}
 	app, err := s.applications.GetByID(ctx, applicationID)
@@ -156,8 +170,19 @@ func (s *ApplicationService) Accept(ctx context.Context, user *auth.CurrentUser,
 	if user.Role == auth.RoleStudent && user.ID != app.StudentID {
 		return nil, ErrForbidden
 	}
-	if app.Status != models.ApplicationStatusMentorAccepted {
+	// Студент жмёт «принять приглашение» — только из 'Принято ментором'.
+	// Координатор/админ из admin.html status-menu выставляет статус
+	// напрямую — допускается с 'Рекомендован' или 'Принято ментором'
+	// (студент уже привязан к команде).
+	if user.HasAnyRole(auth.RoleStudent) && app.Status != models.ApplicationStatusMentorAccepted {
 		return nil, WrapStateError("application cannot be accepted from status %s", app.Status)
+	}
+	if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+		if app.Status != models.ApplicationStatusRecommended &&
+			app.Status != models.ApplicationStatusMentorAccepted &&
+			app.Status != models.ApplicationStatusAccepted {
+			return nil, WrapStateError("application cannot be accepted from status %s", app.Status)
+		}
 	}
 
 	now := time.Now()

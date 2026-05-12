@@ -44,6 +44,19 @@ type MentorDistributionTeamMember struct {
 	Priority      int               `json:"priority"`
 	Status        ApplicationStatus `json:"status"`
 	Qualified     bool              `json:"qualified"`
+	// AllPriorities — все заявки этого студента (нужно для drawer'а в admin
+	// distribution: видеть, какие проекты он указывал в каком приоритете).
+	// На менторском distribution не заполняется (omitempty).
+	AllPriorities []TeamMemberPriority `json:"allPriorities,omitempty"`
+}
+
+// TeamMemberPriority — лёгкая запись о другой заявке этого студента.
+type TeamMemberPriority struct {
+	ApplicationID int               `json:"applicationId"`
+	ProjectID     int               `json:"projectId"`
+	ProjectTitle  string            `json:"projectTitle"`
+	Priority      int               `json:"priority"`
+	Status        ApplicationStatus `json:"status"`
 }
 
 type MentorDistributionPool struct {

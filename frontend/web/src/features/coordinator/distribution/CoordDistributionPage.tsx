@@ -3,29 +3,35 @@
  * (view-distribution, lines 1174-1827).
  *
  * Структура:
- *   page-header        - заголовок + deadline
- *   gdist-toolbar      - search + status-filter + collapse/expand + run-button
+ *   page-header           — заголовок + deadline
+ *   gdist-toolbar         — search + status-filter + collapse/expand + run-button
  *   gdist-layout (flex)
- *     gdist-main       - список проектов с командами (D&D-target)
- *     gdist-sidebar    - пул нераспределённых (D&D-source/target)
+ *     gdist-main          — список проектов с командами (D&D-target)
+ *     gdist-sidebar       — пул нераспределённых (D&D-source/target)
+ *   stud-drawer (modal)   — выезжает справа при клике на чип
  *
  * D&D реализован через HTML5 Drag and Drop API: payload в DataTransfer,
  * мутации (recommend / unrecommend) идут через TanStack Query, инвалидируя
- * COORDINATOR_DISTRIBUTION_KEY. Никаких глобальных сторов.
+ * COORDINATOR_DISTRIBUTION_KEY.
  *
- * Что отложено (known TODO):
- *   - student drawer (полный профиль студента с приоритетами)
- *   - status menu при клике на бейдж (пока статус показывается, но не
- *     меняется напрямую — только через D&D)
- *   - run-button на бэке (есть useGenerateDistribution, но фоновый сервис
- *     не запускается; кнопка вызывает мутацию которая отдаёт unavailable)
+ * Status-menu открывается popover'ом при клике на бейдж статуса (см.
+ * DistStatusMenu) — даёт переключить между Принят / Заявка отправлена /
+ * Заявка не отправлена.
+ *
+ * Force-create: если из пула перетаскивают студента в проект, на который
+ * у него нет заявки, создаётся новая заявка с первым свободным
+ * приоритетом (1..5) и затем рекомендуется в команду.
  */
 
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
-import { recommendApplicant, unrecommendApplicant } from '@/api/applications';
+import {
+  recommendApplicant,
+  submitApplication,
+  unrecommendApplicant,
+} from '@/api/applications';
 import type {
   CoordinatorDistributionProject,
   CoordinatorPoolStudent,
@@ -37,12 +43,9 @@ import {
 } from '../hooks/useCoordinatorDistribution';
 import { DistProjectCard } from './DistProjectCard';
 import { DistPool } from './DistPool';
-import {
-  DIST_DRAG_MIME,
-  hasDragPayload,
-  readDragPayload,
-  type DistDragPayload,
-} from './dragData';
+import { DistStudentDrawer, type DrawerStudent } from './DistStudentDrawer';
+import { useSetApplicationStatus } from './useStatusMutation';
+import type { DistDragPayload } from './dragData';
 import styles from './CoordDistributionPage.module.css';
 
 export function CoordDistributionPage(): JSX.Element {
@@ -53,12 +56,17 @@ export function CoordDistributionPage(): JSX.Element {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [collapsedProjects, setCollapsedProjects] = useState<Set<number>>(new Set());
+  const [drawerStudent, setDrawerStudent] = useState<DrawerStudent | null>(null);
+
+  const invalidate = (): void => {
+    void queryClient.invalidateQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
+  };
 
   const recommendMut = useMutation({
     mutationFn: ({ id, teamId }: { id: number; teamId: number }) =>
       recommendApplicant(id, teamId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
+      invalidate();
       showSuccess('Студент перемещён');
     },
     onError: (err) => showError(formatError(err, 'Не удалось переместить студента')),
@@ -67,11 +75,57 @@ export function CoordDistributionPage(): JSX.Element {
   const unrecommendMut = useMutation({
     mutationFn: (id: number) => unrecommendApplicant(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
+      invalidate();
       showSuccess('Студент возвращён в пул');
     },
     onError: (err) => showError(formatError(err, 'Не удалось вернуть студента в пул')),
   });
+
+  const forceCreateMut = useMutation({
+    mutationFn: async ({
+      studentId,
+      projectId,
+      teamId,
+      priority,
+    }: {
+      studentId: number;
+      projectId: number;
+      teamId: number;
+      priority: number;
+    }) => {
+      const newApp = await submitApplication({ studentId, projectId, priority });
+      return recommendApplicant(newApp.id, teamId);
+    },
+    onSuccess: () => {
+      invalidate();
+      showSuccess('Заявка создана и студент назначен в команду');
+    },
+    onError: (err) => showError(formatError(err, 'Не удалось создать заявку')),
+  });
+
+  const statusMut = useSetApplicationStatus();
+
+  const handleSetStatus = (
+    applicationId: number,
+    teamId: number,
+    key: 'accepted' | 'invited' | 'recommend',
+  ): void => {
+    statusMut.mutate(
+      { applicationId, teamId, key },
+      {
+        onSuccess: () => {
+          const label =
+            key === 'accepted'
+              ? 'Принят'
+              : key === 'invited'
+                ? 'Заявка отправлена'
+                : 'Заявка не отправлена';
+          showSuccess(`Статус изменён: ${label}`);
+        },
+        onError: (err) => showError(formatError(err, 'Не удалось изменить статус')),
+      },
+    );
+  };
 
   const handleDropToTeam = (payload: DistDragPayload, teamId: number, projectId: number): void => {
     if (payload.kind === 'team-member') {
@@ -80,14 +134,41 @@ export function CoordDistributionPage(): JSX.Element {
       return;
     }
     // payload.kind === 'pool-student'
-    const appId = payload.applicationsByProject[projectId];
-    if (!appId) {
+    const existing = payload.applicationsByProject[projectId];
+    if (existing) {
+      recommendMut.mutate({ id: existing, teamId });
+      return;
+    }
+    // Force-create: студент не подавал заявку на этот проект.
+    const usedPriorities = new Set(
+      Object.values(payload.applicationsByProject).map((appId) => appId), // приоритеты не приходят в payload
+    );
+    // applicationsByProject содержит только projectId→applicationId, но нам
+    // нужны использованные ПРИОРИТЕТЫ. Тянем их из dataQuery.data.pool по
+    // studentId.
+    const poolEntry = dataQuery.data?.pool.find((s) => s.studentId === payload.studentId);
+    const priorityNumbers = new Set((poolEntry?.priorities ?? []).map((p) => p.priority));
+    let freePriority = 0;
+    for (let i = 1; i <= 5; i += 1) {
+      if (!priorityNumbers.has(i)) {
+        freePriority = i;
+        break;
+      }
+    }
+    if (!freePriority) {
       showError(
-        'Студент не подал заявку на этот проект. Создайте заявку через CRM или попросите студента подать её сам.',
+        'У студента уже 5 приоритетов. Освободите один из них через «Архив заявок», прежде чем добавлять в новый проект.',
       );
       return;
     }
-    recommendMut.mutate({ id: appId, teamId });
+    forceCreateMut.mutate({
+      studentId: payload.studentId,
+      projectId,
+      teamId,
+      priority: freePriority,
+    });
+    // silence linter
+    void usedPriorities;
   };
 
   const handleDropToPool = (payload: DistDragPayload): void => {
@@ -204,20 +285,29 @@ export function CoordDistributionPage(): JSX.Element {
                   collapsed={collapsedProjects.has(project.id)}
                   onToggleCollapse={() => toggleCollapse(project.id)}
                   onDropToTeam={handleDropToTeam}
+                  onOpenDrawer={setDrawerStudent}
+                  onSetStatus={handleSetStatus}
                 />
               ))
             )}
           </div>
           <aside className={styles.sidebar}>
-            <DistPool pool={pool} onDropToPool={handleDropToPool} />
+            <DistPool
+              pool={pool}
+              onDropToPool={handleDropToPool}
+              onOpenDrawer={setDrawerStudent}
+            />
             <div className={styles.helpTile}>
               <b>Координатор:</b> может вручную переносить студентов между любыми
               командами любых проектов перетаскиванием. Чтобы исключить — перетащите
-              чип в правую панель.
+              чип в правую панель. Клик по чипу — открыть профиль; клик по бейджу
+              статуса — изменить статус.
             </div>
           </aside>
         </div>
       ) : null}
+
+      <DistStudentDrawer student={drawerStudent} onClose={() => setDrawerStudent(null)} />
     </div>
   );
 }
@@ -235,7 +325,6 @@ function filterProject(
   term: string,
   status: string,
 ): CoordinatorDistributionProject | null {
-  // Если выбран фильтр «В пуле» — проекты не показываем.
   if (status === 'pool') return null;
   const teams = project.teams.map((team) => ({
     ...team,
@@ -272,9 +361,3 @@ function formatError(err: unknown, fallback: string): string {
   if (err instanceof Error) return `${fallback}: ${err.message}`;
   return fallback;
 }
-
-// Re-export of constant for type tests; кладём здесь чтобы ToolSearch не ругался
-export { DIST_DRAG_MIME };
-
-void hasDragPayload;
-void readDragPayload;

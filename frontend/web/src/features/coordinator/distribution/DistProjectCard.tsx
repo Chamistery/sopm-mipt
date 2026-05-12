@@ -4,6 +4,10 @@
  *
  * Каждая team-block — drop-target: при drop'е сюда payload
  * (DistDragPayload) передаётся на onDropToTeam(payload, teamId, projectId).
+ *
+ * Чип-bypass:
+ *   - клик по телу чипа → onOpenDrawer (открывает полный профиль)
+ *   - клик по бейджу статуса → toggle popover (status-menu)
  */
 
 import { useState, type DragEvent, type JSX } from 'react';
@@ -19,7 +23,9 @@ import {
   type DistDragPayload,
 } from './dragData';
 import { colorFor, initialsFor } from './initials';
-import { gdistStatusOf } from './statusInfo';
+import { gdistStatusOf, type GdistStatusKey } from './statusInfo';
+import { DistStatusMenu } from './DistStatusMenu';
+import type { DrawerStudent } from './DistStudentDrawer';
 import styles from './DistProjectCard.module.css';
 
 interface Props {
@@ -27,6 +33,8 @@ interface Props {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onDropToTeam: (payload: DistDragPayload, teamId: number, projectId: number) => void;
+  onOpenDrawer: (student: DrawerStudent) => void;
+  onSetStatus: (applicationId: number, teamId: number, key: GdistStatusKey) => void;
 }
 
 export function DistProjectCard({
@@ -34,6 +42,8 @@ export function DistProjectCard({
   collapsed,
   onToggleCollapse,
   onDropToTeam,
+  onOpenDrawer,
+  onSetStatus,
 }: Props): JSX.Element {
   const teamSize = `${project.teamSizeMin}–${project.teamSizeMax} чел./ком.`;
   const mentorLabel = project.mentor
@@ -73,6 +83,8 @@ export function DistProjectCard({
               project={project}
               team={team}
               onDrop={(payload) => onDropToTeam(payload, team.id, project.id)}
+              onOpenDrawer={onOpenDrawer}
+              onSetStatus={(applicationId, key) => onSetStatus(applicationId, team.id, key)}
             />
           ))}
         </div>
@@ -85,9 +97,11 @@ interface TeamBlockProps {
   project: CoordinatorDistributionProject;
   team: MentorDistributionTeam;
   onDrop: (payload: DistDragPayload) => void;
+  onOpenDrawer: (student: DrawerStudent) => void;
+  onSetStatus: (applicationId: number, key: GdistStatusKey) => void;
 }
 
-function TeamBlock({ project, team, onDrop }: TeamBlockProps): JSX.Element {
+function TeamBlock({ project, team, onDrop, onOpenDrawer, onSetStatus }: TeamBlockProps): JSX.Element {
   const [over, setOver] = useState(false);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>): void => {
@@ -133,7 +147,15 @@ function TeamBlock({ project, team, onDrop }: TeamBlockProps): JSX.Element {
       </div>
       <div className={styles.chipList}>
         {team.members.map((m) => (
-          <TeamMemberChip key={m.applicationId} member={m} teamId={team.id} />
+          <TeamMemberChip
+            key={m.applicationId}
+            member={m}
+            teamId={team.id}
+            teamName={team.name}
+            projectId={project.id}
+            onOpenDrawer={onOpenDrawer}
+            onSetStatus={(key) => onSetStatus(m.applicationId, key)}
+          />
         ))}
       </div>
     </div>
@@ -143,9 +165,21 @@ function TeamBlock({ project, team, onDrop }: TeamBlockProps): JSX.Element {
 interface ChipProps {
   member: MentorDistributionTeamMember;
   teamId: number;
+  teamName: string;
+  projectId: number;
+  onOpenDrawer: (student: DrawerStudent) => void;
+  onSetStatus: (key: GdistStatusKey) => void;
 }
 
-function TeamMemberChip({ member, teamId }: ChipProps): JSX.Element {
+function TeamMemberChip({
+  member,
+  teamId,
+  teamName,
+  projectId,
+  onOpenDrawer,
+  onSetStatus,
+}: ChipProps): JSX.Element {
+  const [menuOpen, setMenuOpen] = useState(false);
   const initials = initialsFor(member.firstName, member.lastName);
   const color = colorFor(member.studentId);
   const status = gdistStatusOf(member.status);
@@ -164,6 +198,41 @@ function TeamMemberChip({ member, teamId }: ChipProps): JSX.Element {
     e.currentTarget.classList.remove(styles.dragging);
   };
 
+  const handleBodyClick = (): void => {
+    // allPriorities приходит с бэка для coordinator distribution (все 5 заявок
+    // студента). Если по какой-то причине не пришло — fallback на одну запись
+    // о собственной заявке этой команды.
+    const priorities =
+      (member.allPriorities && member.allPriorities.length > 0
+        ? member.allPriorities.map((p) => ({
+            applicationId: p.applicationId,
+            projectId: p.projectId,
+            projectTitle: p.projectTitle,
+            priority: p.priority,
+            status: p.status,
+          }))
+        : [
+            {
+              applicationId: member.applicationId,
+              projectId,
+              projectTitle: '',
+              priority: member.priority,
+              status: member.status,
+            },
+          ]);
+    onOpenDrawer({
+      studentId: member.studentId,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      course: member.course,
+      group: member.group,
+      gpa: member.gpa,
+      priorities,
+      currentTeamProjectId: projectId,
+      currentTeamName: teamName,
+    });
+  };
+
   return (
     <div
       className={styles.chip}
@@ -171,10 +240,27 @@ function TeamMemberChip({ member, teamId }: ChipProps): JSX.Element {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className={styles.avatar} style={{ background: color }}>
+      <div
+        className={styles.avatar}
+        style={{ background: color }}
+        onClick={handleBodyClick}
+        role="button"
+        tabIndex={0}
+      >
         {initials}
       </div>
-      <div className={styles.chipBody}>
+      <div
+        className={styles.chipBody}
+        onClick={handleBodyClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleBodyClick();
+          }
+        }}
+      >
         <div className={styles.chipName}>
           {member.lastName} {member.firstName.charAt(0)}.
         </div>
@@ -182,12 +268,27 @@ function TeamMemberChip({ member, teamId }: ChipProps): JSX.Element {
           {member.course} курс · {member.gpa.toFixed(1)} · {member.group || '—'}
         </div>
       </div>
-      <span
+      <button
+        type="button"
         className={`${styles.statusBadge} ${styles[`status_${status.className}`]}`}
-        title={status.label}
+        title="Изменить статус"
+        onClick={(e) => {
+          e.stopPropagation();
+          setMenuOpen((v) => !v);
+        }}
       >
         {status.shortLabel}
-      </span>
+      </button>
+      {menuOpen ? (
+        <DistStatusMenu
+          currentKey={status.key}
+          onSelect={(key) => {
+            setMenuOpen(false);
+            if (key !== status.key) onSetStatus(key);
+          }}
+          onClose={() => setMenuOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

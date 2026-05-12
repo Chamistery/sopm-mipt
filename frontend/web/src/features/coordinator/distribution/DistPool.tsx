@@ -17,14 +17,16 @@ import {
   type DistDragPayload,
 } from './dragData';
 import { colorFor, initialsFor } from './initials';
+import type { DrawerStudent } from './DistStudentDrawer';
 import styles from './DistPool.module.css';
 
 interface Props {
   pool: CoordinatorPoolStudent[];
   onDropToPool: (payload: DistDragPayload) => void;
+  onOpenDrawer: (student: DrawerStudent) => void;
 }
 
-export function DistPool({ pool, onDropToPool }: Props): JSX.Element {
+export function DistPool({ pool, onDropToPool, onOpenDrawer }: Props): JSX.Element {
   const [over, setOver] = useState(false);
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>): void => {
@@ -59,7 +61,9 @@ export function DistPool({ pool, onDropToPool }: Props): JSX.Element {
         {pool.length === 0 ? (
           <div className={styles.empty}>Пул пуст — все студенты в командах.</div>
         ) : (
-          pool.map((s) => <PoolChip key={s.studentId} student={s} />)
+          pool.map((s) => (
+            <PoolChip key={s.studentId} student={s} onOpenDrawer={onOpenDrawer} />
+          ))
         )}
       </div>
     </div>
@@ -68,9 +72,10 @@ export function DistPool({ pool, onDropToPool }: Props): JSX.Element {
 
 interface PoolChipProps {
   student: CoordinatorPoolStudent;
+  onOpenDrawer: (student: DrawerStudent) => void;
 }
 
-function PoolChip({ student }: PoolChipProps): JSX.Element {
+function PoolChip({ student, onOpenDrawer }: PoolChipProps): JSX.Element {
   const initials = initialsFor(student.firstName, student.lastName);
   const color = colorFor(student.studentId);
   const applicationsByProject: Record<number, number> = {};
@@ -91,13 +96,35 @@ function PoolChip({ student }: PoolChipProps): JSX.Element {
     e.currentTarget.classList.remove(styles.dragging);
   };
 
+  const handleClick = (): void => {
+    onOpenDrawer({
+      studentId: student.studentId,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      course: student.course,
+      group: student.group,
+      gpa: student.gpa,
+      priorities: student.priorities,
+      currentTeamProjectId: null,
+      currentTeamName: null,
+    });
+  };
+
   return (
     <div
       className={styles.chip}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      title={`Приоритеты: ${student.priorities.map((p) => `${p.priority}. ${p.projectTitle}`).join(', ')}`}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
     >
       <div className={styles.avatar} style={{ background: color }}>
         {initials}
