@@ -201,9 +201,12 @@ func (r *CoordinatorDistributionRepository) loadTeamMembers(ctx context.Context,
 
 func (r *CoordinatorDistributionRepository) loadStudentPriorities(ctx context.Context, studentID int) ([]models.TeamMemberPriority, error) {
 	const q = `
-		SELECT a.id, a.project_id, p.title, a.priority, a.status
+		SELECT a.id, a.project_id, p.title, COALESCE(p.company, ''),
+		       COALESCE(NULLIF(TRIM(CONCAT(u.last_name, ' ', LEFT(u.first_name, 1), '.')), '.'), '') AS mentor_name,
+		       a.priority, a.status
 		FROM applications a
 		JOIN projects p ON p.id = a.project_id
+		LEFT JOIN users u ON u.id = p.mentor_id
 		WHERE a.student_id = $1
 		ORDER BY a.priority ASC
 	`
@@ -216,7 +219,11 @@ func (r *CoordinatorDistributionRepository) loadStudentPriorities(ctx context.Co
 	var out []models.TeamMemberPriority
 	for rows.Next() {
 		var p models.TeamMemberPriority
-		if err := rows.Scan(&p.ApplicationID, &p.ProjectID, &p.ProjectTitle, &p.Priority, &p.Status); err != nil {
+		if err := rows.Scan(
+			&p.ApplicationID, &p.ProjectID, &p.ProjectTitle,
+			&p.Company, &p.MentorName,
+			&p.Priority, &p.Status,
+		); err != nil {
 			return nil, fmt.Errorf("coord distribution: scan priority: %w", err)
 		}
 		out = append(out, p)
@@ -231,12 +238,14 @@ func (r *CoordinatorDistributionRepository) loadStudentPriorities(ctx context.Co
 func (r *CoordinatorDistributionRepository) loadGlobalPool(ctx context.Context) ([]models.CoordinatorPoolStudent, error) {
 	const q = `
 		SELECT a.id, a.student_id, a.priority, a.status,
-		       a.project_id, p.title,
+		       a.project_id, p.title, COALESCE(p.company, ''),
+		       COALESCE(NULLIF(TRIM(CONCAT(m.last_name, ' ', LEFT(m.first_name, 1), '.')), '.'), '') AS mentor_name,
 		       u.first_name, u.last_name,
 		       COALESCE(u.course, ''), COALESCE(u."group", ''), COALESCE(u.gpa, 0)
 		FROM applications a
 		JOIN users u ON u.id = a.student_id
 		JOIN projects p ON p.id = a.project_id
+		LEFT JOIN users m ON m.id = p.mentor_id
 		WHERE a.student_id NOT IN (SELECT user_id FROM team_members)
 		  AND a.status IN ('Ожидает','Рекомендован','Принято ментором','Принят','Не рекомендован','Не подходит')
 		ORDER BY u.last_name ASC, u.first_name ASC, a.priority ASC
@@ -253,15 +262,16 @@ func (r *CoordinatorDistributionRepository) loadGlobalPool(ctx context.Context) 
 
 	for rows.Next() {
 		var (
-			appID, studentID, priority, projectID int
-			status                                models.ApplicationStatus
-			projectTitle, first, last, courseStr  string
-			group                                 string
-			gpa                                   float64
+			appID, studentID, priority, projectID    int
+			status                                   models.ApplicationStatus
+			projectTitle, company, mentorName        string
+			first, last, courseStr                   string
+			group                                    string
+			gpa                                      float64
 		)
 		if err := rows.Scan(
 			&appID, &studentID, &priority, &status,
-			&projectID, &projectTitle,
+			&projectID, &projectTitle, &company, &mentorName,
 			&first, &last, &courseStr, &group, &gpa,
 		); err != nil {
 			return nil, fmt.Errorf("coord distribution: scan pool: %w", err)
@@ -284,6 +294,8 @@ func (r *CoordinatorDistributionRepository) loadGlobalPool(ctx context.Context) 
 			ApplicationID: appID,
 			ProjectID:     projectID,
 			ProjectTitle:  projectTitle,
+			Company:       company,
+			MentorName:    mentorName,
 			Priority:      priority,
 			Status:        status,
 		})

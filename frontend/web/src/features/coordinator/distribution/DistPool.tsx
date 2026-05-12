@@ -106,7 +106,10 @@ function PoolChip({ student, onOpenDrawer }: PoolChipProps): JSX.Element {
       gpa: student.gpa,
       priorities: student.priorities,
       currentTeamProjectId: null,
+      currentProjectTitle: null,
       currentTeamName: null,
+      currentApplicationId: null,
+      currentTeamId: null,
     });
   };
 
