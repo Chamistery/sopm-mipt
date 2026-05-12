@@ -18,7 +18,6 @@ import { MentorTeamLegacyRedirect } from '@/features/mentor-dashboard/MentorTeam
 import { ArchivePage } from '@/features/mentor-dashboard/ArchivePage';
 import { ArchiveProjectTeamsPage } from '@/features/mentor-dashboard/ArchiveProjectTeamsPage';
 import { ArchiveTeamPage } from '@/features/mentor-dashboard/ArchiveTeamPage';
-import { CoordinatorLayout } from '@/features/coordinator/CoordinatorLayout';
 import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
 import { ProjectsListPage } from '@/features/coordinator/ProjectsListPage';
 import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
@@ -65,16 +64,10 @@ export const router = createBrowserRouter([
         element: <MentorProjectInfoPage />,
       },
       { path: 'mentor/archive/teams/:teamId', element: <ArchiveTeamPage /> },
-      {
-        path: 'admin',
-        element: <CoordinatorLayout />,
-        children: [
-          { index: true, element: <CoordinatorDashboardPage /> },
-          { path: 'projects', element: <ProjectsListPage /> },
-          { path: 'projects/:id', element: <CoordProjectDetailPage /> },
-          { path: 'distribution', element: <DistributionPage /> },
-        ],
-      },
+      { path: 'admin', element: <CoordinatorDashboardPage /> },
+      { path: 'admin/projects', element: <ProjectsListPage /> },
+      { path: 'admin/projects/:id', element: <CoordProjectDetailPage /> },
+      { path: 'admin/distribution', element: <DistributionPage /> },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
