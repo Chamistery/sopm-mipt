@@ -19,6 +19,8 @@ export interface GdistStatusInfo {
   className: 'accepted' | 'invited' | 'recommend';
   /** ApplicationStatus, в который надо перевести application при выборе. */
   apiStatus: ApplicationStatus;
+  /** Tooltip-описание; pixel-port admin.html:2655-2659. */
+  description: string;
 }
 
 export const GDIST_STATUSES: GdistStatusInfo[] = [
@@ -28,6 +30,7 @@ export const GDIST_STATUSES: GdistStatusInfo[] = [
     shortLabel: 'Принят',
     className: 'accepted',
     apiStatus: 'Принят',
+    description: 'Студент зафиксирован в команде',
   },
   {
     key: 'invited',
@@ -35,6 +38,7 @@ export const GDIST_STATUSES: GdistStatusInfo[] = [
     shortLabel: 'Отправлена',
     className: 'invited',
     apiStatus: 'Принято ментором',
+    description: 'Приглашение отправлено, студент ещё не ответил',
   },
   {
     key: 'recommend',
@@ -42,6 +46,7 @@ export const GDIST_STATUSES: GdistStatusInfo[] = [
     shortLabel: 'Не отправлена',
     className: 'recommend',
     apiStatus: 'Рекомендован',
+    description: 'Студент в списке команды, приглашение ещё не отправлено',
   },
 ];
 

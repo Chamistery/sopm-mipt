@@ -1,10 +1,20 @@
 /*
  * DistStatusMenu — popover при клике на gchip-status-badge. 3 кнопки
  * (Принят / Заявка отправлена / Заявка не отправлена) — pixel-port из
- * admin.html GDIST_STATUSES (lines 2654-2664).
+ * admin.html .gstatus-popup (lines 571-592 + JS 2929-2960).
  *
- * Внутрь передаётся applicationId, текущий статус и onSelect callback.
- * Popover закрывается на click outside и Esc.
+ * Структура (как в прототипе):
+ *   <div .gstatus-popup>
+ *     <div .gstatus-popup-hint>Ручной выбор статуса</div>
+ *     <div .gstatus-popup-item [.current]>
+ *       <span .gstatus-popup-dot/>
+ *       <span>{label}</span>
+ *     </div>
+ *     ...
+ *   </div>
+ *
+ * Текущий статус — фон var(--surface-alt) + font-weight:700, БЕЗ галочки.
+ * Закрывается по click outside и Esc.
  */
 
 import { useEffect, useRef, type JSX } from 'react';
@@ -37,29 +47,21 @@ export function DistStatusMenu({ currentKey, onSelect, onClose }: Props): JSX.El
   }, [onClose]);
 
   return (
-    <div ref={ref} className={styles.menu} role="menu">
-      <div className={styles.title}>Статус заявки</div>
+    <div ref={ref} className={styles.popup} role="menu">
+      <div className={styles.hint}>Ручной выбор статуса</div>
       {GDIST_STATUSES.map((s) => (
         <button
           key={s.key}
           type="button"
           role="menuitem"
-          className={`${styles.item} ${s.key === currentKey ? styles.itemActive : ''}`}
+          className={`${styles.item} ${s.key === currentKey ? styles.itemCurrent : ''}`}
           onClick={() => onSelect(s.key)}
+          title={s.description}
         >
           <span className={`${styles.dot} ${styles[`dot_${s.className}`]}`} />
-          <span className={styles.label}>{s.label}</span>
-          {s.key === currentKey ? <CheckIcon /> : null}
+          <span>{s.label}</span>
         </button>
       ))}
     </div>
-  );
-}
-
-function CheckIcon(): JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

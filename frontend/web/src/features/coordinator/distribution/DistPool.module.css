@@ -103,3 +103,15 @@
   font-size: 10.5px;
   color: var(--text-muted);
 }
+
+.expandIco {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0.5;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.chip:hover .expandIco {
+  opacity: 1;
+  color: var(--accent);
+}

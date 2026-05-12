@@ -277,8 +277,10 @@ function TeamMemberChip({
           setMenuOpen((v) => !v);
         }}
       >
-        {status.shortLabel}
+        {status.label}
+        <ChevronDownIcon />
       </button>
+      <ChevronRightIcon className={styles.expandIco} />
       {menuOpen ? (
         <DistStatusMenu
           currentKey={status.key}
@@ -290,5 +292,33 @@ function TeamMemberChip({
         />
       ) : null}
     </div>
+  );
+}
+
+function ChevronDownIcon(): JSX.Element {
+  return (
+    <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+      <path
+        d="M2 4l3 3 3-3"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ChevronRightIcon({ className }: { className: string }): JSX.Element {
+  return (
+    <svg className={className} width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path
+        d="M5 3l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

@@ -1,22 +1,20 @@
-/* Pixel-port попап-меню для status-badge. Структура из admin.html status-menu
-   (lines 488-525). Позиционируется внутри чипа абсолютно — controlling
-   parent должен иметь position:relative. */
+/* Pixel-port .gstatus-popup из admin.html:571-592. */
 
-.menu {
+.popup {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  z-index: 50;
-  min-width: 240px;
-  padding: 6px 0;
+  z-index: 1500;
+  min-width: 200px;
+  padding: 6px;
   background: var(--card);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
-.title {
-  padding: 8px 14px 4px;
+.hint {
+  padding: 6px 10px 4px;
   font-size: 10.5px;
   font-weight: 700;
   color: var(--text-muted);
@@ -27,11 +25,12 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 8px 14px;
+  padding: 7px 10px;
   background: transparent;
   border: none;
+  border-radius: 5px;
   font-family: inherit;
   font-size: 12.5px;
   color: var(--text);
@@ -43,15 +42,19 @@
   background: var(--surface);
 }
 
-.itemActive {
-  font-weight: 600;
-  color: var(--accent);
+.itemCurrent {
+  background: var(--surface-alt);
+  font-weight: 700;
+}
+
+.itemCurrent:hover {
+  background: var(--surface-alt);
 }
 
 .dot {
   width: 10px;
   height: 10px;
-  border-radius: 50%;
+  border-radius: 3px;
   flex-shrink: 0;
 }
 
@@ -65,8 +68,4 @@
 
 .dot_recommend {
   background: var(--accent);
-}
-
-.label {
-  flex: 1;
 }

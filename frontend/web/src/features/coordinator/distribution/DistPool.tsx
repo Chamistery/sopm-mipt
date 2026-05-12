@@ -137,6 +137,22 @@ function PoolChip({ student, onOpenDrawer }: PoolChipProps): JSX.Element {
           {student.course} курс · {student.gpa.toFixed(1)} · {student.group || '—'}
         </div>
       </div>
+      <svg
+        className={styles.expandIco}
+        width="14"
+        height="14"
+        viewBox="0 0 14 14"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M5 3l4 4-4 4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   );
 }
