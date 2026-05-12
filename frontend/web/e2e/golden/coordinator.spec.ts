@@ -29,8 +29,8 @@ test.describe('coordinator golden path', () => {
     await expect(page.getByRole('button', { name: 'Утвердить' })).toBeVisible();
   });
 
-  test('projects table is reachable via direct nav', async ({ page }) => {
+  test('/admin/projects редиректит на дашборд (страница удалена)', async ({ page }) => {
     await page.goto('/admin/projects');
-    await expect(page.getByRole('table')).toBeVisible({ timeout: 10_000 });
+    await expect(page).toHaveURL(/\/admin$/, { timeout: 10_000 });
   });
 });
