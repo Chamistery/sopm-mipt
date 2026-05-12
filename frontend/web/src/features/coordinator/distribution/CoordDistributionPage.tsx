@@ -28,6 +28,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
 import {
+  moveApplicationToTeam,
   recommendApplicant,
   submitApplication,
   unrecommendApplicant,
@@ -68,6 +69,16 @@ export function CoordDistributionPage(): JSX.Element {
     onSuccess: () => {
       invalidate();
       showSuccess('Студент перемещён');
+    },
+    onError: (err) => showError(formatError(err, 'Не удалось переместить студента')),
+  });
+
+  const moveTeamMut = useMutation({
+    mutationFn: ({ id, teamId }: { id: number; teamId: number }) =>
+      moveApplicationToTeam(id, teamId),
+    onSuccess: () => {
+      invalidate();
+      showSuccess('Студент перемещён (статус сохранён)');
     },
     onError: (err) => showError(formatError(err, 'Не удалось переместить студента')),
   });
@@ -130,7 +141,20 @@ export function CoordDistributionPage(): JSX.Element {
   const handleDropToTeam = (payload: DistDragPayload, teamId: number, projectId: number): void => {
     if (payload.kind === 'team-member') {
       if (payload.sourceTeamId === teamId) return;
-      recommendMut.mutate({ id: payload.applicationId, teamId });
+      // Pixel-port из admin.html:2880-2912:
+      //   - status='Принят' (accepted): confirm + reset на 'Рекомендован'
+      //     (потому что student-side accept нужно повторить в новой команде)
+      //   - status='Принято ментором' / 'Рекомендован': move-team
+      //     сохраняет статус
+      if (payload.sourceStatus === 'Принят') {
+        const ok = window.confirm(
+          'Студент уже принят в команду. Переместить в другую? Статус будет сброшен на «Заявка не отправлена».',
+        );
+        if (!ok) return;
+        recommendMut.mutate({ id: payload.applicationId, teamId });
+        return;
+      }
+      moveTeamMut.mutate({ id: payload.applicationId, teamId });
       return;
     }
     // payload.kind === 'pool-student'
