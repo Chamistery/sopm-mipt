@@ -1,0 +1,209 @@
+/* Pixel-port из admin.html .stud-drawer (lines 435-485). */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  z-index: 1300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.backdropOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  max-width: 100vw;
+  height: 100vh;
+  background: var(--card);
+  border-left: 1px solid var(--border-light);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.1);
+  z-index: 1310;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerOpen {
+  transform: translateX(0);
+}
+
+.head {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.identityText {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: var(--text-muted);
+  font-family: inherit;
+  border-radius: 6px;
+}
+
+.close:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+}
+
+.section {
+  margin-bottom: 22px;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 10px;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px 14px;
+  background: var(--surface);
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
+.priorities {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.priorityItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.priorityActive {
+  background: rgba(59, 130, 246, 0.08);
+  border-left: 3px solid var(--accent);
+  padding-left: 9px;
+}
+
+.priorityNum {
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.priorityActive .priorityNum {
+  color: var(--accent);
+}
+
+.priorityProject {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+}
+
+.priorityNone {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.priorityStatus {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status_accepted {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status_invited {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.status_recommend {
+  background: #dbeafe;
+  color: var(--accent);
+}
+
+.currentTeam {
+  padding: 10px 12px;
+  background: var(--surface);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
