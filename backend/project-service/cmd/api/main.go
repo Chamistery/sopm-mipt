@@ -30,6 +30,8 @@ func setupRoutes(
 	coordinatorDashboardHandler *handlers.CoordinatorDashboardHandler,
 	coordinatorDistributionHandler *handlers.CoordinatorDistributionHandler,
 	coordinatorApplicationsHandler *handlers.CoordinatorApplicationsHandler,
+	defenseHandler *handlers.DefenseHandler,
+	coordinatorGradingHandler *handlers.CoordinatorGradingHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
@@ -38,6 +40,11 @@ func setupRoutes(
 	mux.HandleFunc("GET /api/coordinator/dashboard", coordinatorDashboardHandler.Get)
 	mux.HandleFunc("GET /api/coordinator/distribution", coordinatorDistributionHandler.Get)
 	mux.HandleFunc("GET /api/coordinator/applications", coordinatorApplicationsHandler.Get)
+	mux.HandleFunc("GET /api/defenses", defenseHandler.List)
+	mux.HandleFunc("POST /api/defenses", defenseHandler.Create)
+	mux.HandleFunc("PUT /api/defenses/{id}", defenseHandler.Update)
+	mux.HandleFunc("DELETE /api/defenses/{id}", defenseHandler.Delete)
+	mux.HandleFunc("GET /api/coordinator/grading", coordinatorGradingHandler.Get)
 	mux.HandleFunc("GET /api/mentor/projects/archive", projectHandler.GetMentorArchive)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
@@ -191,6 +198,10 @@ func main() {
 	coordinatorDistributionHandler := handlers.NewCoordinatorDistributionHandler(coordinatorDistributionRepo)
 	coordinatorApplicationsRepo := repository.NewCoordinatorApplicationsRepository(db.Pool)
 	coordinatorApplicationsHandler := handlers.NewCoordinatorApplicationsHandler(coordinatorApplicationsRepo)
+	defenseRepo := repository.NewDefenseRepository(db.Pool)
+	defenseHandler := handlers.NewDefenseHandler(defenseRepo)
+	coordinatorGradingRepo := repository.NewCoordinatorGradingRepository(db.Pool)
+	coordinatorGradingHandler := handlers.NewCoordinatorGradingHandler(coordinatorGradingRepo)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -209,6 +220,8 @@ func main() {
 		coordinatorDashboardHandler,
 		coordinatorDistributionHandler,
 		coordinatorApplicationsHandler,
+		defenseHandler,
+		coordinatorGradingHandler,
 	)
 	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
