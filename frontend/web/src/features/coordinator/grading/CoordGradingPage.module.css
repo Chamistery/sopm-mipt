@@ -1,0 +1,72 @@
+/* Pixel-port view-grading: formula-box + tabs admin-стиль. */
+
+.page {
+  display: block;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--text);
+}
+
+.formula {
+  padding: 14px 18px;
+  background: var(--surface);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  padding: 9px 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tabActive {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.tabContent {
+  display: block;
+}
+
+.placeholder {
+  padding: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+}
+
+.error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+}

@@ -679,6 +679,37 @@ export const handlers = [
     return ok({ id, title: 'OK', pendingProposalData: null });
   }),
 
+  // ─── Coordinator grading + defenses (feature/coord-grading) ───────────
+  http.get(`${API}/coordinator/grading`, () => ok({ rows: [] })),
+  http.get(`${API}/defenses`, () => ok({ defenses: [] })),
+  http.post(`${API}/defenses`, () =>
+    ok({
+      id: 1,
+      title: 'mock',
+      startsAt: new Date().toISOString(),
+      completed: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      projectIds: [],
+      experts: [],
+      projects: [],
+    }),
+  ),
+  http.put(`${API}/defenses/:id`, ({ params }) =>
+    ok({
+      id: Number(params.id),
+      title: 'mock',
+      startsAt: new Date().toISOString(),
+      completed: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      projectIds: [],
+      experts: [],
+      projects: [],
+    }),
+  ),
+  http.delete(`${API}/defenses/:id`, () => new HttpResponse(null, { status: 204 })),
+
   // ─── Coordinator dashboard aggregate (feature/coord-dashboard) ─────────
   http.get(`${API}/coordinator/dashboard`, () => {
     const today = new Date(NOW_DASHBOARD);
