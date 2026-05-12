@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
 import type { ArchiveDashboardProject } from '../hooks/useMentorArchiveDashboard';
@@ -29,15 +28,12 @@ const BASE: ArchiveDashboardProject = {
   ],
 };
 
-function renderCard(project: ArchiveDashboardProject, onOpenInfo = vi.fn()) {
-  return {
-    onOpenInfo,
-    ...render(
-      <MemoryRouter>
-        <ArchiveProjectCard project={project} onOpenInfo={onOpenInfo} />
-      </MemoryRouter>,
-    ),
-  };
+function renderCard(project: ArchiveDashboardProject) {
+  return render(
+    <MemoryRouter>
+      <ArchiveProjectCard project={project} />
+    </MemoryRouter>,
+  );
 }
 
 describe('ArchiveProjectCard', () => {
@@ -58,11 +54,10 @@ describe('ArchiveProjectCard', () => {
     expect(predLink).toHaveAttribute('href', '/mentor/archive?highlight=100');
   });
 
-  it('клик «Полная информация» вызывает onOpenInfo с id проекта', async () => {
-    const onOpenInfo = vi.fn();
-    renderCard(BASE, onOpenInfo);
-    await userEvent.click(screen.getByRole('button', { name: /Полная информация/ }));
-    expect(onOpenInfo).toHaveBeenCalledWith(110);
+  it('ссылка «Полная информация» ведёт на страницу /mentor/archive/projects/:id/info', () => {
+    renderCard(BASE);
+    const link = screen.getByRole('link', { name: /Полная информация о проекте/ });
+    expect(link).toHaveAttribute('href', '/mentor/archive/projects/110/info');
   });
 
   it('показывает «—» когда у команды нет средней оценки', () => {

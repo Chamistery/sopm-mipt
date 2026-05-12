@@ -114,7 +114,15 @@ export function ProjectCard({ project }: Props): JSX.Element {
           >
             Дозаполнить заявку <ArrowIcon />
           </Link>
-        ) : null}
+        ) : (
+          <Link
+            to={`/mentor/projects/${project.id}/info`}
+            className={styles.infoLink}
+            data-testid="project-card-info-link"
+          >
+            Полная информация <ArrowIcon />
+          </Link>
+        )}
         {project.predecessorId ? (
           <Link
             to={`/mentor/archive?highlight=${project.predecessorId}`}

@@ -16,9 +16,6 @@ const meta = {
       </MemoryRouter>
     ),
   ],
-  args: {
-    onOpenInfo: () => undefined,
-  },
 } satisfies Meta<typeof ArchiveProjectCard>;
 
 export default meta;
