@@ -45,6 +45,8 @@ type CoordinatorPoolPriority struct {
 	ApplicationID int               `json:"applicationId"`
 	ProjectID     int               `json:"projectId"`
 	ProjectTitle  string            `json:"projectTitle"`
+	Company       string            `json:"company,omitempty"`
+	MentorName    string            `json:"mentorName,omitempty"`
 	Priority      int               `json:"priority"`
 	Status        ApplicationStatus `json:"status"`
 }

@@ -1,4 +1,4 @@
-/* Pixel-port из admin.html .stud-drawer (lines 435-485). */
+/* Pixel-port из admin.html .stud-drawer (lines 435-559). */
 
 .backdrop {
   position: fixed;
@@ -37,62 +37,99 @@
 }
 
 .head {
-  padding: 16px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  background: var(--card);
 }
 
-.identity {
+.headLink {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 12px;
-  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.12s;
+}
+
+.headLink:hover {
+  background: var(--surface);
+  border-color: var(--border-light);
+}
+
+.headLink:hover .headLinkIco {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+
+.headLinkText {
+  flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.headLinkIco {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: all 0.12s;
 }
 
 .avatar {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
 }
 
-.identityText {
-  flex: 1;
-  min-width: 0;
-}
-
-.name {
+.headTitle {
   font-size: 15px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.subtitle {
-  font-size: 12px;
+.headSubtitle {
+  font-size: 11.5px;
   color: var(--text-muted);
-  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .close {
-  background: transparent;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   border: none;
-  cursor: pointer;
-  padding: 6px;
-  color: var(--text-muted);
-  font-family: inherit;
+  background: transparent;
   border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
 }
 
 .close:hover {
@@ -103,7 +140,7 @@
 .body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 18px;
+  padding: 18px 20px;
 }
 
 .section {
@@ -119,91 +156,183 @@
   margin: 0 0 10px;
 }
 
-.empty {
-  font-size: 13px;
-  color: var(--text-muted);
-  padding: 12px 14px;
-  background: var(--surface);
-  border-radius: 8px;
-  line-height: 1.5;
-}
-
-.priorities {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* «Статус заявки» — радио-выбор */
+.statusOptions {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.priorityItem {
+.statusLabel {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border-radius: 7px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--card);
   font-size: 12.5px;
-  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s;
 }
 
-.priorityActive {
-  background: rgba(59, 130, 246, 0.08);
+.statusLabel:hover {
+  border-color: var(--border);
+}
+
+.statusLabel input {
+  accent-color: var(--primary);
+  margin: 0;
+}
+
+.statusLabelSelected {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.dotColor {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dot_accepted {
+  background: var(--success);
+}
+
+.dot_invited {
+  background: var(--warning);
+}
+
+.dot_recommend {
+  background: var(--accent);
+}
+
+.statusTxt {
+  flex: 1;
+  min-width: 0;
+}
+
+/* «Академические данные» — табличные строки */
+.infoRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.infoRow + .infoRow {
+  border-top: 1px solid var(--border-light);
+}
+
+.infoLabel {
+  color: var(--text-muted);
+  flex: 0 0 auto;
+}
+
+.infoValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* «Приоритеты» */
+.priorityList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.priorityItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  background: var(--card);
+  transition: all 0.12s;
+  min-width: 0;
+}
+
+.priorityItem:hover {
+  border-color: var(--border);
+}
+
+.priorityCurrent {
+  border-color: var(--accent);
+  background: rgba(59, 130, 246, 0.05);
   border-left: 3px solid var(--accent);
-  padding-left: 9px;
+  padding-left: 10px;
 }
 
 .priorityNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  color: var(--primary);
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text-muted);
   flex-shrink: 0;
 }
 
-.priorityActive .priorityNum {
-  color: var(--accent);
+.priorityCurrent .priorityNum {
+  background: var(--primary);
+  color: #fff;
 }
 
-.priorityProject {
-  flex: 1;
+.priorityText {
+  flex: 1 1 auto;
   min-width: 0;
-  color: var(--text);
 }
 
-.priorityNone {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.priorityStatus {
-  font-size: 10.5px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: 4px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.status_accepted {
-  background: var(--success-bg);
-  color: var(--success);
-}
-
-.status_invited {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
-.status_recommend {
-  background: #dbeafe;
-  color: var(--accent);
-}
-
-.currentTeam {
-  padding: 10px 12px;
-  background: var(--surface);
-  border-radius: 7px;
+.priorityName {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.priorityMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.priorityNow {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 2px 7px;
+  background: rgba(59, 130, 246, 0.12);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.priorityEmpty {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 14px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  line-height: 1.5;
 }

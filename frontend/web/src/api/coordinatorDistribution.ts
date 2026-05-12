@@ -34,6 +34,8 @@ export interface CoordinatorPoolPriority {
   applicationId: number;
   projectId: number;
   projectTitle: string;
+  company?: string;
+  mentorName?: string;
   priority: number;
   status: ApplicationStatus;
 }

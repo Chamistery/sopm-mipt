@@ -153,6 +153,7 @@ function TeamBlock({ project, team, onDrop, onOpenDrawer, onSetStatus }: TeamBlo
             teamId={team.id}
             teamName={team.name}
             projectId={project.id}
+            projectTitle={project.title}
             onOpenDrawer={onOpenDrawer}
             onSetStatus={(key) => onSetStatus(m.applicationId, key)}
           />
@@ -167,6 +168,7 @@ interface ChipProps {
   teamId: number;
   teamName: string;
   projectId: number;
+  projectTitle: string;
   onOpenDrawer: (student: DrawerStudent) => void;
   onSetStatus: (key: GdistStatusKey) => void;
 }
@@ -176,6 +178,7 @@ function TeamMemberChip({
   teamId,
   teamName,
   projectId,
+  projectTitle,
   onOpenDrawer,
   onSetStatus,
 }: ChipProps): JSX.Element {
@@ -200,15 +203,17 @@ function TeamMemberChip({
   };
 
   const handleBodyClick = (): void => {
-    // allPriorities приходит с бэка для coordinator distribution (все 5 заявок
-    // студента). Если по какой-то причине не пришло — fallback на одну запись
+    // allPriorities приходит с бэка для coordinator distribution (все заявки
+    // студента). Если по какой-то причине пусто — fallback на одну запись
     // о собственной заявке этой команды.
     const priorities =
-      (member.allPriorities && member.allPriorities.length > 0
+      member.allPriorities && member.allPriorities.length > 0
         ? member.allPriorities.map((p) => ({
             applicationId: p.applicationId,
             projectId: p.projectId,
             projectTitle: p.projectTitle,
+            company: p.company,
+            mentorName: p.mentorName,
             priority: p.priority,
             status: p.status,
           }))
@@ -216,11 +221,11 @@ function TeamMemberChip({
             {
               applicationId: member.applicationId,
               projectId,
-              projectTitle: '',
+              projectTitle,
               priority: member.priority,
               status: member.status,
             },
-          ]);
+          ];
     onOpenDrawer({
       studentId: member.studentId,
       firstName: member.firstName,
@@ -230,7 +235,10 @@ function TeamMemberChip({
       gpa: member.gpa,
       priorities,
       currentTeamProjectId: projectId,
+      currentProjectTitle: projectTitle,
       currentTeamName: teamName,
+      currentApplicationId: member.applicationId,
+      currentTeamId: teamId,
     });
   };
 

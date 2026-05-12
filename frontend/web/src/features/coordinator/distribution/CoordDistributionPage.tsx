@@ -331,7 +331,11 @@ export function CoordDistributionPage(): JSX.Element {
         </div>
       ) : null}
 
-      <DistStudentDrawer student={drawerStudent} onClose={() => setDrawerStudent(null)} />
+      <DistStudentDrawer
+        student={drawerStudent}
+        onSetStatus={handleSetStatus}
+        onClose={() => setDrawerStudent(null)}
+      />
     </div>
   );
 }

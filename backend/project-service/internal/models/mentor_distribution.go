@@ -51,10 +51,14 @@ type MentorDistributionTeamMember struct {
 }
 
 // TeamMemberPriority — лёгкая запись о другой заявке этого студента.
+// Включает company + mentor для отображения в drawer'е (admin.html
+// stud-priority-meta: «Инициатор · Ментор: …»).
 type TeamMemberPriority struct {
 	ApplicationID int               `json:"applicationId"`
 	ProjectID     int               `json:"projectId"`
 	ProjectTitle  string            `json:"projectTitle"`
+	Company       string            `json:"company,omitempty"`
+	MentorName    string            `json:"mentorName,omitempty"`
 	Priority      int               `json:"priority"`
 	Status        ApplicationStatus `json:"status"`
 }
