@@ -1,25 +1,26 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+/*
+ * Координаторская страница проекта. Pixel-port из admin.html
+ * (view-project, lines 2018-2062).
+ *
+ * Структура:
+ *   breadcrumb «Дашборд → ProjectTitle»
+ *   header (title + subtitle «Компания · Ментор» + кнопка «Редактировать»)
+ *   proj-info-grid (2 col): 8 коротких полей + 4 длинных (goal /
+ *     expectedResult / acceptanceCriteria / fullDescription)
+ *   section «Команды проекта» + кнопка «Выгрузить отчёт»
+ *   proj-team-picker — кнопки команд (клик ведёт в /admin/teams/:teamId)
+ *
+ * Известное упрощение: встроенный Гант ниже team-picker отложен — на
+ * MVP клик по команде открывает /admin/teams/:teamId со всем Гантом
+ * (read-only). В прототипе Гант рисуется тут же. Когда добавим
+ * sprint-switcher + GanttChart в этот файл — апдейт.
+ */
+
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
 import { ApiError } from '@/api/client';
-import {
-  PROJECT_STATUS_PENDING,
-  type ProjectStatus,
-  type ProjectTeam,
-  type ProjectTeamMember,
-} from '@/api/projects';
 import { useProjectFullQuery } from './hooks/useProjects';
-import {
-  useExcludeApplication,
-  useUpdateProjectStatus,
-} from './hooks/useProjectActions';
 import styles from './ProjectDetailPage.module.css';
-
-const ACTIVE_STATUSES: ReadonlySet<ProjectStatus> = new Set([
-  'Активный',
-  'Опубликован',
-  'Утверждён',
-]);
 
 export function ProjectDetailPage(): JSX.Element {
   const { id: rawId } = useParams<{ id: string }>();
@@ -38,12 +39,7 @@ interface ProjectDetailProps {
 
 function ProjectDetail({ id }: ProjectDetailProps): JSX.Element {
   const projectQuery = useProjectFullQuery(id);
-  const updateStatus = useUpdateProjectStatus(id);
-  const exclude = useExcludeApplication(id);
-
-  const [returnComment, setReturnComment] = useState('');
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [confirmingExclude, setConfirmingExclude] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   if (projectQuery.isLoading) {
     return <div className={styles.loading}>Загружаем проект…</div>;
@@ -59,234 +55,157 @@ function ProjectDetail({ id }: ProjectDetailProps): JSX.Element {
     return <div className={styles.empty}>Проект не найден.</div>;
   }
 
-  const { project, teams: rawTeams } = projectQuery.data;
-  // Adapt the unified Team shape (members may include extra fields and
-  // be optional) to the trimmed ProjectTeam shape this page renders.
-  const teams: ProjectTeam[] = rawTeams.map((t) => ({
-    id: t.id,
-    name: t.name,
-    members: (t.members ?? []).map((m) => ({
-      id: m.id,
-      userId: m.userId,
-      fullName: `${m.user.firstName} ${m.user.lastName}`.trim(),
-      role: m.roleInTeam ?? null,
-    })),
-  }));
-  const isPending = project.status === PROJECT_STATUS_PENDING;
-  const isActive = ACTIVE_STATUSES.has(project.status);
-
-  const handleApprove = (): void => {
-    setActionError(null);
-    updateStatus.mutate(
-      { id, title: project.title, status: 'Утверждён' },
-      { onError: (e) => setActionError(formatError(e, 'Не удалось утвердить проект')) },
-    );
-  };
-
-  const handleReturn = (): void => {
-    setActionError(null);
-    updateStatus.mutate(
-      { id, title: project.title, status: 'Черновик' },
-      {
-        onError: (e) => setActionError(formatError(e, 'Не удалось вернуть проект')),
-        onSuccess: () => setReturnComment(''),
-      },
-    );
-  };
-
-  const handleExclude = (applicationId: number): void => {
-    setActionError(null);
-    exclude.mutate(applicationId, {
-      onSettled: () => setConfirmingExclude(null),
-      onError: (e) => setActionError(formatError(e, 'Не удалось исключить участника')),
-    });
-  };
+  const { project, teams, sprints } = projectQuery.data;
+  const mentorName = project.mentor
+    ? `${project.mentor.lastName} ${project.mentor.firstName.charAt(0)}.`
+    : '—';
 
   return (
     <div className={styles.page}>
-      <div className={styles.crumbs}>
-        <Link to="/admin/projects" className={styles.crumbLink}>
-          Проекты
-        </Link>{' '}
-        / {project.title}
-      </div>
+      <nav className={styles.crumbs} aria-label="Хлебные крошки">
+        <Link to="/admin" className={styles.crumbLink}>
+          Дашборд
+        </Link>
+        <ChevronIcon />
+        <span className={styles.crumbCurrent}>{project.title}</span>
+      </nav>
 
       <header className={styles.header}>
         <div className={styles.headerInfo}>
           <h1 className={styles.title}>{project.title}</h1>
-          <div className={styles.meta}>
-            {project.company ? <span>{project.company}</span> : null}
-            {project.courses && project.courses.length > 0 ? (
-              <span>Курс: {project.courses.join(', ')}</span>
-            ) : null}
-            <span>Мест: {project.numTeams * project.teamSizeMax}</span>
-            <span>ID: {project.id}</span>
+          <div className={styles.subtitle}>
+            {(project.company || '—') + ' · Ментор: ' + mentorName}
           </div>
-          <span className={`${styles.statusBadge} ${statusToneClass(project.status)}`}>
-            {project.status}
-          </span>
         </div>
-
         <div className={styles.actions}>
-          {isPending ? (
-            <>
-              <div className={styles.btnRow}>
-                <button
-                  type="button"
-                  className={styles.btnPrimary}
-                  onClick={handleApprove}
-                  disabled={updateStatus.isPending}
-                >
-                  {updateStatus.isPending ? 'Сохраняем…' : 'Утвердить проект'}
-                </button>
-              </div>
-              <div className={styles.commentBox}>
-                <label className={styles.label} htmlFor="return-comment">
-                  Комментарий для возврата
-                </label>
-                <textarea
-                  id="return-comment"
-                  className={styles.textarea}
-                  rows={3}
-                  value={returnComment}
-                  placeholder="Что нужно поправить менторам…"
-                  onChange={(e) => setReturnComment(e.target.value)}
-                />
-                <div className={styles.btnRow}>
-                  <button
-                    type="button"
-                    className={styles.btnSecondary}
-                    onClick={handleReturn}
-                    disabled={updateStatus.isPending}
-                  >
-                    Вернуть на доработку
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : isActive ? (
-            <span className={styles.teamMeta}>Проект утверждён, действия недоступны.</span>
-          ) : null}
+          <button
+            type="button"
+            className={styles.btnSecondary}
+            onClick={() => navigate(`/admin/projects/new?edit=${id}`)}
+            title="Открыть форму заявки в режиме редактирования (TODO: edit-режим)"
+          >
+            <EditIcon />
+            Редактировать
+          </button>
         </div>
       </header>
 
-      {actionError ? <div className={styles.error}>{actionError}</div> : null}
+      <div className={styles.infoGrid}>
+        <InfoField label="Инициатор" value={project.company || '—'} />
+        <InfoField label="Ментор" value={mentorName} />
+        <InfoField
+          label="Размер команды"
+          value={`${project.teamSizeMin}–${project.teamSizeMax} чел.`}
+        />
+        <InfoField label="Команд (запрошено)" value={String(project.numTeams)} />
+        <InfoField label="Спринтов" value={`${sprints.length} шт.`} />
+        <InfoField
+          label="Срок"
+          value={formatDuration(project.durationSemesters ?? 1)}
+        />
+        <InfoField
+          label="Технологии"
+          value={(project.technologies ?? []).join(', ') || '—'}
+        />
+        <InfoField label="Образовательный результат" value={project.eduResult || '—'} />
 
-      <section className={styles.section} aria-labelledby="teams-title">
-        <h2 id="teams-title" className={styles.sectionTitle}>
-          Команды ({teams.length})
-        </h2>
-        {teams.length === 0 ? (
-          <div className={styles.empty}>Команды ещё не сформированы.</div>
-        ) : (
-          teams.map((team) => (
-            <TeamCard
-              key={team.id}
-              team={team}
-              isExcluding={exclude.isPending}
-              confirmingId={confirmingExclude}
-              onAskExclude={(memberId) => setConfirmingExclude(memberId)}
-              onCancelExclude={() => setConfirmingExclude(null)}
-              onConfirmExclude={(applicationId) => handleExclude(applicationId)}
-            />
-          ))
-        )}
-      </section>
-    </div>
-  );
-}
-
-interface TeamCardProps {
-  team: ProjectTeam;
-  isExcluding: boolean;
-  confirmingId: number | null;
-  onAskExclude: (memberId: number) => void;
-  onCancelExclude: () => void;
-  onConfirmExclude: (applicationId: number) => void;
-}
-
-function TeamCard({
-  team,
-  isExcluding,
-  confirmingId,
-  onAskExclude,
-  onCancelExclude,
-  onConfirmExclude,
-}: TeamCardProps): JSX.Element {
-  return (
-    <div className={styles.teamCard}>
-      <div className={styles.teamHead}>
-        <h3 className={styles.teamName}>{team.name}</h3>
-        <span className={styles.teamMeta}>{team.members.length} участников</span>
+        <InfoFieldFull label="Цель проекта" value={project.goal || project.description || '—'} />
+        <InfoFieldFull
+          label="Ожидаемый результат"
+          value={project.expectedResult || '—'}
+        />
+        <InfoFieldFull
+          label="Критерии приёмки"
+          value={project.acceptanceCriteria || '—'}
+        />
+        <InfoFieldFull
+          label="Полное описание"
+          value={project.fullDescription || project.description || '—'}
+        />
       </div>
-      <div className={styles.memberList}>
-        {team.members.map((m) => (
-          <MemberRow
-            key={m.id}
-            member={m}
-            confirming={confirmingId === m.id}
-            isPending={isExcluding && confirmingId === m.id}
-            onAsk={() => onAskExclude(m.id)}
-            onCancel={onCancelExclude}
-            onConfirm={() => onConfirmExclude(m.id)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
 
-interface MemberRowProps {
-  member: ProjectTeamMember;
-  confirming: boolean;
-  isPending: boolean;
-  onAsk: () => void;
-  onCancel: () => void;
-  onConfirm: () => void;
-}
-
-function MemberRow({
-  member,
-  confirming,
-  isPending,
-  onAsk,
-  onCancel,
-  onConfirm,
-}: MemberRowProps): JSX.Element {
-  return (
-    <div className={styles.member}>
-      <div className={styles.memberInfo}>
-        <span className={styles.memberName}>{member.fullName}</span>
-        {member.role ? <span className={styles.memberRole}>{member.role}</span> : null}
+      <div className={styles.sectionRow}>
+        <h2 className={styles.sectionTitle}>Команды проекта</h2>
       </div>
-      {confirming ? (
-        <div className={styles.btnRow}>
-          <button
-            type="button"
-            className={styles.btnDanger}
-            onClick={onConfirm}
-            disabled={isPending}
-          >
-            {isPending ? 'Исключаем…' : 'Подтвердить'}
-          </button>
-          <button type="button" className={styles.btnSecondary} onClick={onCancel}>
-            Отмена
-          </button>
-        </div>
+
+      {teams.length === 0 ? (
+        <div className={styles.empty}>У проекта пока нет команд.</div>
       ) : (
-        <button type="button" className={styles.btnDanger} onClick={onAsk}>
-          Исключить
-        </button>
+        <div className={styles.teamPicker}>
+          {teams.map((team) => (
+            <Link
+              key={team.id}
+              to={`/admin/teams/${team.id}`}
+              className={styles.teamBtn}
+            >
+              {team.name}
+              {team.leader
+                ? ` · ${team.leader.lastName} ${team.leader.firstName.charAt(0)}.`
+                : ''}
+            </Link>
+          ))}
+        </div>
       )}
+
+      <div className={styles.ganttHint}>
+        Откройте команду чтобы увидеть её диаграмму Ганта, отчёты и встречи.
+      </div>
     </div>
   );
 }
 
-function statusToneClass(status: ProjectStatus): string {
-  if (ACTIVE_STATUSES.has(status)) return styles.statusActive;
-  if (status === PROJECT_STATUS_PENDING) return styles.statusPending;
-  if (status === 'Черновик') return styles.statusDraft;
-  return '';
+function InfoField({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className={styles.infoField}>
+      <label className={styles.infoLabel}>{label}</label>
+      <span className={styles.infoValue}>{value}</span>
+    </div>
+  );
+}
+
+function InfoFieldFull({ label, value }: { label: string; value: string }): JSX.Element {
+  return (
+    <div className={`${styles.infoField} ${styles.infoFull}`}>
+      <label className={styles.infoLabel}>{label}</label>
+      <p className={styles.infoValue}>{value}</p>
+    </div>
+  );
+}
+
+function formatDuration(semesters: number): string {
+  const word =
+    semesters === 1
+      ? 'семестр'
+      : semesters >= 2 && semesters <= 4
+        ? 'семестра'
+        : 'семестров';
+  return `${semesters} ${word}`;
+}
+
+function ChevronIcon(): JSX.Element {
+  return (
+    <svg width="14" height="14" fill="none" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M6 4l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function EditIcon(): JSX.Element {
+  return (
+    <svg width="14" height="14" fill="none" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M11.5 1.5l3 3-9 9H2.5v-3l9-9z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+    </svg>
+  );
 }
 
 function formatError(err: unknown, fallback: string): string {
