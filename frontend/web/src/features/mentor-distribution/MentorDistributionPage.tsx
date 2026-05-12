@@ -65,17 +65,43 @@ export function MentorDistributionPage(): JSX.Element {
     );
   };
 
-  const onDropApplicantInSlot = (payload: ApplicantDragPayload, slotTeamId: number): void => {
-    if (payload.sourceTeamId === slotTeamId) return; // drop в ту же команду — no-op
+  const onDropApplicantInSlot = (
+    payload: ApplicantDragPayload,
+    slotTeamId: number,
+    displacedApplicationId: number | null,
+  ): void => {
+    if (payload.sourceTeamId === slotTeamId && displacedApplicationId == null) return; // no-op
     setActionError(null);
     setPendingApplicationId(payload.applicationId);
-    recommend.mutate(
-      { applicationId: payload.applicationId, teamId: slotTeamId },
-      {
-        onError: handleError,
-        onSettled: () => setPendingApplicationId(null),
-      },
-    );
+
+    // Бэк recommend требует, чтобы заявка была в статусе «Ожидает» /
+    // «Не рекомендован» / «Не подходит». Поэтому если:
+    //  (a) слот занят другим студентом — сначала unrecommend его (иначе
+    //      Drop в занятый слот ничего не делал бы, а старый член
+    //      остался в команде, плюс при maxSize=5 6й member терялся
+    //      в рендере → визуальный «пропал из списка» баг.
+    //  (b) сам payload пришёл из другой команды — сначала unrecommend
+    //      его, чтобы recommend в новую команду прошёл валидацию.
+    const tasks: Array<Promise<unknown>> = [];
+    if (
+      displacedApplicationId != null &&
+      displacedApplicationId !== payload.applicationId
+    ) {
+      tasks.push(unrecommend.mutateAsync(displacedApplicationId));
+    }
+    if (payload.sourceTeamId != null && payload.sourceTeamId !== slotTeamId) {
+      tasks.push(unrecommend.mutateAsync(payload.applicationId));
+    }
+
+    Promise.all(tasks)
+      .then(() =>
+        recommend.mutateAsync({
+          applicationId: payload.applicationId,
+          teamId: slotTeamId,
+        }),
+      )
+      .catch(handleError)
+      .finally(() => setPendingApplicationId(null));
   };
 
   const onRemoveMember = (applicationId: number): void => {
@@ -273,7 +299,11 @@ function ProjectSwitcher({ projects, selectedId, onChange }: ProjectSwitcherProp
 interface ProjectGroupProps {
   project: MentorDistributionProject;
   pendingApplicationId: number | null;
-  onDropApplicant: (payload: ApplicantDragPayload, slotTeamId: number) => void;
+  onDropApplicant: (
+    payload: ApplicantDragPayload,
+    slotTeamId: number,
+    displacedApplicationId: number | null,
+  ) => void;
   onRemoveMember: (applicationId: number) => void;
   onInviteMember: (applicationId: number) => void;
   onLaunch: (teamId: number) => void;

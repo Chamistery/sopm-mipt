@@ -9,7 +9,11 @@ export interface DistTeamCardProps {
   team: MentorDistributionTeam;
   /** Размер команды (max). UI рисует X / Y слотов. */
   maxSize: number;
-  onDropApplicant: (payload: ApplicantDragPayload, slotTeamId: number) => void;
+  onDropApplicant: (
+    payload: ApplicantDragPayload,
+    slotTeamId: number,
+    displacedApplicationId: number | null,
+  ) => void;
   onRemoveMember: (applicationId: number) => void;
   onInviteMember: (applicationId: number) => void;
   onLaunch: (teamId: number) => void;
@@ -52,6 +56,7 @@ export function DistTeamCard({
     payload: ApplicantDragPayload,
     slotTeamId: number,
     slotIndex: number,
+    displacedApplicationId: number | null,
   ): void => {
     // Если перетащили из другой команды — очищаем layout исходной,
     // чтобы там не оставался stale slot reference.
@@ -59,7 +64,7 @@ export function DistTeamCard({
       clearApplicantFromTeam(payload.sourceTeamId, payload.applicationId);
     }
     setSlot(slotTeamId, slotIndex, payload.applicationId);
-    onDropApplicant(payload, slotTeamId);
+    onDropApplicant(payload, slotTeamId, displacedApplicationId);
   };
 
   const handleRemove = (applicationId: number): void => {
@@ -85,8 +90,8 @@ export function DistTeamCard({
             projectId={projectId}
             teamId={team.id}
             member={member}
-            onDropApplicant={(payload, slotTeamId) =>
-              handleSlotDrop(payload, slotTeamId, idx)
+            onDropApplicant={(payload, slotTeamId, displacedApplicationId) =>
+              handleSlotDrop(payload, slotTeamId, idx, displacedApplicationId)
             }
             onRemove={handleRemove}
             onInvite={onInviteMember}

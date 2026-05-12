@@ -16,8 +16,14 @@ export interface DistTeamSlotProps {
   teamId: number;
   /** Член команды на этом слоте, если есть. */
   member: MentorDistributionTeamMember | null;
-  /** Drop из пула / другой команды этого проекта. */
-  onDropApplicant: (payload: ApplicantDragPayload, slotTeamId: number) => void;
+  /** Drop из пула / другой команды этого проекта. `displacedApplicationId`
+   *  — если slot был занят, чтобы родитель мог сначала вытеснить старого
+   *  студента, а затем поставить нового (без потери members при maxSize). */
+  onDropApplicant: (
+    payload: ApplicantDragPayload,
+    slotTeamId: number,
+    displacedApplicationId: number | null,
+  ) => void;
   /** Кнопка-крестик «убрать в пул» (доступна для recommended/unqualified). */
   onRemove: (applicationId: number) => void;
   /** Кнопка-галочка «Пригласить» (доступна для recommended). */
@@ -77,7 +83,8 @@ export function DistTeamSlot({
     if (!payload) return;
     if (payload.projectId !== projectId) return; // из другого проекта — игнор
     if (isLocked) return; // не заменять зафиксированного (приглашённого/принятого)
-    onDropApplicant(payload, teamId);
+    if (member && member.applicationId === payload.applicationId) return; // no-op
+    onDropApplicant(payload, teamId, member?.applicationId ?? null);
   };
 
   const startChipDrag = (e: DragEvent<HTMLDivElement>): void => {
