@@ -27,11 +27,13 @@ func setupRoutes(
 	distributionHandler *handlers.DistributionHandler,
 	mentorDashboardHandler *handlers.MentorDashboardHandler,
 	mentorDistributionHandler *handlers.MentorDistributionHandler,
+	coordinatorDashboardHandler *handlers.CoordinatorDashboardHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
 	mux.HandleFunc("GET /api/mentor/dashboard", mentorDashboardHandler.Get)
 	mux.HandleFunc("GET /api/mentor/distribution", mentorDistributionHandler.Get)
+	mux.HandleFunc("GET /api/coordinator/dashboard", coordinatorDashboardHandler.Get)
 	mux.HandleFunc("GET /api/mentor/projects/archive", projectHandler.GetMentorArchive)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
@@ -176,6 +178,8 @@ func main() {
 	mentorDashboardHandler := handlers.NewMentorDashboardHandler(mentorDashboardRepo)
 	mentorDistributionRepo := repository.NewMentorDistributionRepository(db.Pool)
 	mentorDistributionHandler := handlers.NewMentorDistributionHandler(mentorDistributionRepo)
+	coordinatorDashboardRepo := repository.NewCoordinatorDashboardRepository(db.Pool)
+	coordinatorDashboardHandler := handlers.NewCoordinatorDashboardHandler(coordinatorDashboardRepo, mentorDashboardRepo)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -191,6 +195,7 @@ func main() {
 		distributionHandler,
 		mentorDashboardHandler,
 		mentorDistributionHandler,
+		coordinatorDashboardHandler,
 	)
 	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port

@@ -280,6 +280,12 @@ export interface DashboardTeam {
   sprintStatuses: DashboardIterState[];
 }
 
+export interface DashboardMentorSummary {
+  id: number;
+  firstName: string;
+  lastName: string;
+}
+
 export interface MentorDashboardProject {
   id: number;
   title: string;
@@ -291,6 +297,8 @@ export interface MentorDashboardProject {
   startedAt?: string;
   sprints: DashboardSprint[];
   teams: DashboardTeam[];
+  /** Заполняется бэком на координаторском дашборде; на менторском — `undefined`. */
+  mentor?: DashboardMentorSummary | null;
 }
 
 export interface MentorDashboardResponse {

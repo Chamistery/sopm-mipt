@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hsse/project-service/internal/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,16 +31,28 @@ func NewMentorDashboardRepository(db *pgxpool.Pool) *MentorDashboardRepository {
 // queries by design — the dashboard is small (≤ 10 projects) and per-team
 // queries stay O(1) on indexed (sprint_id, team_id).
 func (r *MentorDashboardRepository) GetForMentor(ctx context.Context, mentorID int) ([]models.MentorDashboardProject, error) {
-	const projectsQuery = `
+	return r.getProjects(ctx, &mentorID)
+}
+
+// GetAll возвращает аналогичный список для всех менторов. Используется
+// координатором — admin.html показывает дашборд по всем проектам одновременно
+// с подсветкой ментора в meta-строке проекта.
+func (r *MentorDashboardRepository) GetAll(ctx context.Context) ([]models.MentorDashboardProject, error) {
+	return r.getProjects(ctx, nil)
+}
+
+func (r *MentorDashboardRepository) getProjects(ctx context.Context, mentorID *int) ([]models.MentorDashboardProject, error) {
+	const baseSelect = `
 		SELECT p.id, p.title, p.status, COALESCE(p.company, ''),
 		       p.predecessor_project_id,
 		       p.duration_semesters,
-		       p.created_at
+		       p.created_at,
+		       p.mentor_id,
+		       COALESCE(u.first_name, ''),
+		       COALESCE(u.last_name, '')
 		FROM projects p
-		WHERE p.mentor_id = $1
-		  AND p.status NOT IN ('Завершён', 'Архивный')
-		ORDER BY p.created_at DESC
-	`
+		LEFT JOIN users u ON u.id = p.mentor_id
+		WHERE p.status NOT IN ('Завершён', 'Архивный')`
 
 	type projectRow struct {
 		ID                int
@@ -49,9 +62,20 @@ func (r *MentorDashboardRepository) GetForMentor(ctx context.Context, mentorID i
 		PredecessorID     *int
 		DurationSemesters int
 		CreatedAt         time.Time
+		MentorID          *int
+		MentorFirst       string
+		MentorLast        string
 	}
 
-	rows, err := r.db.Query(ctx, projectsQuery, mentorID)
+	var (
+		rows pgx.Rows
+		err  error
+	)
+	if mentorID != nil {
+		rows, err = r.db.Query(ctx, baseSelect+` AND p.mentor_id = $1 ORDER BY p.created_at DESC`, *mentorID)
+	} else {
+		rows, err = r.db.Query(ctx, baseSelect+` ORDER BY p.created_at DESC`)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("dashboard: query projects: %w", err)
 	}
@@ -63,6 +87,7 @@ func (r *MentorDashboardRepository) GetForMentor(ctx context.Context, mentorID i
 		if err := rows.Scan(
 			&pr.ID, &pr.Title, &pr.Status, &pr.Company,
 			&pr.PredecessorID, &pr.DurationSemesters, &pr.CreatedAt,
+			&pr.MentorID, &pr.MentorFirst, &pr.MentorLast,
 		); err != nil {
 			return nil, fmt.Errorf("dashboard: scan project: %w", err)
 		}
@@ -93,6 +118,15 @@ func (r *MentorDashboardRepository) GetForMentor(ctx context.Context, mentorID i
 			currentSemester = pr.DurationSemesters
 		}
 
+		var mentor *models.UserSummary
+		if pr.MentorID != nil {
+			mentor = &models.UserSummary{
+				ID:        *pr.MentorID,
+				FirstName: pr.MentorFirst,
+				LastName:  pr.MentorLast,
+			}
+		}
+
 		out = append(out, models.MentorDashboardProject{
 			ID:                pr.ID,
 			Title:             pr.Title,
@@ -104,6 +138,7 @@ func (r *MentorDashboardRepository) GetForMentor(ctx context.Context, mentorID i
 			StartedAt:         pr.CreatedAt.Format("2006-01-02"),
 			Sprints:           orEmptySprints(sprints),
 			Teams:             orEmptyTeams(teams),
+			Mentor:            mentor,
 		})
 	}
 

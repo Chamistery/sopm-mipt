@@ -23,6 +23,11 @@ type MentorDashboardProject struct {
 	StartedAt         string             `json:"startedAt,omitempty"`
 	Sprints           []DashboardSprint  `json:"sprints"`
 	Teams             []DashboardTeam    `json:"teams"`
+	// Mentor — для координаторского дашборда (admin.html показывает «Ментор: …»
+	// в meta-строке). На менторском дашборде поле не используется (всегда сам
+	// текущий пользователь). Может быть nil для черновиков без назначенного
+	// ментора.
+	Mentor            *UserSummary       `json:"mentor,omitempty"`
 }
 
 // DashboardSprint is a sprint row trimmed for the dashboard. Frontend uses
