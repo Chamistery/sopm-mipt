@@ -1,0 +1,89 @@
+/* Pixel-port из admin.html (view-create базовая страница + надстройка
+   «Создать от имени ментора»). Стили самой формы — переиспользуются
+   из NewProjectForm.module.css. */
+
+.page {
+  display: block;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: var(--text);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.breadcrumbLink {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.breadcrumbCurrent {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.mentorPicker {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.required {
+  color: var(--danger);
+}
+
+.select {
+  width: 100%;
+  max-width: 480px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  background: var(--white);
+  color: var(--text);
+}
+
+.select:focus {
+  border-color: var(--accent);
+}
+
+.hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.locked {
+  padding: 24px;
+  text-align: center;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
