@@ -190,6 +190,7 @@ function TeamMemberChip({
       applicationId: member.applicationId,
       studentId: member.studentId,
       sourceTeamId: teamId,
+      sourceStatus: member.status,
     });
     e.currentTarget.classList.add(styles.dragging);
   };

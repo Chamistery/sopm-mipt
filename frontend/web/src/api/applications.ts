@@ -83,6 +83,18 @@ export function unrecommendApplicant(id: number): Promise<Application> {
   return apiFetch<Application>(`/applications/${id}/unrecommend`, { method: 'PUT' });
 }
 
+/**
+ * Moves application to a different team within the SAME project, preserving
+ * its status. Used by coordinator distribution drag&drop when the chip is
+ * already in some team and we don't want to reset its status to «Рекомендован».
+ */
+export function moveApplicationToTeam(id: number, teamId: number): Promise<Application> {
+  return apiFetch<Application>(`/applications/${id}/move-team`, {
+    method: 'PUT',
+    body: { teamId },
+  });
+}
+
 /** Sends the official invite — moves the application to "Принято ментором". */
 export function inviteApplicant(id: number): Promise<Application> {
   return apiFetch<Application>(`/applications/${id}/invite`, { method: 'PUT' });

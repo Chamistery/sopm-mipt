@@ -56,6 +56,7 @@ func setupRoutes(
 	mux.HandleFunc("GET /api/applications/{id}", applicationHandler.GetByID)
 	mux.HandleFunc("PUT /api/applications/{id}/recommend", applicationHandler.Recommend)
 	mux.HandleFunc("PUT /api/applications/{id}/unrecommend", applicationHandler.Unrecommend)
+	mux.HandleFunc("PUT /api/applications/{id}/move-team", applicationHandler.MoveToTeam)
 	mux.HandleFunc("PUT /api/applications/{id}/invite", applicationHandler.Invite)
 	mux.HandleFunc("PUT /api/applications/{id}/accept", applicationHandler.Accept)
 	mux.HandleFunc("PUT /api/applications/{id}/decline", applicationHandler.Decline)

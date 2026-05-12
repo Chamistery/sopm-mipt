@@ -46,8 +46,16 @@ export function DistStatusMenu({ currentKey, onSelect, onClose }: Props): JSX.El
     };
   }, [onClose]);
 
+  // stopPropagation на всём popup, чтобы click внутри меню не всплывал
+  // до бейджа-родителя (toggleMenu вернул бы менюшку обратно).
   return (
-    <div ref={ref} className={styles.popup} role="menu">
+    <div
+      ref={ref}
+      className={styles.popup}
+      role="menu"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <div className={styles.hint}>Ручной выбор статуса</div>
       {GDIST_STATUSES.map((s) => (
         <button
@@ -55,7 +63,10 @@ export function DistStatusMenu({ currentKey, onSelect, onClose }: Props): JSX.El
           type="button"
           role="menuitem"
           className={`${styles.item} ${s.key === currentKey ? styles.itemCurrent : ''}`}
-          onClick={() => onSelect(s.key)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(s.key);
+          }}
           title={s.description}
         >
           <span className={`${styles.dot} ${styles[`dot_${s.className}`]}`} />

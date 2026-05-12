@@ -133,6 +133,33 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 	return s.applications.GetByID(ctx, app.ID)
 }
 
+// MoveToTeam меняет team_id заявки, СОХРАНЯЯ её статус. Используется
+// координатором/админом при перетаскивании чипа из одной команды в другую
+// (admin.html distribution): студент остаётся в том же статусе («Принято
+// ментором» / «Рекомендован»), но команда меняется.
+//
+// Если статус был 'Принят' — фронт обязан спросить confirm у пользователя
+// перед вызовом этого endpoint'а (см. admin.html:2882). Сам бэк не блокирует:
+// в этом случае нужно сначала вызвать Recommend, который сбросит статус.
+func (s *ApplicationService) MoveToTeam(ctx context.Context, user *auth.CurrentUser, applicationID, teamID int) (*models.Application, error) {
+	app, project, err := s.loadManagedApplication(ctx, user, applicationID)
+	if err != nil {
+		return nil, err
+	}
+	team, err := s.teams.GetByID(ctx, teamID)
+	if err != nil {
+		return nil, err
+	}
+	if team.ProjectID != project.ID {
+		return nil, WrapStateError("team must belong to the same project")
+	}
+	app.TeamID = &teamID
+	if err := s.applications.Update(ctx, app); err != nil {
+		return nil, err
+	}
+	return s.applications.GetByID(ctx, app.ID)
+}
+
 func (s *ApplicationService) Invite(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, error) {
 	app, _, err := s.loadManagedApplication(ctx, user, applicationID)
 	if err != nil {

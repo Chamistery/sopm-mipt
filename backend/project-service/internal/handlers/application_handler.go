@@ -95,6 +95,29 @@ func (h *ApplicationHandler) Recommend(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w, http.StatusOK, app)
 }
 
+// MoveToTeam — координатор перетаскивает чип из одной команды в другую
+// внутри того же проекта, СОХРАНЯЯ статус. Body: { teamId }.
+func (h *ApplicationHandler) MoveToTeam(w http.ResponseWriter, r *http.Request) {
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	var payload struct {
+		TeamID int `json:"teamId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	app, err := h.service.MoveToTeam(r.Context(), currentUser(r), id, payload.TeamID)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	httputil.RespondSuccess(w, http.StatusOK, app)
+}
+
 func (h *ApplicationHandler) Unrecommend(w http.ResponseWriter, r *http.Request) {
 	id, err := httputil.ParsePathInt(r, "id")
 	if err != nil {

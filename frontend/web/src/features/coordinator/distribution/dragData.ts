@@ -13,6 +13,9 @@ export type DistDragPayload =
       applicationId: number;
       studentId: number;
       sourceTeamId: number;
+      /** Текущий ApplicationStatus — нужен на target side, чтобы выбрать
+       *  recommend (reset status) vs move-team (preserve status). */
+      sourceStatus: string;
     }
   | {
       kind: 'pool-student';
