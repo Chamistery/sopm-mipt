@@ -27,6 +27,7 @@ import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordina
 import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
 import { CoordApplicationsPage } from '@/features/coordinator/applications/CoordApplicationsPage';
 import { CoordNewProjectPage } from '@/features/coordinator/create/CoordNewProjectPage';
+import { CoordTeamRedirect } from '@/features/coordinator/team/CoordTeamRedirect';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -77,6 +78,7 @@ export const router = createBrowserRouter([
       { path: 'admin/distribution', element: <CoordDistributionPage /> },
       { path: 'admin/applications', element: <CoordApplicationsPage /> },
       { path: 'admin/projects/new', element: <CoordNewProjectPage /> },
+      { path: 'admin/teams/:teamId', element: <CoordTeamRedirect /> },
       {
         path: 'admin/archive',
         element: (
