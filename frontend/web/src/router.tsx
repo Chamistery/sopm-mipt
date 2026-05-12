@@ -18,6 +18,10 @@ import { MentorTeamLegacyRedirect } from '@/features/mentor-dashboard/MentorTeam
 import { ArchivePage } from '@/features/mentor-dashboard/ArchivePage';
 import { ArchiveProjectTeamsPage } from '@/features/mentor-dashboard/ArchiveProjectTeamsPage';
 import { ArchiveTeamPage } from '@/features/mentor-dashboard/ArchiveTeamPage';
+import {
+  ArchiveBasePathContext,
+  ARCHIVE_BASE_PATH_COORD,
+} from '@/features/mentor-dashboard/lib/archiveBasePath';
 import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
 import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
 import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
@@ -71,6 +75,30 @@ export const router = createBrowserRouter([
       { path: 'admin/projects/:id', element: <CoordProjectDetailPage /> },
       { path: 'admin/distribution', element: <CoordDistributionPage /> },
       { path: 'admin/applications', element: <CoordApplicationsPage /> },
+      {
+        path: 'admin/archive',
+        element: (
+          <ArchiveBasePathContext.Provider value={ARCHIVE_BASE_PATH_COORD}>
+            <ArchivePage scope="coordinator" />
+          </ArchiveBasePathContext.Provider>
+        ),
+      },
+      {
+        path: 'admin/archive/projects/:projectId',
+        element: (
+          <ArchiveBasePathContext.Provider value={ARCHIVE_BASE_PATH_COORD}>
+            <ArchiveProjectTeamsPage />
+          </ArchiveBasePathContext.Provider>
+        ),
+      },
+      {
+        path: 'admin/archive/teams/:teamId',
+        element: (
+          <ArchiveBasePathContext.Provider value={ARCHIVE_BASE_PATH_COORD}>
+            <ArchiveTeamPage />
+          </ArchiveBasePathContext.Provider>
+        ),
+      },
     ],
   },
   { path: '*', element: <NotFoundPage /> },
