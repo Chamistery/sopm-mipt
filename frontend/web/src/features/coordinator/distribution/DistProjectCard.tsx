@@ -25,7 +25,7 @@ import {
 import { colorFor, initialsFor } from './initials';
 import { gdistStatusOf, type GdistStatusKey } from './statusInfo';
 import { DistStatusMenu } from './DistStatusMenu';
-import type { DrawerStudent } from './DistStudentDrawer';
+import type { DrawerSelection } from './CoordDistributionPage';
 import styles from './DistProjectCard.module.css';
 
 interface Props {
@@ -33,7 +33,7 @@ interface Props {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onDropToTeam: (payload: DistDragPayload, teamId: number, projectId: number) => void;
-  onOpenDrawer: (student: DrawerStudent) => void;
+  onOpenDrawer: (selection: DrawerSelection) => void;
   onSetStatus: (applicationId: number, teamId: number, key: GdistStatusKey) => void;
 }
 
@@ -97,7 +97,7 @@ interface TeamBlockProps {
   project: CoordinatorDistributionProject;
   team: MentorDistributionTeam;
   onDrop: (payload: DistDragPayload) => void;
-  onOpenDrawer: (student: DrawerStudent) => void;
+  onOpenDrawer: (selection: DrawerSelection) => void;
   onSetStatus: (applicationId: number, key: GdistStatusKey) => void;
 }
 
@@ -151,9 +151,6 @@ function TeamBlock({ project, team, onDrop, onOpenDrawer, onSetStatus }: TeamBlo
             key={m.applicationId}
             member={m}
             teamId={team.id}
-            teamName={team.name}
-            projectId={project.id}
-            projectTitle={project.title}
             onOpenDrawer={onOpenDrawer}
             onSetStatus={(key) => onSetStatus(m.applicationId, key)}
           />
@@ -166,19 +163,13 @@ function TeamBlock({ project, team, onDrop, onOpenDrawer, onSetStatus }: TeamBlo
 interface ChipProps {
   member: MentorDistributionTeamMember;
   teamId: number;
-  teamName: string;
-  projectId: number;
-  projectTitle: string;
-  onOpenDrawer: (student: DrawerStudent) => void;
+  onOpenDrawer: (selection: DrawerSelection) => void;
   onSetStatus: (key: GdistStatusKey) => void;
 }
 
 function TeamMemberChip({
   member,
   teamId,
-  teamName,
-  projectId,
-  projectTitle,
   onOpenDrawer,
   onSetStatus,
 }: ChipProps): JSX.Element {
@@ -203,42 +194,10 @@ function TeamMemberChip({
   };
 
   const handleBodyClick = (): void => {
-    // allPriorities приходит с бэка для coordinator distribution (все заявки
-    // студента). Если по какой-то причине пусто — fallback на одну запись
-    // о собственной заявке этой команды.
-    const priorities =
-      member.allPriorities && member.allPriorities.length > 0
-        ? member.allPriorities.map((p) => ({
-            applicationId: p.applicationId,
-            projectId: p.projectId,
-            projectTitle: p.projectTitle,
-            company: p.company,
-            mentorName: p.mentorName,
-            priority: p.priority,
-            status: p.status,
-          }))
-        : [
-            {
-              applicationId: member.applicationId,
-              projectId,
-              projectTitle,
-              priority: member.priority,
-              status: member.status,
-            },
-          ];
     onOpenDrawer({
-      studentId: member.studentId,
-      firstName: member.firstName,
-      lastName: member.lastName,
-      course: member.course,
-      group: member.group,
-      gpa: member.gpa,
-      priorities,
-      currentTeamProjectId: projectId,
-      currentProjectTitle: projectTitle,
-      currentTeamName: teamName,
-      currentApplicationId: member.applicationId,
-      currentTeamId: teamId,
+      kind: 'team-member',
+      teamId,
+      applicationId: member.applicationId,
     });
   };
 

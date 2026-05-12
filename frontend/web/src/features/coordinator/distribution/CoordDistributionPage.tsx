@@ -35,6 +35,7 @@ import {
 } from '@/api/applications';
 import type {
   CoordinatorDistributionProject,
+  CoordinatorDistributionResponse,
   CoordinatorPoolStudent,
 } from '@/api/coordinatorDistribution';
 import { useToast } from '@/_shared/Toast';
@@ -49,6 +50,13 @@ import { useSetApplicationStatus } from './useStatusMutation';
 import type { DistDragPayload } from './dragData';
 import styles from './CoordDistributionPage.module.css';
 
+/** Что показывать в правой панели. Храним только идентификаторы, чтобы
+ *  drawer перерисовывался свежими данными после каждой мутации (не зависал
+ *  на снимке состояния). */
+export type DrawerSelection =
+  | { kind: 'team-member'; teamId: number; applicationId: number }
+  | { kind: 'pool'; studentId: number };
+
 export function CoordDistributionPage(): JSX.Element {
   const dataQuery = useCoordinatorDistribution();
   const queryClient = useQueryClient();
@@ -57,7 +65,15 @@ export function CoordDistributionPage(): JSX.Element {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [collapsedProjects, setCollapsedProjects] = useState<Set<number>>(new Set());
-  const [drawerStudent, setDrawerStudent] = useState<DrawerStudent | null>(null);
+  const [drawerSelection, setDrawerSelection] = useState<DrawerSelection | null>(null);
+
+  // Drawer-DTO собираем из FRESH-данных при каждом рендере. Так после
+  // мутации (смена статуса / move-team) drawer мгновенно показывает
+  // новое состояние, а не зависает на снимке из onOpenDrawer.
+  const drawerStudent = useMemo<DrawerStudent | null>(
+    () => buildDrawerStudent(drawerSelection, dataQuery.data),
+    [drawerSelection, dataQuery.data],
+  );
 
   const invalidate = (): void => {
     void queryClient.invalidateQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
@@ -309,7 +325,7 @@ export function CoordDistributionPage(): JSX.Element {
                   collapsed={collapsedProjects.has(project.id)}
                   onToggleCollapse={() => toggleCollapse(project.id)}
                   onDropToTeam={handleDropToTeam}
-                  onOpenDrawer={setDrawerStudent}
+                  onOpenDrawer={setDrawerSelection}
                   onSetStatus={handleSetStatus}
                 />
               ))
@@ -319,7 +335,7 @@ export function CoordDistributionPage(): JSX.Element {
             <DistPool
               pool={pool}
               onDropToPool={handleDropToPool}
-              onOpenDrawer={setDrawerStudent}
+              onOpenDrawer={setDrawerSelection}
             />
             <div className={styles.helpTile}>
               <b>Координатор:</b> может вручную переносить студентов между любыми
@@ -334,7 +350,7 @@ export function CoordDistributionPage(): JSX.Element {
       <DistStudentDrawer
         student={drawerStudent}
         onSetStatus={handleSetStatus}
-        onClose={() => setDrawerStudent(null)}
+        onClose={() => setDrawerSelection(null)}
       />
     </div>
   );
@@ -388,4 +404,147 @@ function formatError(err: unknown, fallback: string): string {
   if (err instanceof ApiError) return `${fallback}: ${err.message}`;
   if (err instanceof Error) return `${fallback}: ${err.message}`;
   return fallback;
+}
+
+/** Собирает DrawerStudent из текущего DrawerSelection и свежих query-данных.
+ *  Если selection указывает на чип, которого больше нет (например, после
+ *  unrecommend он исчез из команд и попал в пул) — пытаемся переключиться
+ *  по studentId на новое местоположение. Если ничего не нашли — возвращаем
+ *  null (drawer закроется). */
+function buildDrawerStudent(
+  selection: DrawerSelection | null,
+  data: CoordinatorDistributionResponse | undefined,
+): DrawerStudent | null {
+  if (!selection || !data) return null;
+
+  if (selection.kind === 'team-member') {
+    for (const project of data.projects) {
+      const team = project.teams.find((t) => t.id === selection.teamId);
+      if (!team) continue;
+      const member = team.members.find((m) => m.applicationId === selection.applicationId);
+      if (!member) continue;
+      return {
+        studentId: member.studentId,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        course: member.course,
+        group: member.group,
+        gpa: member.gpa,
+        priorities:
+          member.allPriorities && member.allPriorities.length > 0
+            ? member.allPriorities.map((p) => ({
+                applicationId: p.applicationId,
+                projectId: p.projectId,
+                projectTitle: p.projectTitle,
+                company: p.company,
+                mentorName: p.mentorName,
+                priority: p.priority,
+                status: p.status,
+              }))
+            : [
+                {
+                  applicationId: member.applicationId,
+                  projectId: project.id,
+                  projectTitle: project.title,
+                  priority: member.priority,
+                  status: member.status,
+                },
+              ],
+        currentTeamProjectId: project.id,
+        currentProjectTitle: project.title,
+        currentTeamName: team.name,
+        currentApplicationId: member.applicationId,
+        currentTeamId: team.id,
+      };
+    }
+    // Чип ушёл из команды — попробуем найти этого студента в пуле.
+    return findStudentInPool(data, /* studentId by lookup */ null, selection.applicationId);
+  }
+
+  // selection.kind === 'pool'
+  const pool = data.pool.find((s) => s.studentId === selection.studentId);
+  if (!pool) {
+    // Студент мог попасть в команду — найдём по studentId.
+    return findStudentInTeam(data, selection.studentId);
+  }
+  return {
+    studentId: pool.studentId,
+    firstName: pool.firstName,
+    lastName: pool.lastName,
+    course: pool.course,
+    group: pool.group,
+    gpa: pool.gpa,
+    priorities: pool.priorities,
+    currentTeamProjectId: null,
+    currentProjectTitle: null,
+    currentTeamName: null,
+    currentApplicationId: null,
+    currentTeamId: null,
+  };
+}
+
+function findStudentInPool(
+  data: CoordinatorDistributionResponse,
+  _studentId: number | null,
+  applicationId: number,
+): DrawerStudent | null {
+  // Ищем студента по applicationId в пуле (он мог уйти из команды через
+  // unrecommend и приехать в пул со своими приоритетами).
+  for (const pool of data.pool) {
+    if (pool.priorities.some((p) => p.applicationId === applicationId)) {
+      return {
+        studentId: pool.studentId,
+        firstName: pool.firstName,
+        lastName: pool.lastName,
+        course: pool.course,
+        group: pool.group,
+        gpa: pool.gpa,
+        priorities: pool.priorities,
+        currentTeamProjectId: null,
+        currentProjectTitle: null,
+        currentTeamName: null,
+        currentApplicationId: null,
+        currentTeamId: null,
+      };
+    }
+  }
+  return null;
+}
+
+function findStudentInTeam(
+  data: CoordinatorDistributionResponse,
+  studentId: number,
+): DrawerStudent | null {
+  for (const project of data.projects) {
+    for (const team of project.teams) {
+      const member = team.members.find((m) => m.studentId === studentId);
+      if (!member) continue;
+      return {
+        studentId: member.studentId,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        course: member.course,
+        group: member.group,
+        gpa: member.gpa,
+        priorities:
+          member.allPriorities && member.allPriorities.length > 0
+            ? member.allPriorities.map((p) => ({
+                applicationId: p.applicationId,
+                projectId: p.projectId,
+                projectTitle: p.projectTitle,
+                company: p.company,
+                mentorName: p.mentorName,
+                priority: p.priority,
+                status: p.status,
+              }))
+            : [],
+        currentTeamProjectId: project.id,
+        currentProjectTitle: project.title,
+        currentTeamName: team.name,
+        currentApplicationId: member.applicationId,
+        currentTeamId: team.id,
+      };
+    }
+  }
+  return null;
 }

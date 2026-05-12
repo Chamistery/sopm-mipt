@@ -17,13 +17,13 @@ import {
   type DistDragPayload,
 } from './dragData';
 import { colorFor, initialsFor } from './initials';
-import type { DrawerStudent } from './DistStudentDrawer';
+import type { DrawerSelection } from './CoordDistributionPage';
 import styles from './DistPool.module.css';
 
 interface Props {
   pool: CoordinatorPoolStudent[];
   onDropToPool: (payload: DistDragPayload) => void;
-  onOpenDrawer: (student: DrawerStudent) => void;
+  onOpenDrawer: (selection: DrawerSelection) => void;
 }
 
 export function DistPool({ pool, onDropToPool, onOpenDrawer }: Props): JSX.Element {
@@ -72,7 +72,7 @@ export function DistPool({ pool, onDropToPool, onOpenDrawer }: Props): JSX.Eleme
 
 interface PoolChipProps {
   student: CoordinatorPoolStudent;
-  onOpenDrawer: (student: DrawerStudent) => void;
+  onOpenDrawer: (selection: DrawerSelection) => void;
 }
 
 function PoolChip({ student, onOpenDrawer }: PoolChipProps): JSX.Element {
@@ -97,20 +97,7 @@ function PoolChip({ student, onOpenDrawer }: PoolChipProps): JSX.Element {
   };
 
   const handleClick = (): void => {
-    onOpenDrawer({
-      studentId: student.studentId,
-      firstName: student.firstName,
-      lastName: student.lastName,
-      course: student.course,
-      group: student.group,
-      gpa: student.gpa,
-      priorities: student.priorities,
-      currentTeamProjectId: null,
-      currentProjectTitle: null,
-      currentTeamName: null,
-      currentApplicationId: null,
-      currentTeamId: null,
-    });
+    onOpenDrawer({ kind: 'pool', studentId: student.studentId });
   };
 
   return (
