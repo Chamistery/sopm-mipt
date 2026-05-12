@@ -664,6 +664,21 @@ export const handlers = [
     return ok({ deadline: '', projects: [], pool: [] });
   }),
 
+  // ─── Coordinator applications list (feature/coord-applications) ───────
+  http.get(`${API}/coordinator/applications`, () => {
+    return ok({ applications: [] });
+  }),
+
+  http.post(`${API}/projects/:id/change-request/approve`, ({ params }) => {
+    const id = Number(params.id);
+    return ok({ id, title: 'OK', pendingProposalData: null });
+  }),
+
+  http.post(`${API}/projects/:id/change-request/reject`, ({ params }) => {
+    const id = Number(params.id);
+    return ok({ id, title: 'OK', pendingProposalData: null });
+  }),
+
   // ─── Coordinator dashboard aggregate (feature/coord-dashboard) ─────────
   http.get(`${API}/coordinator/dashboard`, () => {
     const today = new Date(NOW_DASHBOARD);

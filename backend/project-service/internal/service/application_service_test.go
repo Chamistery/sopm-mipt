@@ -63,6 +63,12 @@ func (s *stubProjectRepo) Delete(context.Context, int) error             { retur
 func (s *stubProjectRepo) SubmitChangeRequest(context.Context, int, json.RawMessage, int) (*models.Project, error) {
 	return nil, nil
 }
+func (s *stubProjectRepo) ApproveChangeRequest(context.Context, int) (*models.Project, error) {
+	return nil, nil
+}
+func (s *stubProjectRepo) RejectChangeRequest(context.Context, int) (*models.Project, error) {
+	return nil, nil
+}
 
 type stubUserRepo struct{ user *models.User }
 

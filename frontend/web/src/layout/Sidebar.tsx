@@ -1,9 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
 import { useCurrentUser } from '@/auth/useCurrentUser';
 import { useAuthStore } from '@/auth/store';
 import { ROLE_LABELS_RU } from '@/auth/roles';
 import { homePathForRole } from '@/auth/redirectByRole';
+import { getCoordinatorDashboard } from '@/api/coordinatorDashboard';
 import { RoleSwitcher } from './RoleSwitcher';
 import styles from './Sidebar.module.css';
 
@@ -24,6 +26,8 @@ interface NavItem {
   icon?: IconKey;
   /** When true, the link is highlighted only on an exact path match. */
   end?: boolean;
+  /** Tag identifying which live counter to attach as a red badge. */
+  badge?: 'pendingApplications';
 }
 
 /** SVG-иконки для пунктов sidebar — пиксель-копии из прототипа
@@ -118,7 +122,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: '/admin', label: 'Дашборд', icon: 'dashboard', end: true },
     { to: '/admin/distribution', label: 'Распределение', icon: 'coordDistribution' },
     { to: '/admin/grading', label: 'Оценивание', icon: 'grading' },
-    { to: '/admin/applications', label: 'Заявки на проекты', icon: 'applications' },
+    { to: '/admin/applications', label: 'Заявки на проекты', icon: 'applications', badge: 'pendingApplications' },
     { to: '/admin/archive', label: 'Архив проектов', icon: 'archive' },
   ],
   admin: [
@@ -132,9 +136,19 @@ export function Sidebar(): JSX.Element {
   const signOut = useAuthStore((s) => s.signOut);
   const navigate = useNavigate();
 
+  // Coordinator-only live badge для пункта «Заявки на проекты» — счётчик
+  // pending applications приезжает в dashboard-aggregate.
+  const coordDashQuery = useQuery({
+    queryKey: ['coordinator', 'dashboard'],
+    queryFn: getCoordinatorDashboard,
+    enabled: user?.role === 'coordinator',
+    staleTime: 30_000,
+  });
+
   if (!user) return <aside className={styles.sidebar} />;
 
   const items = NAV_BY_ROLE[user.role] ?? [];
+  const pendingApplications = coordDashQuery.data?.attention.pendingApplications ?? 0;
 
   const handleSignOut = (): void => {
     signOut();
@@ -161,19 +175,26 @@ export function Sidebar(): JSX.Element {
       />
 
       <nav className={styles.nav}>
-        {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end ?? item.to === '/'}
-            className={({ isActive }) =>
-              isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem
-            }
-          >
-            {item.icon ? <NavIcon kind={item.icon} /> : null}
-            <span>{item.label}</span>
-          </NavLink>
-        ))}
+        {items.map((item) => {
+          const badgeCount =
+            item.badge === 'pendingApplications' ? pendingApplications : 0;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end ?? item.to === '/'}
+              className={({ isActive }) =>
+                isActive ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem
+              }
+            >
+              {item.icon ? <NavIcon kind={item.icon} /> : null}
+              <span>{item.label}</span>
+              {badgeCount > 0 ? (
+                <span className={styles.navBadge}>{badgeCount}</span>
+              ) : null}
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className={styles.user}>
