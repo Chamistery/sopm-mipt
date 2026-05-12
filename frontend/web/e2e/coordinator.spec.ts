@@ -27,9 +27,9 @@ test.skip('coordinator full happy path: dashboard → projects → detail → di
   await page.getByRole('button', { name: /Войти как/i }).click();
 
   await expect(page).toHaveURL(/\/admin/);
-  await expect(page.getByRole('heading', { name: /Координация практикума/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Панель управления/ })).toBeVisible();
 
-  await page.getByRole('link', { name: 'Проекты' }).first().click();
+  await page.goto('/admin/projects');
   await expect(page).toHaveURL(/\/admin\/projects/);
 
   await page.getByRole('button', { name: /AI чат-бот/ }).click();

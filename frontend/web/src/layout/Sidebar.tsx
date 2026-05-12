@@ -7,7 +7,16 @@ import { homePathForRole } from '@/auth/redirectByRole';
 import { RoleSwitcher } from './RoleSwitcher';
 import styles from './Sidebar.module.css';
 
-type IconKey = 'dashboard' | 'distribution' | 'archive' | 'catalog' | 'project' | 'profile';
+type IconKey =
+  | 'dashboard'
+  | 'distribution'
+  | 'coordDistribution'
+  | 'grading'
+  | 'applications'
+  | 'archive'
+  | 'catalog'
+  | 'project'
+  | 'profile';
 
 interface NavItem {
   to: string;
@@ -35,6 +44,28 @@ function NavIcon({ kind }: { kind: IconKey }): JSX.Element {
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
           <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" />
           <path d="M8 7v6l5-3-5-3z" fill="currentColor" />
+        </svg>
+      );
+    case 'coordDistribution':
+      return (
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.4" />
+          <circle cx="14" cy="13" r="3" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M10 7h4M7 10v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
+      );
+    case 'grading':
+      return (
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4 16V8M8 16V5M12 16V10M16 16V3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case 'applications':
+      return (
+        <svg width="20" height="20" fill="none" viewBox="0 0 20 20" aria-hidden="true">
+          <path d="M4 3h9l3 3v11H4V3z" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M7 3v4h5V3" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M7 11h6M7 14h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
       );
     case 'archive':
@@ -84,10 +115,11 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: '/mentor/archive', label: 'Архив проектов', icon: 'archive' },
   ],
   coordinator: [
-    { to: '/admin', label: 'Координация', end: true },
-    { to: '/admin/projects', label: 'Проекты' },
-    { to: '/admin/distribution', label: 'Распределение' },
-    { to: '/profile', label: 'Мой профиль' },
+    { to: '/admin', label: 'Дашборд', icon: 'dashboard', end: true },
+    { to: '/admin/distribution', label: 'Распределение', icon: 'coordDistribution' },
+    { to: '/admin/grading', label: 'Оценивание', icon: 'grading' },
+    { to: '/admin/applications', label: 'Заявки на проекты', icon: 'applications' },
+    { to: '/admin/archive', label: 'Архив проектов', icon: 'archive' },
   ],
   admin: [
     { to: '/admin', label: 'Администрирование' },
