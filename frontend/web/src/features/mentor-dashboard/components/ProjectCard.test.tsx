@@ -62,7 +62,7 @@ describe('ProjectCard', () => {
     expect(screen.getByText(/Лидер: Стародубов А\./)).toBeInTheDocument();
   });
 
-  it('shows continuation pill and predecessor footer link when predecessorId set', () => {
+  it('shows predecessor link in header when predecessorId set', () => {
     renderCard(
       makeProject({
         predecessorId: 100,
@@ -71,7 +71,6 @@ describe('ProjectCard', () => {
       }),
     );
 
-    expect(screen.getByText('Продолжение')).toBeInTheDocument();
     const link = screen.getByRole('link', { name: /Открыть предшественника/ });
     expect(link).toHaveAttribute('href', '/mentor/archive?highlight=100');
     expect(screen.getByText(/2 семестра.*2-й из 2/)).toBeInTheDocument();
