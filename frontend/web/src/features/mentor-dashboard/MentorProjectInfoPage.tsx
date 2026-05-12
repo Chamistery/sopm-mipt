@@ -5,10 +5,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getProject,
   getProjectProposal,
-  updateProject,
+  submitProjectChangeRequest,
   type Project,
 } from '@/api/projects';
 import { useRequireUser } from '@/auth/useCurrentUser';
+import { useToast } from '@/_shared/Toast';
 import {
   NewProjectForm,
   type NewProjectFormSubmit,
@@ -29,9 +30,11 @@ import styles from './MentorProjectInfoPage.module.css';
  * Компонент читает pathname, определяет режим, грузит proposalData и
  * рендерит `NewProjectForm` в выбранном режиме.
  *
- * Save в режиме edit пока не подключён: бэк не имеет PUT
- * /api/projects/:id/proposal. Кнопка «Сохранить изменения» disabled с
- * tooltip — это known-todo, см. отчёт.
+ * Save в режиме edit — change request: изменения отправляются на утверждение
+ * координатору через POST /projects/:id/change-request (а не применяются сразу
+ * к проекту, потому что проект публичный, студенты могут уже подавать заявки).
+ * Если на проекте уже есть pending submission — рисуем оранжевый banner вместо
+ * синего и блокируем дальнейший submit, пока координатор не утвердит / отклонит.
  */
 export function MentorProjectInfoPage(): JSX.Element {
   useRequireUser();
@@ -39,6 +42,7 @@ export function MentorProjectInfoPage(): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const projectId = Number(params.projectId);
   const isArchive = location.pathname.includes('/archive/');
   const mode: 'readonly' | 'edit' = isArchive ? 'readonly' : 'edit';
@@ -56,32 +60,36 @@ export function MentorProjectInfoPage(): JSX.Element {
     staleTime: 5 * 60_000,
   });
 
-  // Save для edit пока заглушка — см. отчёт. Оставляем mutation как
-  // готовую точку расширения: после появления PUT /api/projects/:id/proposal
-  // достаточно убрать submitDisabled-флаг и вернуть кнопке активность.
   const mutation = useMutation({
-    mutationFn: async (_value: NewProjectFormSubmit) => {
-      // Заглушка. После реализации бэка — заменить на updateProjectProposal.
-      // Сейчас mutation не вызывается из формы (кнопка disabled).
-      return updateProject(projectId, {});
-    },
+    mutationFn: (value: NewProjectFormSubmit) =>
+      submitProjectChangeRequest(projectId, { proposalData: value.proposal }),
     onSuccess: async () => {
+      toast.showSuccess('Изменения отправлены координатору');
       await queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       await queryClient.invalidateQueries({ queryKey: ['project', projectId, 'proposal'] });
-      navigate(isArchive ? '/mentor/archive' : '/mentor');
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : 'Не удалось отправить изменения';
+      toast.showError(message);
     },
   });
 
   const isLoading = projectQuery.isLoading || proposalQuery.isLoading;
   const project = projectQuery.data;
   const proposal = proposalQuery.data ?? null;
+  const pendingSubmittedAt = project?.pendingSubmittedAt ?? null;
+  const hasPending = mode === 'edit' && pendingSubmittedAt != null;
 
   // Если proposalData отсутствует (старый проект до введения jsonb-формы),
   // показываем форму со скелетом emptyProposalData(), но с реальным title /
   // company / description из Project. Это лучше, чем «нет данных».
+  // В edit-режиме при наличии pendingProposalData показываем именно её —
+  // ментор видит «что я отправил координатору», а не старую версию.
   const initial: ProposalData | undefined = isLoading
     ? undefined
-    : proposal ?? proposalFromProject(project);
+    : (hasPending && project?.pendingProposalData) ||
+      proposal ||
+      proposalFromProject(project);
 
   const backTo = isArchive ? '/mentor/archive' : '/mentor';
   const backLabel = isArchive ? 'Архив' : 'Дашборд';
@@ -115,13 +123,13 @@ export function MentorProjectInfoPage(): JSX.Element {
           headerBanner={
             mode === 'readonly' ? (
               <ReadonlyBanner />
+            ) : hasPending ? (
+              <PendingBanner submittedAt={pendingSubmittedAt as string} />
             ) : (
-              <EditBanner />
+              <EditBanner projectTitle={project?.title} />
             )
           }
-          // Save отключён — бэка нет; mutation остаётся, но UI блокирует.
-          submitDisabled
-          submitDisabledHint="Сохранение появится в следующем релизе"
+          submitLabel={hasPending ? 'Обновить запрос' : 'Отправить на согласование'}
           footerExtras={
             <Link to={backTo} className={styles.closeLink} data-testid="info-close">
               {mode === 'readonly' ? 'Закрыть' : 'К дашборду'}
@@ -130,6 +138,7 @@ export function MentorProjectInfoPage(): JSX.Element {
           onSubmit={(value) => mutation.mutate(value)}
           onCancel={() => navigate(backTo)}
           isSubmitting={mutation.isPending}
+          serverError={mutation.error instanceof Error ? mutation.error.message : null}
         />
       )}
     </div>
@@ -155,7 +164,7 @@ function ReadonlyBanner(): JSX.Element {
   );
 }
 
-function EditBanner(): JSX.Element {
+function EditBanner({ projectTitle }: { projectTitle?: string }): JSX.Element {
   return (
     <div className={styles.editBanner} role="note">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -166,9 +175,26 @@ function EditBanner(): JSX.Element {
         />
       </svg>
       <span>
-        <b>Редактирование проекта.</b> После сохранения изменения вступят в силу
-        только после одобрения координатором. Секция «Настройка спринтов»
-        недоступна для изменений.
+        <b>Редактирование проекта{projectTitle ? ` «${projectTitle}»` : ''}.</b> После
+        отправки изменения требуют утверждения координатором. Секция «Настройка
+        спринтов» недоступна для изменений.
+      </span>
+    </div>
+  );
+}
+
+function PendingBanner({ submittedAt }: { submittedAt: string }): JSX.Element {
+  const formatted = formatPendingDate(submittedAt);
+  return (
+    <div className={styles.pendingBanner} role="note" data-testid="pending-banner">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+        <path d="M8 4v4l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+      <span>
+        <b>Изменения отправлены координатору {formatted}.</b> Ожидается утверждение.
+        Вы можете отредактировать заявку и отправить новую версию — предыдущая
+        будет перезаписана.
       </span>
     </div>
   );
@@ -186,6 +212,18 @@ function Chevron(): JSX.Element {
       />
     </svg>
   );
+}
+
+/**
+ * Форматирует ISO timestamp в «DD.MM.YYYY HH:MM» для отображения в banner'е.
+ * Локально-ориентированный формат — pixel-port из mentor.html, где принято
+ * именно русское представление даты.
+ */
+function formatPendingDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 /**

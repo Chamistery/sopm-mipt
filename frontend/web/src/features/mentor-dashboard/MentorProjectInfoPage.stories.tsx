@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import type { Project } from '@/api/projects';
+import { ToastProvider } from '@/_shared/Toast';
 import type { ProposalData } from './lib/projectFormState';
 import { MentorProjectInfoPage } from './MentorProjectInfoPage';
 
@@ -51,12 +52,20 @@ const PROJECT: Project = {
   updatedAt: '2025-10-30T08:00:00Z',
 };
 
-function makeClient(): QueryClient {
+function makeClient(project: Project = PROJECT): QueryClient {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  client.setQueryData(['project', PROJECT_ID], PROJECT);
+  client.setQueryData(['project', PROJECT_ID], project);
   client.setQueryData(['project', PROJECT_ID, 'proposal'], PROPOSAL);
   return client;
 }
+
+const PROJECT_WITH_PENDING: Project = {
+  ...PROJECT,
+  status: 'Активный',
+  pendingProposalData: { ...PROPOSAL, title: 'Проект (новая версия заявки)' },
+  pendingSubmittedAt: '2026-05-12T10:30:00Z',
+  pendingSubmittedById: 1,
+};
 
 const meta: Meta<typeof MentorProjectInfoPage> = {
   title: 'mentor-dashboard/MentorProjectInfoPage',
@@ -69,30 +78,56 @@ type Story = StoryObj<typeof MentorProjectInfoPage>;
 
 export const Readonly: Story = {
   render: () => (
-    <QueryClientProvider client={makeClient()}>
-      <MemoryRouter initialEntries={[`/mentor/archive/projects/${PROJECT_ID}/info`]}>
-        <Routes>
-          <Route
-            path="/mentor/archive/projects/:projectId/info"
-            element={<MentorProjectInfoPage />}
-          />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>
+    <ToastProvider>
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={[`/mentor/archive/projects/${PROJECT_ID}/info`]}>
+          <Routes>
+            <Route
+              path="/mentor/archive/projects/:projectId/info"
+              element={<MentorProjectInfoPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ToastProvider>
   ),
 };
 
 export const Edit: Story = {
   render: () => (
-    <QueryClientProvider client={makeClient()}>
-      <MemoryRouter initialEntries={[`/mentor/projects/${PROJECT_ID}/info`]}>
-        <Routes>
-          <Route
-            path="/mentor/projects/:projectId/info"
-            element={<MentorProjectInfoPage />}
-          />
-        </Routes>
-      </MemoryRouter>
-    </QueryClientProvider>
+    <ToastProvider>
+      <QueryClientProvider client={makeClient()}>
+        <MemoryRouter initialEntries={[`/mentor/projects/${PROJECT_ID}/info`]}>
+          <Routes>
+            <Route
+              path="/mentor/projects/:projectId/info"
+              element={<MentorProjectInfoPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ToastProvider>
+  ),
+};
+
+/**
+ * Edit-режим, на проекте уже есть pending change request. Виден
+ * оранжевый banner с датой отправки, кнопка submit называется
+ * «Обновить запрос».
+ */
+export const EditWithPending: Story = {
+  render: () => (
+    <ToastProvider>
+      <QueryClientProvider client={makeClient(PROJECT_WITH_PENDING)}>
+        <MemoryRouter initialEntries={[`/mentor/projects/${PROJECT_ID}/info`]}>
+          <Routes>
+            <Route
+              path="/mentor/projects/:projectId/info"
+              element={<MentorProjectInfoPage />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </ToastProvider>
   ),
 };

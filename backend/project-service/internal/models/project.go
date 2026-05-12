@@ -58,8 +58,16 @@ type Project struct {
 	// формы + контакт ментора + настройки спринтов + доп.требования).
 	// Структура нормирована на фронте, бэк хранит её как-есть в JSONB.
 	ProposalData *json.RawMessage `json:"proposalData,omitempty"`
-	CreatedAt    time.Time        `json:"createdAt"`
-	UpdatedAt    time.Time        `json:"updatedAt"`
+	// PendingProposalData — change request: ментор отредактировал заявку
+	// активного проекта, координатор должен утвердить. Та же структура,
+	// что и ProposalData. Если nil — нет ожидающих изменений. После
+	// apply координатором — копируется в ProposalData и обнуляется
+	// (см. миграцию 005 и handler SubmitChangeRequest).
+	PendingProposalData  *json.RawMessage `json:"pendingProposalData,omitempty"`
+	PendingSubmittedAt   *time.Time       `json:"pendingSubmittedAt,omitempty"`
+	PendingSubmittedByID *int             `json:"pendingSubmittedById,omitempty"`
+	CreatedAt            time.Time        `json:"createdAt"`
+	UpdatedAt            time.Time        `json:"updatedAt"`
 }
 
 func (l IntList) Value() (driver.Value, error) {

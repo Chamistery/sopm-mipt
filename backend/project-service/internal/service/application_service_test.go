@@ -60,6 +60,9 @@ func (s *stubProjectRepo) GetProposal(context.Context, int) (*json.RawMessage, i
 }
 func (s *stubProjectRepo) Update(context.Context, *models.Project) error { return nil }
 func (s *stubProjectRepo) Delete(context.Context, int) error             { return nil }
+func (s *stubProjectRepo) SubmitChangeRequest(context.Context, int, json.RawMessage, int) (*models.Project, error) {
+	return nil, nil
+}
 
 type stubUserRepo struct{ user *models.User }
 

@@ -11,7 +11,8 @@ import { loginAs } from '../utils/login';
  *   /mentor/projects/:id/info
  *      → синий банер «Редактирование проекта»
  *      → поля заявки заполнены, инпуты редактируемые
- *      → кнопка «Сохранить изменения» disabled (save для proposal пока без бэка)
+ *      → кнопка «Отправить на согласование» активна (см. отдельный
+ *        mentor-project-info-edit.spec.ts для полного submit-flow).
  *
  * Архивный проект (mode=readonly):
  *   /mentor/archive

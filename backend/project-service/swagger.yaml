@@ -180,6 +180,52 @@ paths:
         '403': { description: Не ваш проект }
         '404': { description: Проект не найден }
 
+  /api/projects/{id}/change-request:
+    post:
+      tags: [Projects]
+      summary: Отправить заявку на изменение проекта координатору
+      description: |
+        Ментор-владелец проекта (или координатор/админ) отправляет
+        отредактированную версию заявки (`proposalData`) на утверждение
+        координатором. Изменения **не применяются сразу** — сохраняются
+        в `pending_proposal_data`, проект остаётся неизменным. Координатор
+        утвердит/отклонит изменения отдельным запросом (TBD).
+
+        Если на проекте уже есть pending-заявка — перезаписывается (ментор
+        может прислать новую версию). Поле `pending_submitted_at`
+        обновляется до `NOW()`, `pending_submitted_by_id` — до id текущего
+        пользователя.
+      parameters:
+        - $ref: '#/components/parameters/ProjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [proposalData]
+              properties:
+                proposalData:
+                  type: object
+                  description: |
+                    Полный JSON-документ заявки (та же структура, что и
+                    `Project.proposalData`). Включает 13 полей формы,
+                    контакт ментора, настройки спринтов, доп.требования.
+      responses:
+        '200':
+          description: Обновлённый Project с pending-полями
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400': { description: Невалидный body / proposalData отсутствует }
+        '401': { description: Требуется аутентификация }
+        '403': { description: Не ваш проект }
+        '404': { description: Проект не найден }
+
   /api/mentor/dashboard:
     get:
       tags: [Projects]
@@ -1064,6 +1110,23 @@ components:
           type: integer
           nullable: true
           description: Идентификатор проекта-предшественника (если задан)
+        pendingProposalData:
+          type: object
+          nullable: true
+          description: |
+            Change request: ментор отредактировал заявку и отправил
+            координатору. Та же структура, что и `proposalData`. Если
+            null — нет ожидающих изменений. См. POST
+            `/api/projects/{id}/change-request`.
+        pendingSubmittedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Когда отправлена pending-заявка на изменение.
+        pendingSubmittedById:
+          type: integer
+          nullable: true
+          description: Кто отправил pending-заявку (id пользователя).
         proposalData:
           type: object
           nullable: true
