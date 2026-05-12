@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -10,6 +11,10 @@ import (
 	"github.com/hsse/project-service/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// ErrNoPendingChange — попытка approve/reject change-request на проекте,
+// у которого нет pending_proposal_data.
+var ErrNoPendingChange = errors.New("project has no pending change request")
 
 type ProjectRepository struct {
 	db *pgxpool.Pool
@@ -159,6 +164,80 @@ func (r *ProjectRepository) SubmitChangeRequest(
 	}
 	if err := CheckRowsAffected(result, "project"); err != nil {
 		return nil, err
+	}
+	return r.GetByID(ctx, projectID)
+}
+
+// ApproveChangeRequest применяет pending_proposal_data к проекту:
+//   - JSON-поля из pending копируются в основные колонки проекта (title,
+//     company, goal, expected_result, technologies, competencies,
+//     description, acceptance_criteria, edu_result, resources,
+//     duration_semesters, num_teams, team_size_min, team_size_max);
+//   - proposal_data перезаписывается значением pending_proposal_data;
+//   - pending_proposal_data / pending_submitted_at / pending_submitted_by_id
+//     обнуляются.
+// Если pending_proposal_data пустой — возвращает ошибку 'no pending change'.
+func (r *ProjectRepository) ApproveChangeRequest(ctx context.Context, projectID int) (*models.Project, error) {
+	query := `
+		UPDATE projects
+		SET
+		    title = COALESCE(NULLIF(pending_proposal_data->>'title', ''), title),
+		    company = COALESCE(pending_proposal_data->>'company', company),
+		    goal = COALESCE(pending_proposal_data->>'goal', goal),
+		    expected_result = COALESCE(pending_proposal_data->>'expectedResult', expected_result),
+		    technologies = COALESCE(pending_proposal_data->>'technologies', technologies),
+		    competencies = COALESCE(pending_proposal_data->>'competencies', competencies),
+		    description = COALESCE(pending_proposal_data->>'description', description),
+		    acceptance_criteria = COALESCE(pending_proposal_data->>'acceptanceCriteria', acceptance_criteria),
+		    edu_result = COALESCE(pending_proposal_data->>'eduResult', edu_result),
+		    resources = COALESCE(pending_proposal_data->>'resources', resources),
+		    duration_semesters = COALESCE(NULLIF(pending_proposal_data->>'durationSemesters', '')::int, duration_semesters),
+		    num_teams = COALESCE(NULLIF(pending_proposal_data->>'numTeams', '')::int, num_teams),
+		    team_size_min = COALESCE(NULLIF(pending_proposal_data->>'teamSizeMin', '')::int, team_size_min),
+		    team_size_max = COALESCE(NULLIF(pending_proposal_data->>'teamSizeMax', '')::int, team_size_max),
+		    proposal_data = pending_proposal_data,
+		    pending_proposal_data = NULL,
+		    pending_submitted_at = NULL,
+		    pending_submitted_by_id = NULL
+		WHERE id = $1
+		  AND pending_proposal_data IS NOT NULL
+	`
+	result, err := r.db.Exec(ctx, query, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if result.RowsAffected() == 0 {
+		// Либо проекта нет, либо pending пустой. Различаем через GetByID.
+		_, getErr := r.GetByID(ctx, projectID)
+		if getErr != nil {
+			return nil, getErr
+		}
+		return nil, ErrNoPendingChange
+	}
+	return r.GetByID(ctx, projectID)
+}
+
+// RejectChangeRequest очищает pending_proposal_data без применения. Если
+// pending не было — возвращает ErrNoPendingChange.
+func (r *ProjectRepository) RejectChangeRequest(ctx context.Context, projectID int) (*models.Project, error) {
+	query := `
+		UPDATE projects
+		SET pending_proposal_data = NULL,
+		    pending_submitted_at = NULL,
+		    pending_submitted_by_id = NULL
+		WHERE id = $1
+		  AND pending_proposal_data IS NOT NULL
+	`
+	result, err := r.db.Exec(ctx, query, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if result.RowsAffected() == 0 {
+		_, getErr := r.GetByID(ctx, projectID)
+		if getErr != nil {
+			return nil, getErr
+		}
+		return nil, ErrNoPendingChange
 	}
 	return r.GetByID(ctx, projectID)
 }

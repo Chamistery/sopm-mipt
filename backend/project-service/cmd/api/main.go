@@ -29,6 +29,7 @@ func setupRoutes(
 	mentorDistributionHandler *handlers.MentorDistributionHandler,
 	coordinatorDashboardHandler *handlers.CoordinatorDashboardHandler,
 	coordinatorDistributionHandler *handlers.CoordinatorDistributionHandler,
+	coordinatorApplicationsHandler *handlers.CoordinatorApplicationsHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
@@ -36,6 +37,7 @@ func setupRoutes(
 	mux.HandleFunc("GET /api/mentor/distribution", mentorDistributionHandler.Get)
 	mux.HandleFunc("GET /api/coordinator/dashboard", coordinatorDashboardHandler.Get)
 	mux.HandleFunc("GET /api/coordinator/distribution", coordinatorDistributionHandler.Get)
+	mux.HandleFunc("GET /api/coordinator/applications", coordinatorApplicationsHandler.Get)
 	mux.HandleFunc("GET /api/mentor/projects/archive", projectHandler.GetMentorArchive)
 	mux.HandleFunc("GET /api/projects/{id}", projectHandler.GetByID)
 	mux.HandleFunc("GET /api/projects/{id}/full", projectHandler.GetFull)
@@ -44,6 +46,8 @@ func setupRoutes(
 	mux.HandleFunc("GET /api/projects/{id}/proposal", projectHandler.GetProposal)
 	mux.HandleFunc("PUT /api/projects/{id}", projectHandler.Update)
 	mux.HandleFunc("POST /api/projects/{id}/change-request", projectHandler.SubmitChangeRequest)
+	mux.HandleFunc("POST /api/projects/{id}/change-request/approve", projectHandler.ApproveChangeRequest)
+	mux.HandleFunc("POST /api/projects/{id}/change-request/reject", projectHandler.RejectChangeRequest)
 	mux.HandleFunc("DELETE /api/projects/{id}", projectHandler.Delete)
 
 	mux.HandleFunc("POST /api/applications", applicationHandler.Create)
@@ -184,6 +188,8 @@ func main() {
 	coordinatorDashboardHandler := handlers.NewCoordinatorDashboardHandler(coordinatorDashboardRepo, mentorDashboardRepo)
 	coordinatorDistributionRepo := repository.NewCoordinatorDistributionRepository(db.Pool)
 	coordinatorDistributionHandler := handlers.NewCoordinatorDistributionHandler(coordinatorDistributionRepo)
+	coordinatorApplicationsRepo := repository.NewCoordinatorApplicationsRepository(db.Pool)
+	coordinatorApplicationsHandler := handlers.NewCoordinatorApplicationsHandler(coordinatorApplicationsRepo)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -201,6 +207,7 @@ func main() {
 		mentorDistributionHandler,
 		coordinatorDashboardHandler,
 		coordinatorDistributionHandler,
+		coordinatorApplicationsHandler,
 	)
 	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port

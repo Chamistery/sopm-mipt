@@ -105,6 +105,10 @@ export interface Project {
   /** ISO timestamp когда был отправлен change request. */
   pendingSubmittedAt?: string | null;
   pendingSubmittedById?: number | null;
+  /** Заполняется только в выборках с JOIN на users (например /api/coordinator/applications). */
+  mentor?: UserSummary | null;
+  /** Утверждённая (применённая) версия заявки. */
+  proposalData?: ProposalData | null;
 }
 
 /** Coordinator-side trimmed team view for project detail page. */
@@ -225,6 +229,14 @@ export interface ProjectChangeRequestPayload {
  * прислать новую версию). Возвращается обновлённый Project с заполненными
  * pendingProposalData / pendingSubmittedAt.
  */
+export function approveProjectChangeRequest(id: number): Promise<Project> {
+  return apiFetch<Project>(`/projects/${id}/change-request/approve`, { method: 'POST' });
+}
+
+export function rejectProjectChangeRequest(id: number): Promise<Project> {
+  return apiFetch<Project>(`/projects/${id}/change-request/reject`, { method: 'POST' });
+}
+
 export function submitProjectChangeRequest(
   id: number,
   payload: ProjectChangeRequestPayload,

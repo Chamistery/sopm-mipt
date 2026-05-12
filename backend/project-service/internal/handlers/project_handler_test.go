@@ -41,6 +41,13 @@ type stubProjectRepo struct {
 	submitCalledPayload json.RawMessage
 	submitResult        *models.Project
 	submitErr           error
+	// Approve/Reject capture
+	approveCalledID int
+	approveResult   *models.Project
+	approveErr      error
+	rejectCalledID  int
+	rejectResult    *models.Project
+	rejectErr       error
 }
 
 func (s *stubProjectRepo) Create(context.Context, *models.Project) error { return nil }
@@ -71,6 +78,14 @@ func (s *stubProjectRepo) SubmitChangeRequest(_ context.Context, projectID int, 
 	s.submitCalledUserID = userID
 	s.submitCalledPayload = append(s.submitCalledPayload[:0], proposalData...)
 	return s.submitResult, s.submitErr
+}
+func (s *stubProjectRepo) ApproveChangeRequest(_ context.Context, projectID int) (*models.Project, error) {
+	s.approveCalledID = projectID
+	return s.approveResult, s.approveErr
+}
+func (s *stubProjectRepo) RejectChangeRequest(_ context.Context, projectID int) (*models.Project, error) {
+	s.rejectCalledID = projectID
+	return s.rejectResult, s.rejectErr
 }
 
 func newRequestWithUser(method, target string, user *auth.CurrentUser) *http.Request {
@@ -500,5 +515,82 @@ func TestProjectHandler_SubmitChangeRequest_NotFound(t *testing.T) {
 	h.SubmitChangeRequest(w, req)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+// ─── Approve / Reject ChangeRequest ─────────────────────────────────────
+
+func TestProjectHandler_ApproveChangeRequest_RequiresCoordinator(t *testing.T) {
+	repo := &stubProjectRepo{}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 5, Role: auth.RoleMentor}
+	req := newRequestWithUser(http.MethodPost, "/api/projects/42/change-request/approve", user)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.ApproveChangeRequest(w, req)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProjectHandler_ApproveChangeRequest_CoordinatorApplied(t *testing.T) {
+	repo := &stubProjectRepo{
+		approveResult: &models.Project{ID: 42, Title: "СУПП (новая версия)"},
+	}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 2, Role: auth.RoleCoordinator}
+	req := newRequestWithUser(http.MethodPost, "/api/projects/42/change-request/approve", user)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.ApproveChangeRequest(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.approveCalledID != 42 {
+		t.Fatalf("expected projectID=42, got %d", repo.approveCalledID)
+	}
+}
+
+func TestProjectHandler_ApproveChangeRequest_NoPendingConflict(t *testing.T) {
+	repo := &stubProjectRepo{approveErr: repository.ErrNoPendingChange}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 2, Role: auth.RoleCoordinator}
+	req := newRequestWithUser(http.MethodPost, "/api/projects/42/change-request/approve", user)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.ApproveChangeRequest(w, req)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestProjectHandler_RejectChangeRequest_CoordinatorClears(t *testing.T) {
+	repo := &stubProjectRepo{
+		rejectResult: &models.Project{ID: 42, Title: "СУПП"},
+	}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 2, Role: auth.RoleCoordinator}
+	req := newRequestWithUser(http.MethodPost, "/api/projects/42/change-request/reject", user)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.RejectChangeRequest(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.rejectCalledID != 42 {
+		t.Fatalf("expected projectID=42, got %d", repo.rejectCalledID)
+	}
+}
+
+func TestProjectHandler_RejectChangeRequest_NoPendingConflict(t *testing.T) {
+	repo := &stubProjectRepo{rejectErr: repository.ErrNoPendingChange}
+	h := NewProjectHandler(repo)
+	user := &auth.CurrentUser{ID: 2, Role: auth.RoleCoordinator}
+	req := newRequestWithUser(http.MethodPost, "/api/projects/42/change-request/reject", user)
+	req.SetPathValue("id", "42")
+	w := httptest.NewRecorder()
+	h.RejectChangeRequest(w, req)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d: %s", w.Code, w.Body.String())
 	}
 }

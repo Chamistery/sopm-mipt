@@ -68,6 +68,10 @@ type Project struct {
 	PendingSubmittedByID *int             `json:"pendingSubmittedById,omitempty"`
 	CreatedAt            time.Time        `json:"createdAt"`
 	UpdatedAt            time.Time        `json:"updatedAt"`
+	// Mentor — заполняется только в выборках, где нужен JOIN на users (например
+	// /api/coordinator/applications). По умолчанию nil — берите MentorID для
+	// id, либо отдельный запрос на /api/users/:id.
+	Mentor *UserSummary `json:"mentor,omitempty"`
 }
 
 func (l IntList) Value() (driver.Value, error) {

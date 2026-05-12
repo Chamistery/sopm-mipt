@@ -18,6 +18,8 @@ type ProjectRepositoryInterface interface {
 	Update(ctx context.Context, project *models.Project) error
 	Delete(ctx context.Context, id int) error
 	SubmitChangeRequest(ctx context.Context, projectID int, proposalData json.RawMessage, userID int) (*models.Project, error)
+	ApproveChangeRequest(ctx context.Context, projectID int) (*models.Project, error)
+	RejectChangeRequest(ctx context.Context, projectID int) (*models.Project, error)
 }
 
 type ApplicationRepositoryInterface interface {

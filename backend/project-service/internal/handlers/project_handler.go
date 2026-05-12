@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/hsse/project-service/internal/auth"
@@ -307,6 +308,64 @@ func (h *ProjectHandler) SubmitChangeRequest(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	httputil.RespondSuccess(w, http.StatusOK, updated)
+}
+
+// ApproveChangeRequest применяет pending_proposal_data к проекту.
+// Доступно только координатору и админу.
+func (h *ProjectHandler) ApproveChangeRequest(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.IsAuthenticated() {
+		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
+		return
+	}
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	updated, err := h.repo.ApproveChangeRequest(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNoPendingChange) {
+			httputil.RespondError(w, http.StatusConflict, "no pending change request")
+			return
+		}
+		respondServiceError(w, err)
+		return
+	}
+	httputil.RespondSuccess(w, http.StatusOK, updated)
+}
+
+// RejectChangeRequest очищает pending_proposal_data без применения.
+// Доступно только координатору и админу.
+func (h *ProjectHandler) RejectChangeRequest(w http.ResponseWriter, r *http.Request) {
+	user := currentUser(r)
+	if !user.IsAuthenticated() {
+		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
+		return
+	}
+	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
+		return
+	}
+	id, err := httputil.ParsePathInt(r, "id")
+	if err != nil {
+		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	updated, err := h.repo.RejectChangeRequest(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNoPendingChange) {
+			httputil.RespondError(w, http.StatusConflict, "no pending change request")
+			return
+		}
+		respondServiceError(w, err)
+		return
+	}
 	httputil.RespondSuccess(w, http.StatusOK, updated)
 }
 
