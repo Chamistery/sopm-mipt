@@ -19,7 +19,6 @@ import { ArchivePage } from '@/features/mentor-dashboard/ArchivePage';
 import { ArchiveProjectTeamsPage } from '@/features/mentor-dashboard/ArchiveProjectTeamsPage';
 import { ArchiveTeamPage } from '@/features/mentor-dashboard/ArchiveTeamPage';
 import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
-import { ProjectsListPage } from '@/features/coordinator/ProjectsListPage';
 import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
 import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
 import { CoordApplicationsPage } from '@/features/coordinator/applications/CoordApplicationsPage';
@@ -66,7 +65,9 @@ export const router = createBrowserRouter([
       },
       { path: 'mentor/archive/teams/:teamId', element: <ArchiveTeamPage /> },
       { path: 'admin', element: <CoordinatorDashboardPage /> },
-      { path: 'admin/projects', element: <ProjectsListPage /> },
+      // /admin/projects больше не используется (нет в admin.html прототипе).
+      // Все ссылки на проекты ведут на дашборд или конкретную страницу проекта.
+      { path: 'admin/projects', element: <Navigate to="/admin" replace /> },
       { path: 'admin/projects/:id', element: <CoordProjectDetailPage /> },
       { path: 'admin/distribution', element: <CoordDistributionPage /> },
       { path: 'admin/applications', element: <CoordApplicationsPage /> },
