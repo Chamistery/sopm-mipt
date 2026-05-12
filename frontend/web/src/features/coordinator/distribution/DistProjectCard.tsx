@@ -233,9 +233,14 @@ function TeamMemberChip({
     });
   };
 
+  const toggleMenu = (e: { stopPropagation: () => void }): void => {
+    e.stopPropagation();
+    setMenuOpen((v) => !v);
+  };
+
   return (
     <div
-      className={styles.chip}
+      className={`${styles.chip} ${menuOpen ? styles.chipMenuOpen : ''}`}
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -268,29 +273,33 @@ function TeamMemberChip({
           {member.course} курс · {member.gpa.toFixed(1)} · {member.group || '—'}
         </div>
       </div>
-      <button
-        type="button"
+      <span
         className={`${styles.statusBadge} ${styles[`status_${status.className}`]}`}
         title="Изменить статус"
-        onClick={(e) => {
-          e.stopPropagation();
-          setMenuOpen((v) => !v);
+        role="button"
+        tabIndex={0}
+        onClick={toggleMenu}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleMenu(e);
+          }
         }}
       >
         {status.label}
         <ChevronDownIcon />
-      </button>
+        {menuOpen ? (
+          <DistStatusMenu
+            currentKey={status.key}
+            onSelect={(key) => {
+              setMenuOpen(false);
+              if (key !== status.key) onSetStatus(key);
+            }}
+            onClose={() => setMenuOpen(false)}
+          />
+        ) : null}
+      </span>
       <ChevronRightIcon className={styles.expandIco} />
-      {menuOpen ? (
-        <DistStatusMenu
-          currentKey={status.key}
-          onSelect={(key) => {
-            setMenuOpen(false);
-            if (key !== status.key) onSetStatus(key);
-          }}
-          onClose={() => setMenuOpen(false)}
-        />
-      ) : null}
     </div>
   );
 }
