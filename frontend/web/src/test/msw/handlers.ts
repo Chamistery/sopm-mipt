@@ -659,6 +659,11 @@ export const handlers = [
     return ok({ projects });
   }),
 
+  // ─── Coordinator distribution aggregate (feature/coord-distribution) ──
+  http.get(`${API}/coordinator/distribution`, () => {
+    return ok({ deadline: '', projects: [], pool: [] });
+  }),
+
   // ─── Coordinator dashboard aggregate (feature/coord-dashboard) ─────────
   http.get(`${API}/coordinator/dashboard`, () => {
     const today = new Date(NOW_DASHBOARD);

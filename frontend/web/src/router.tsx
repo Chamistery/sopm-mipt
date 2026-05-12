@@ -21,7 +21,7 @@ import { ArchiveTeamPage } from '@/features/mentor-dashboard/ArchiveTeamPage';
 import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
 import { ProjectsListPage } from '@/features/coordinator/ProjectsListPage';
 import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
-import { DistributionPage } from '@/features/coordinator/DistributionPage';
+import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -67,7 +67,7 @@ export const router = createBrowserRouter([
       { path: 'admin', element: <CoordinatorDashboardPage /> },
       { path: 'admin/projects', element: <ProjectsListPage /> },
       { path: 'admin/projects/:id', element: <CoordProjectDetailPage /> },
-      { path: 'admin/distribution', element: <DistributionPage /> },
+      { path: 'admin/distribution', element: <CoordDistributionPage /> },
     ],
   },
   { path: '*', element: <NotFoundPage /> },

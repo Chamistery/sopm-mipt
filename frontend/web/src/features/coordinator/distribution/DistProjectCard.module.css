@@ -1,0 +1,201 @@
+/* Pixel-port из admin.html (.gdist-project-card + .gdist-team + chip) */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  user-select: none;
+  gap: 12px;
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 3px;
+  color: var(--text);
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.arrow {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 4px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.collapsed .arrow {
+  transform: rotate(-90deg);
+}
+
+.teamsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.team {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 10px 12px;
+  min-height: 120px;
+  transition: outline 0.15s, background 0.15s;
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+}
+
+.teamDragOver {
+  outline-color: var(--accent);
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.teamHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.teamName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.teamCount {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.overfull {
+  color: var(--danger);
+}
+
+.ready {
+  color: var(--success);
+}
+
+.chipList {
+  display: flex;
+  flex-direction: column;
+  /* первый chip имеет своё margin-top, чтобы место под status-badge */
+  gap: 0;
+}
+
+.chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px 7px;
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 7px;
+  margin: 10px 0 5px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s, transform 0.08s, border-color 0.12s;
+}
+
+.chip:first-child {
+  margin-top: 12px;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.chip:active {
+  cursor: grabbing;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.dragging {
+  opacity: 0.35;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chipBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.chipName {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipSub {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+.statusBadge {
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: 1.5px solid var(--card);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.status_accepted {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status_invited {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.status_recommend {
+  background: #dbeafe;
+  color: var(--accent);
+}
