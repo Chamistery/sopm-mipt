@@ -26,6 +26,7 @@ import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDash
 import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
 import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
 import { CoordApplicationsPage } from '@/features/coordinator/applications/CoordApplicationsPage';
+import { CoordNewProjectPage } from '@/features/coordinator/create/CoordNewProjectPage';
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
       { path: 'admin/projects/:id', element: <CoordProjectDetailPage /> },
       { path: 'admin/distribution', element: <CoordDistributionPage /> },
       { path: 'admin/applications', element: <CoordApplicationsPage /> },
+      { path: 'admin/projects/new', element: <CoordNewProjectPage /> },
       {
         path: 'admin/archive',
         element: (
