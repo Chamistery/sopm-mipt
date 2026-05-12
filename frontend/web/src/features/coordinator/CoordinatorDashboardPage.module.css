@@ -1,185 +1,150 @@
+/* Pixel-port из admin.html (view-dashboard, lines 803-983).
+   .main padding отдаёт AppShell — здесь только внутренний layout. */
+
 .page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
+  display: block;
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-4);
-}
-
-.section {
-  background: var(--color-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.sectionHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-}
-
-.sectionTitle {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0;
-  color: var(--color-text);
-}
-
-.sectionHint {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.attentionList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.attentionItem {
+.header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  margin-bottom: 24px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
-.attentionInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 200px;
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--text);
 }
 
-.attentionTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  text-decoration: none;
-  cursor: pointer;
-  background: none;
-  border: none;
-  padding: 0;
-  text-align: left;
-}
-
-.attentionTitle:hover {
-  color: var(--color-accent);
-}
-
-.attentionMeta {
-  font-size: 12px;
-  color: var(--color-text-muted);
-}
-
-.attentionActions {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.reviewForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  min-width: 260px;
-}
-
-.reviewTextarea {
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  font-family: inherit;
+.context {
   font-size: 13px;
-  resize: vertical;
-}
-
-.reviewActions {
+  color: var(--text-muted);
   display: flex;
-  gap: var(--space-2);
+  align-items: center;
+  gap: 6px;
 }
 
-.btnPrimary,
-.btnSecondary,
-.btnGhost {
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  border: 1px solid transparent;
-  text-decoration: none;
+.contextDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  display: inline-block;
+}
+
+.createBtn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-}
-
-.btnPrimary {
-  background: var(--color-success);
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--primary);
   color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
 }
 
-.btnPrimary:disabled,
-.btnSecondary:disabled,
-.btnGhost:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.createBtn:hover {
+  background: var(--primary-light);
+  text-decoration: none;
 }
 
-.btnSecondary {
-  background: var(--color-surface-alt);
-  color: var(--color-text);
-  border-color: var(--color-border);
+.projectsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.btnSecondary:hover:not(:disabled) {
-  background: var(--color-border-light);
+.projectsTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
 }
 
-.btnGhost {
-  background: transparent;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+.legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
 }
 
-.btnGhost:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: #fff;
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.placeholder {
+  padding: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
 }
 
 .empty {
+  padding: 40px 24px;
+  text-align: center;
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.emptyText {
   font-size: 13px;
-  color: var(--color-text-muted);
-  padding: var(--space-3) 0;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 .error {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 12px 16px;
+  border-radius: 8px;
   font-size: 13px;
+  margin-bottom: 16px;
 }
 
-.toolbar {
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
+.errorTitle {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.errorHint {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.85;
 }

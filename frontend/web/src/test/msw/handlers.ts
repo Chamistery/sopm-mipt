@@ -659,6 +659,41 @@ export const handlers = [
     return ok({ projects });
   }),
 
+  // ─── Coordinator dashboard aggregate (feature/coord-dashboard) ─────────
+  http.get(`${API}/coordinator/dashboard`, () => {
+    const today = new Date(NOW_DASHBOARD);
+    const projects = fixtureProjects
+      .filter((p) => {
+        const s = p.status as string;
+        return s !== 'Завершён' && s !== 'Архивный';
+      })
+      .map((p) => buildDashboardProject(p, today));
+    return ok({
+      stats: {
+        activeProjects: projects.filter((p) =>
+          ['Активный', 'Опубликован', 'Утверждён'].includes(p.status),
+        ).length,
+        teams: projects.reduce(
+          (acc, p) => acc + (p.teams ?? []).filter((t) => t.launched).length,
+          0,
+        ),
+        students: projects.reduce(
+          (acc, p) =>
+            acc +
+            (p.teams ?? [])
+              .filter((t) => t.launched)
+              .reduce((mAcc, t) => mAcc + (t.memberCount ?? 0), 0),
+          0,
+        ),
+      },
+      attention: {
+        pendingApplications: projects.filter((p) => p.status === 'На утверждении').length,
+        unassignedStudents: 0,
+      },
+      projects,
+    });
+  }),
+
   // ─── Applications ──────────────────────────────────────────────────────
   http.get(`${API}/applications`, ({ request }) => {
     const url = new URL(request.url);

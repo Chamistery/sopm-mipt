@@ -1,0 +1,43 @@
+/* Pixel-port из admin.html:40-49 (.stats-row + .stat-card + .stat-value + .stat-label) */
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 18px 20px;
+}
+
+.blue {
+  border-left: 4px solid var(--accent);
+}
+
+.green {
+  border-left: 4px solid var(--success);
+}
+
+.purple {
+  border-left: 4px solid var(--purple);
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
