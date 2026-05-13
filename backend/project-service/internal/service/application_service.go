@@ -118,17 +118,28 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 	if app.TeamID == nil && app.Status == models.ApplicationStatusNotRecommended {
 		return app, nil
 	}
-	// Прототип (mentor.html:3021-3025 inviteStudent): после отправки
-	// приглашения чип становится «зафиксирован» — кнопка remove
-	// скрыта, draggable=false. То есть unrecommend разрешён ТОЛЬКО
-	// до приглашения, для статуса «Рекомендован».
-	if app.Status != models.ApplicationStatusRecommended {
+	// Ментор: только из 'Рекомендован' (прототип mentor.html:3021-3025 — после
+	// отправки приглашения чип «зафиксирован»). Координатор/админ: из любого
+	// статуса, связанного с командой, чтобы можно было вернуть в пул
+	// принятого студента (admin.html распределение).
+	if app.Status != models.ApplicationStatusRecommended &&
+		!user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
 		return nil, WrapStateError("application cannot be removed from team from status %s", app.Status)
 	}
+	// Запоминаем команду до сброса, чтобы удалить запись team_members
+	// (она появляется после Accept; без удаления студент остаётся в team_members
+	// и не показывается в глобальном пуле координатора).
+	prevTeamID := app.TeamID
 	app.TeamID = nil
 	app.Status = models.ApplicationStatusNotRecommended
 	if err := s.applications.Update(ctx, app); err != nil {
 		return nil, err
+	}
+	if prevTeamID != nil {
+		exists, checkErr := s.teams.IsMember(ctx, *prevTeamID, app.StudentID)
+		if checkErr == nil && exists {
+			_ = s.teams.RemoveMember(ctx, *prevTeamID, app.StudentID)
+		}
 	}
 	return s.applications.GetByID(ctx, app.ID)
 }

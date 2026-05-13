@@ -13,9 +13,17 @@ export type DistDragPayload =
       applicationId: number;
       studentId: number;
       sourceTeamId: number;
+      /** Проект источника. Нужен, чтобы отличить кросс-проектный move
+       *  (нужно сменить заявку) от перемещения внутри проекта (просто
+       *  поменять team_id). */
+      sourceProjectId: number;
       /** Текущий ApplicationStatus — нужен на target side, чтобы выбрать
        *  recommend (reset status) vs move-team (preserve status). */
       sourceStatus: string;
+      /** projectId → applicationId для всех заявок этого студента. Используется
+       *  при кросс-проектном move'е, чтобы понять — есть ли уже заявка на
+       *  target project (recommend) или нужно её создать (force-create). */
+      applicationsByProject: Record<number, number>;
     }
   | {
       kind: 'pool-student';
