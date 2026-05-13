@@ -23,7 +23,7 @@ import {
   ARCHIVE_BASE_PATH_COORD,
 } from '@/features/mentor-dashboard/lib/archiveBasePath';
 import { CoordinatorDashboardPage } from '@/features/coordinator/CoordinatorDashboardPage';
-import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordinator/ProjectDetailPage';
+import { CoordProjectInfoPage } from '@/features/coordinator/project/CoordProjectInfoPage';
 import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
 import { CoordApplicationsPage } from '@/features/coordinator/applications/CoordApplicationsPage';
 import { CoordNewProjectPage } from '@/features/coordinator/create/CoordNewProjectPage';
@@ -75,7 +75,7 @@ export const router = createBrowserRouter([
       // /admin/projects больше не используется (нет в admin.html прототипе).
       // Все ссылки на проекты ведут на дашборд или конкретную страницу проекта.
       { path: 'admin/projects', element: <Navigate to="/admin" replace /> },
-      { path: 'admin/projects/:id', element: <CoordProjectDetailPage /> },
+      { path: 'admin/projects/:id', element: <CoordProjectInfoPage /> },
       { path: 'admin/distribution', element: <CoordDistributionPage /> },
       { path: 'admin/applications', element: <CoordApplicationsPage /> },
       { path: 'admin/projects/new', element: <CoordNewProjectPage /> },
