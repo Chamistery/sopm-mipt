@@ -47,13 +47,14 @@ export function CoordProjectCard({ project }: Props): JSX.Element {
             {project.title}
           </h3>
           {project.predecessorId ? (
-            <span
-              className={styles.continuationPill}
+            <Link
+              to={`/admin/archive?highlight=${project.predecessorId}`}
+              className={styles.predecessorLink}
               title="Продолжение проекта из прошлого семестра"
             >
               <ContinuationIcon />
-              Продолжение
-            </span>
+              Открыть предшественника
+            </Link>
           ) : null}
         </div>
         <StatusBadge status={project.status} />
@@ -94,15 +95,13 @@ export function CoordProjectCard({ project }: Props): JSX.Element {
               ? `Начат: ${formatLongMonthYear(project.startedAt)}`
               : ''}
         </span>
-        {!isDraft && project.predecessorId ? (
-          <Link
-            to={`/admin/archive?highlight=${project.predecessorId}`}
-            className={styles.predecessorLink}
-          >
-            <ContinuationIcon />
-            Открыть предшественника
-          </Link>
-        ) : null}
+        <Link
+          to={`/admin/projects/${project.id}`}
+          className={styles.infoLink}
+          data-testid="coord-card-info-link"
+        >
+          Полная информация <ArrowIcon />
+        </Link>
       </div>
     </div>
   );
@@ -210,6 +209,20 @@ function ContinuationIcon(): JSX.Element {
         d="M3 8h10M9 4l4 4-4 4"
         stroke="currentColor"
         strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowIcon(): JSX.Element {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path
+        d="M6 4l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
