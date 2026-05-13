@@ -61,10 +61,10 @@ const REPORT_REVIEWED: TeamReport = {
 };
 
 const SCORES_8 = [
-  { id: 1, sprintId: 201, teamId: 300, studentId: 3, score: 9, comment: 'Отличный API.', scoredById: 1 },
-  { id: 2, sprintId: 201, teamId: 300, studentId: 4, score: 8, comment: 'Поддержал ревью.', scoredById: 1 },
-  { id: 3, sprintId: 201, teamId: 300, studentId: 5, score: 7, scoredById: 1 },
-  { id: 4, sprintId: 201, teamId: 300, studentId: 6, score: 8, scoredById: 1 },
+  { id: 1, sprintId: 201, teamId: 300, studentId: 3, score: 9, category: 'mentor' as const, comment: 'Отличный API.', scoredById: 1 },
+  { id: 2, sprintId: 201, teamId: 300, studentId: 4, score: 8, category: 'mentor' as const, comment: 'Поддержал ревью.', scoredById: 1 },
+  { id: 3, sprintId: 201, teamId: 300, studentId: 5, score: 7, category: 'mentor' as const, scoredById: 1 },
+  { id: 4, sprintId: 201, teamId: 300, studentId: 6, score: 8, category: 'mentor' as const, scoredById: 1 },
 ];
 
 export const ExpandedAwaiting: Story = {

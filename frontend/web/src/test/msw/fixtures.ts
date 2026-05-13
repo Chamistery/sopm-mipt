@@ -352,10 +352,10 @@ export const fixtureTeamReport = fixtureTeamReports[0]!;
 
 /** Оценки команды 300 за спринт 200 — все 4 студента, среднее 8/10. */
 export const fixtureTeamSprintScores = [
-  { id: 800, sprintId: 200, teamId: 300, studentId: TEAMLEAD_ID, score: 9, comment: 'Хорошая работа над API.', scoredById: MENTOR_ID },
-  { id: 801, sprintId: 200, teamId: 300, studentId: STUDENT_ID, score: 8, comment: 'Чётко закрыл свои задачи.', scoredById: MENTOR_ID },
-  { id: 802, sprintId: 200, teamId: 300, studentId: 5, score: 7, comment: 'UI — местами кривовато, но работает.', scoredById: MENTOR_ID },
-  { id: 803, sprintId: 200, teamId: 300, studentId: 6, score: 8, comment: 'Аналитика на хорошем уровне.', scoredById: MENTOR_ID },
+  { id: 800, sprintId: 200, teamId: 300, studentId: TEAMLEAD_ID, score: 9, category: 'mentor' as const, comment: 'Хорошая работа над API.', scoredById: MENTOR_ID },
+  { id: 801, sprintId: 200, teamId: 300, studentId: STUDENT_ID, score: 8, category: 'mentor' as const, comment: 'Чётко закрыл свои задачи.', scoredById: MENTOR_ID },
+  { id: 802, sprintId: 200, teamId: 300, studentId: 5, score: 7, category: 'mentor' as const, comment: 'UI — местами кривовато, но работает.', scoredById: MENTOR_ID },
+  { id: 803, sprintId: 200, teamId: 300, studentId: 6, score: 8, category: 'mentor' as const, comment: 'Аналитика на хорошем уровне.', scoredById: MENTOR_ID },
 ];
 
 /*
@@ -385,12 +385,12 @@ export const fixtureArchiveTeam = {
 
 /* Финальные оценки команды 310 — итоговое среднее = (5+4+5+4+5+5)/6 = 4.7 */
 export const fixtureArchiveSprintScores = [
-  { id: 701, sprintId: 220, teamId: 310, studentId: TEAMLEAD_ID, score: 5, scoredById: MENTOR_ID },
-  { id: 702, sprintId: 220, teamId: 310, studentId: STUDENT_ID, score: 4, scoredById: MENTOR_ID },
-  { id: 703, sprintId: 220, teamId: 310, studentId: 5, score: 5, scoredById: MENTOR_ID },
-  { id: 704, sprintId: 221, teamId: 310, studentId: TEAMLEAD_ID, score: 4, scoredById: MENTOR_ID },
-  { id: 705, sprintId: 221, teamId: 310, studentId: STUDENT_ID, score: 5, scoredById: MENTOR_ID },
-  { id: 706, sprintId: 221, teamId: 310, studentId: 5, score: 5, scoredById: MENTOR_ID },
+  { id: 701, sprintId: 220, teamId: 310, studentId: TEAMLEAD_ID, score: 5, category: 'mentor' as const, scoredById: MENTOR_ID },
+  { id: 702, sprintId: 220, teamId: 310, studentId: STUDENT_ID, score: 4, category: 'mentor' as const, scoredById: MENTOR_ID },
+  { id: 703, sprintId: 220, teamId: 310, studentId: 5, score: 5, category: 'mentor' as const, scoredById: MENTOR_ID },
+  { id: 704, sprintId: 221, teamId: 310, studentId: TEAMLEAD_ID, score: 4, category: 'mentor' as const, scoredById: MENTOR_ID },
+  { id: 705, sprintId: 221, teamId: 310, studentId: STUDENT_ID, score: 5, category: 'mentor' as const, scoredById: MENTOR_ID },
+  { id: 706, sprintId: 221, teamId: 310, studentId: 5, score: 5, category: 'mentor' as const, scoredById: MENTOR_ID },
 ];
 
 export const fixtureArchiveTeamReports = [

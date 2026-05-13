@@ -25,15 +25,37 @@ type TeamReport struct {
 	UpdatedAt     time.Time        `json:"updatedAt"`
 }
 
+// SprintScoreCategory различает источники оценки (см. Положение о ПП
+// и формулу итоговой оценки в models.CoordinatorGradingRow).
+type SprintScoreCategory string
+
+const (
+	SprintScoreCategoryMentor  SprintScoreCategory = "mentor"
+	SprintScoreCategoryTracker SprintScoreCategory = "tracker"
+	SprintScoreCategoryDefense SprintScoreCategory = "defense"
+	SprintScoreCategoryPeer    SprintScoreCategory = "peer"
+)
+
+func (c SprintScoreCategory) Valid() bool {
+	switch c {
+	case SprintScoreCategoryMentor, SprintScoreCategoryTracker,
+		SprintScoreCategoryDefense, SprintScoreCategoryPeer:
+		return true
+	}
+	return false
+}
+
 type SprintScore struct {
-	ID         int          `json:"id"`
-	SprintID   int          `json:"sprintId"`
-	TeamID     int          `json:"teamId"`
-	StudentID  int          `json:"studentId"`
-	Student    *UserSummary `json:"student,omitempty"`
-	Score      int          `json:"score"`
-	Comment    string       `json:"comment,omitempty"`
-	ScoredByID int          `json:"scoredById"`
-	CreatedAt  time.Time    `json:"createdAt"`
-	UpdatedAt  time.Time    `json:"updatedAt"`
+	ID         int                 `json:"id"`
+	SprintID   int                 `json:"sprintId"`
+	TeamID     int                 `json:"teamId"`
+	StudentID  int                 `json:"studentId"`
+	Student    *UserSummary        `json:"student,omitempty"`
+	Score      int                 `json:"score"`
+	Category   SprintScoreCategory `json:"category"`
+	Ktu        *float64            `json:"ktu,omitempty"`
+	Comment    string              `json:"comment,omitempty"`
+	ScoredByID int                 `json:"scoredById"`
+	CreatedAt  time.Time           `json:"createdAt"`
+	UpdatedAt  time.Time           `json:"updatedAt"`
 }

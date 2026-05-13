@@ -9,6 +9,7 @@ export interface CoordinatorGradingRow {
   studentId: number;
   studentName: string;
   projectTitle?: string;
+  teamId: number;
   teamName?: string;
   mentorAvg?: number | null;
   ktu?: number | null;

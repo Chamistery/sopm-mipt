@@ -1113,6 +1113,9 @@ ON CONFLICT (team_id, user_id) DO NOTHING;
 
 -- Sprint_scores для архивных команд: средние ~8.0 у проекта 100 (зачтено),
 -- ~8.6 у проекта 101 (зачтено).
+-- Категория 'mentor' проставляется по умолчанию (миграция 007). В этом
+-- основном INSERT'е оставляем дефолт; ниже отдельным блоком добавляем
+-- mentor-КТУ + tracker/defense/peer для демо-команды.
 INSERT INTO sprint_scores (sprint_id, team_id, student_id, score, comment, scored_by_id) VALUES
   -- Команда 1 (проект 1 СУПП), Спринт 1 (Завершён) — 4 оценки 9/8/7/8 как в
   -- прототипе common.js: Стародубов 9, Кузнецов 8, Лебедева 7, Волков 8.
@@ -1157,7 +1160,34 @@ INSERT INTO sprint_scores (sprint_id, team_id, student_id, score, comment, score
   (112, 102, 14, 9, '', 1),
   (112, 102, 18, 9, '', 1),
   (112, 102, 19, 9, '', 1)
-ON CONFLICT (sprint_id, student_id) DO NOTHING;
+ON CONFLICT (sprint_id, student_id, category) DO NOTHING;
+
+-- КТУ для существующих mentor-оценок демо-команды (sprint 1, team 1).
+-- Лидер с большим вкладом — КТУ 1.2; средний — 1.0; меньший — 0.9.
+UPDATE sprint_scores SET ktu = 1.2 WHERE sprint_id = 1 AND team_id = 1 AND student_id = 3 AND category = 'mentor';
+UPDATE sprint_scores SET ktu = 1.0 WHERE sprint_id = 1 AND team_id = 1 AND student_id = 4 AND category = 'mentor';
+UPDATE sprint_scores SET ktu = 0.9 WHERE sprint_id = 1 AND team_id = 1 AND student_id = 5 AND category = 'mentor';
+UPDATE sprint_scores SET ktu = 1.0 WHERE sprint_id = 1 AND team_id = 1 AND student_id = 6 AND category = 'mentor';
+
+-- Tracker / Defense / Peer оценки демо-команды (Спринт 1 Завершён, Команда 1).
+-- Чтобы фронт показал все 4 колонки с цифрами + Total по формуле Положения.
+INSERT INTO sprint_scores (sprint_id, team_id, student_id, score, category, comment, scored_by_id) VALUES
+  -- Трекер: чуть ниже ментора (отчёты вовремя, полнота 80-90%).
+  (1, 1, 3, 9, 'tracker', 'Отчёты вовремя, исчерпывающие.', 2),
+  (1, 1, 4, 8, 'tracker', 'Отчёты вовремя.',                2),
+  (1, 1, 5, 7, 'tracker', 'Один отчёт опоздал на 2 дня.',   2),
+  (1, 1, 6, 8, 'tracker', 'Отчёты регулярные.',             2),
+  -- Защита: усреднённая оценка экспертов (5 критериев / 10).
+  (1, 1, 3, 9, 'defense', 'Сильная техчасть, чёткая презентация.', 2),
+  (1, 1, 4, 8, 'defense', 'Хорошая демо.',                          2),
+  (1, 1, 5, 7, 'defense', 'Аналитика убедительна, ответы на вопросы средние.', 2),
+  (1, 1, 6, 8, 'defense', 'Тестовая часть проработана.',             2),
+  -- Peer review: ранжирование внутри команды.
+  (1, 1, 3, 10, 'peer', '', 2),
+  (1, 1, 4,  9, 'peer', '', 2),
+  (1, 1, 5,  7, 'peer', '', 2),
+  (1, 1, 6,  8, 'peer', '', 2)
+ON CONFLICT (sprint_id, student_id, category) DO NOTHING;
 
 SELECT setval('sprint_scores_id_seq', GREATEST((SELECT MAX(id) FROM sprint_scores), 1));
 

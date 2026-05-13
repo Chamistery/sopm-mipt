@@ -9,6 +9,8 @@
 import { apiFetch } from './client';
 import type { UserSummary } from './users';
 
+export type SprintScoreCategory = 'mentor' | 'tracker' | 'defense' | 'peer';
+
 export interface SprintScore {
   id: number;
   sprintId: number;
@@ -16,6 +18,8 @@ export interface SprintScore {
   studentId: number;
   student?: UserSummary | null;
   score: number;
+  category: SprintScoreCategory;
+  ktu?: number | null;
   comment?: string;
   scoredById: number;
   createdAt?: string;
@@ -37,6 +41,8 @@ export interface CreateSprintScorePayload {
   teamId: number;
   studentId: number;
   score: number;
+  category?: SprintScoreCategory;
+  ktu?: number | null;
   comment?: string;
   scoredById: number;
 }
@@ -47,6 +53,8 @@ export function createSprintScore(payload: CreateSprintScorePayload): Promise<Sp
 
 export interface UpdateSprintScorePayload {
   score: number;
+  category?: SprintScoreCategory;
+  ktu?: number | null;
   comment?: string;
 }
 
