@@ -76,6 +76,12 @@ interface Props {
   serverError?: string | null;
   onSubmit: (action: TaskActionKind, comment: string) => void;
   onClose: () => void;
+  /**
+   * Когда true, скрываем кнопки действий (approve/reject/accept/return).
+   * Используется для координаторской страницы команды — он видит задачу
+   * без права влиять на task-flow (это работа ментора/тимлида).
+   */
+  readOnly?: boolean;
 }
 
 export function MentorTaskPopup({
@@ -87,6 +93,7 @@ export function MentorTaskPopup({
   serverError,
   onSubmit,
   onClose,
+  readOnly = false,
 }: Props): JSX.Element | null {
   const [pendingAction, setPendingAction] = useState<TaskActionKind | null>(null);
   const [comment, setComment] = useState('');
@@ -141,7 +148,7 @@ export function MentorTaskPopup({
     onSubmit(pendingAction, trimmed);
   };
 
-  const showActions = availableActions.length > 0;
+  const showActions = !readOnly && availableActions.length > 0;
 
   return (
     <div
