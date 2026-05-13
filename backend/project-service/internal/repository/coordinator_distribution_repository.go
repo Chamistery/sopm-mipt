@@ -231,10 +231,15 @@ func (r *CoordinatorDistributionRepository) loadStudentPriorities(ctx context.Co
 	return out, rows.Err()
 }
 
-// loadGlobalPool — все студенты, у которых есть заявка на любой проект
-// в статусе 'Ожидает' / 'Рекомендован' / 'Принято ментором' / 'Принят'
-// и которые не состоят ни в одной команде. Группируем приоритеты
-// студента в одну запись.
+// loadGlobalPool — студенты, у которых нет ни одной заявки, привязанной
+// к команде через статусы 'Рекомендован' / 'Принято ментором' / 'Принят'.
+// Сама заявка-строка для пула должна быть без team_id (team_id IS NULL).
+//
+// Старый критерий «NOT IN team_members» оказался ненадёжным: seed_demo
+// сидит студентов сразу в 5–7 команд разных проектов через team_members
+// (чтобы дашборд не был пустым), и после unrecommend в одной команде
+// студент всё равно остаётся «принадлежащим» другим командам через
+// team_members — и пропадает из пула. Здесь смотрим только applications.
 func (r *CoordinatorDistributionRepository) loadGlobalPool(ctx context.Context) ([]models.CoordinatorPoolStudent, error) {
 	const q = `
 		SELECT a.id, a.student_id, a.priority, a.status,
@@ -246,8 +251,14 @@ func (r *CoordinatorDistributionRepository) loadGlobalPool(ctx context.Context) 
 		JOIN users u ON u.id = a.student_id
 		JOIN projects p ON p.id = a.project_id
 		LEFT JOIN users m ON m.id = p.mentor_id
-		WHERE a.student_id NOT IN (SELECT user_id FROM team_members)
-		  AND a.status IN ('Ожидает','Рекомендован','Принято ментором','Принят','Не рекомендован','Не подходит')
+		WHERE a.team_id IS NULL
+		  AND a.status IN ('Ожидает','Не рекомендован','Не подходит')
+		  AND NOT EXISTS (
+		      SELECT 1 FROM applications a2
+		      WHERE a2.student_id = a.student_id
+		        AND a2.team_id IS NOT NULL
+		        AND a2.status IN ('Рекомендован','Принято ментором','Принят')
+		  )
 		ORDER BY u.last_name ASC, u.first_name ASC, a.priority ASC
 	`
 	rows, err := r.db.Query(ctx, q)

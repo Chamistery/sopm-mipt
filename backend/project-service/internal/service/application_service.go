@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"strconv"
 	"time"
 
@@ -9,6 +10,16 @@ import (
 	"github.com/hsse/project-service/internal/models"
 	"github.com/hsse/project-service/internal/repository"
 )
+
+// logDist пишет короткую строку про действие на странице распределения.
+// Префикс [dist] делает легко grep'ать docker logs sopm-project-service.
+func logDist(action string, user *auth.CurrentUser, format string, args ...interface{}) {
+	userPart := "anon"
+	if user != nil {
+		userPart = strconv.Itoa(user.ID) + ":" + string(user.Role)
+	}
+	log.Printf("[dist] %s by=%s "+format, append([]interface{}{action, userPart}, args...)...)
+}
 
 type ApplicationService struct {
 	applications repository.ApplicationRepositoryInterface
@@ -35,6 +46,7 @@ func NewApplicationService(
 }
 
 func (s *ApplicationService) Create(ctx context.Context, user *auth.CurrentUser, app *models.Application) error {
+	logDist("create.start", user, "studentId=%d projectId=%d priority=%d", app.StudentID, app.ProjectID, app.Priority)
 	if err := RequireRoles(user, auth.RoleStudent, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
 		return err
 	}
@@ -75,14 +87,24 @@ func (s *ApplicationService) Create(ctx context.Context, user *auth.CurrentUser,
 		app.Status = models.ApplicationStatusUnqualified
 	}
 
-	return s.applications.Create(ctx, app)
+	if err := s.applications.Create(ctx, app); err != nil {
+		logDist("create.repo_err", user, "studentId=%d projectId=%d err=%v", app.StudentID, app.ProjectID, err)
+		return err
+	}
+	logDist("create.ok", user, "id=%d studentId=%d projectId=%d status=%s",
+		app.ID, app.StudentID, app.ProjectID, app.Status)
+	return nil
 }
 
 func (s *ApplicationService) Recommend(ctx context.Context, user *auth.CurrentUser, applicationID int, teamID int) (*models.Application, error) {
+	logDist("recommend.start", user, "appId=%d teamId=%d", applicationID, teamID)
 	app, project, err := s.loadManagedApplication(ctx, user, applicationID)
 	if err != nil {
+		logDist("recommend.load_err", user, "appId=%d err=%v", applicationID, err)
 		return nil, err
 	}
+	logDist("recommend.loaded", user, "appId=%d projectId=%d studentId=%d fromStatus=%s fromTeamId=%v",
+		applicationID, app.ProjectID, app.StudentID, app.Status, app.TeamID)
 	// Ментор: только из «холодных» статусов (Ожидает / Не рекомендован /
 	// Не подходит). Координатор/админ может перевести из любого статуса
 	// (admin.html status-menu разрешает «Заявка не отправлена» как обратный
@@ -91,31 +113,42 @@ func (s *ApplicationService) Recommend(ctx context.Context, user *auth.CurrentUs
 		app.Status != models.ApplicationStatusNotRecommended &&
 		app.Status != models.ApplicationStatusUnqualified {
 		if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+			logDist("recommend.forbid_status", user, "appId=%d status=%s", applicationID, app.Status)
 			return nil, WrapStateError("application cannot be recommended from status %s", app.Status)
 		}
 	}
 	team, err := s.teams.GetByID(ctx, teamID)
 	if err != nil {
+		logDist("recommend.team_err", user, "teamId=%d err=%v", teamID, err)
 		return nil, err
 	}
 	if team.ProjectID != project.ID {
+		logDist("recommend.project_mismatch", user, "appId=%d appProjectId=%d teamProjectId=%d",
+			applicationID, project.ID, team.ProjectID)
 		return nil, WrapStateError("team must belong to the same project")
 	}
 	app.TeamID = &teamID
 	app.Status = models.ApplicationStatusRecommended
 	if err := s.applications.Update(ctx, app); err != nil {
+		logDist("recommend.update_err", user, "appId=%d err=%v", applicationID, err)
 		return nil, err
 	}
+	logDist("recommend.ok", user, "appId=%d studentId=%d teamId=%d", applicationID, app.StudentID, teamID)
 	return s.applications.GetByID(ctx, app.ID)
 }
 
 func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, error) {
+	logDist("unrecommend.start", user, "appId=%d", applicationID)
 	app, _, err := s.loadManagedApplication(ctx, user, applicationID)
 	if err != nil {
+		logDist("unrecommend.load_err", user, "appId=%d err=%v", applicationID, err)
 		return nil, err
 	}
+	logDist("unrecommend.loaded", user, "appId=%d projectId=%d studentId=%d fromStatus=%s fromTeamId=%v",
+		applicationID, app.ProjectID, app.StudentID, app.Status, app.TeamID)
 	// Idempotent: студент уже в пуле — возвращаем как есть, без ошибки.
 	if app.TeamID == nil && app.Status == models.ApplicationStatusNotRecommended {
+		logDist("unrecommend.idempotent", user, "appId=%d", applicationID)
 		return app, nil
 	}
 	// Ментор: только из 'Рекомендован' (прототип mentor.html:3021-3025 — после
@@ -124,6 +157,7 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 	// принятого студента (admin.html распределение).
 	if app.Status != models.ApplicationStatusRecommended &&
 		!user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+		logDist("unrecommend.forbid_status", user, "appId=%d status=%s", applicationID, app.Status)
 		return nil, WrapStateError("application cannot be removed from team from status %s", app.Status)
 	}
 	// Запоминаем команду до сброса, чтобы удалить запись team_members
@@ -133,14 +167,25 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 	app.TeamID = nil
 	app.Status = models.ApplicationStatusNotRecommended
 	if err := s.applications.Update(ctx, app); err != nil {
+		logDist("unrecommend.update_err", user, "appId=%d err=%v", applicationID, err)
 		return nil, err
 	}
 	if prevTeamID != nil {
 		exists, checkErr := s.teams.IsMember(ctx, *prevTeamID, app.StudentID)
 		if checkErr == nil && exists {
-			_ = s.teams.RemoveMember(ctx, *prevTeamID, app.StudentID)
+			if rmErr := s.teams.RemoveMember(ctx, *prevTeamID, app.StudentID); rmErr != nil {
+				logDist("unrecommend.tm_remove_err", user, "teamId=%d studentId=%d err=%v",
+					*prevTeamID, app.StudentID, rmErr)
+			} else {
+				logDist("unrecommend.tm_removed", user, "teamId=%d studentId=%d",
+					*prevTeamID, app.StudentID)
+			}
+		} else if checkErr != nil {
+			logDist("unrecommend.tm_check_err", user, "teamId=%d studentId=%d err=%v",
+				*prevTeamID, app.StudentID, checkErr)
 		}
 	}
+	logDist("unrecommend.ok", user, "appId=%d studentId=%d prevTeamId=%v", applicationID, app.StudentID, prevTeamID)
 	return s.applications.GetByID(ctx, app.ID)
 }
 
@@ -153,21 +198,28 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 // перед вызовом этого endpoint'а (см. admin.html:2882). Сам бэк не блокирует:
 // в этом случае нужно сначала вызвать Recommend, который сбросит статус.
 func (s *ApplicationService) MoveToTeam(ctx context.Context, user *auth.CurrentUser, applicationID, teamID int) (*models.Application, error) {
+	logDist("moveTeam.start", user, "appId=%d teamId=%d", applicationID, teamID)
 	app, project, err := s.loadManagedApplication(ctx, user, applicationID)
 	if err != nil {
+		logDist("moveTeam.load_err", user, "appId=%d err=%v", applicationID, err)
 		return nil, err
 	}
 	team, err := s.teams.GetByID(ctx, teamID)
 	if err != nil {
+		logDist("moveTeam.team_err", user, "teamId=%d err=%v", teamID, err)
 		return nil, err
 	}
 	if team.ProjectID != project.ID {
+		logDist("moveTeam.project_mismatch", user, "appId=%d appProjectId=%d teamProjectId=%d",
+			applicationID, project.ID, team.ProjectID)
 		return nil, WrapStateError("team must belong to the same project")
 	}
 	app.TeamID = &teamID
 	if err := s.applications.Update(ctx, app); err != nil {
+		logDist("moveTeam.update_err", user, "appId=%d err=%v", applicationID, err)
 		return nil, err
 	}
+	logDist("moveTeam.ok", user, "appId=%d studentId=%d teamId=%d", applicationID, app.StudentID, teamID)
 	return s.applications.GetByID(ctx, app.ID)
 }
 
