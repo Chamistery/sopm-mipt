@@ -1,0 +1,258 @@
+/* Pixel-port из mentor.html view-team — координатор использует тот же
+   layout с кнопкой «Открыть карточку проекта» в шапке (admin.html:998-1001). */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.openProjectBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--white);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  flex-shrink: 0;
+  align-self: flex-start;
+  transition: all 0.15s;
+}
+
+.openProjectBtn:hover {
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.back {
+  align-self: flex-start;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--color-accent);
+}
+
+/* Хлебные крошки — pixel-port из mentor.html (.breadcrumb) */
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+}
+
+.crumbLink {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.crumbLink:hover {
+  color: var(--color-accent);
+}
+
+.crumbSep {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.crumbCurrent {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: var(--space-2);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+/* Members card — pixel-port из mentor.html (.members-card, lines 902-941
+   prototype + .team-leader-hint, .member-chip CSS at 182-200, 260-267) */
+.membersCard {
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.leaderHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border-light);
+  border-left: 3px solid var(--color-accent);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+}
+
+.hintIcon {
+  flex-shrink: 0;
+  color: var(--color-accent);
+  margin-top: 1px;
+}
+
+.membersGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.memberChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--color-surface);
+  border-radius: 8px;
+  min-width: 200px;
+}
+
+.memberAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.memberInfo {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.memberName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Бейдж «Лидер» — точная копия .member-leader из common.css строка 267 */
+.memberLeaderBadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: #dbeafe;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 4px;
+}
+
+.assignBtn {
+  margin-left: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  background: var(--color-card);
+  color: var(--color-accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.assignBtn:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.assignBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Tabs — pixel-port из common.css прототипа (.tabs / .tab / .tab.active) */
+.tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--color-border-light);
+  margin-bottom: 24px;
+}
+
+.tab {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tabContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Tabs payload (заглушка / placeholder) */
+.placeholder,
+.empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+}
+
+.error {
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
