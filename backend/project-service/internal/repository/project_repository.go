@@ -178,6 +178,11 @@ func (r *ProjectRepository) SubmitChangeRequest(
 //     обнуляются.
 // Если pending_proposal_data пустой — возвращает ошибку 'no pending change'.
 func (r *ProjectRepository) ApproveChangeRequest(ctx context.Context, projectID int) (*models.Project, error) {
+	// technologies — колонка jsonb (массив строк), а в pending_proposal_data
+	// форма ментора кладёт строку «через запятую». Поэтому нужен type-aware
+	// merge: если pending хранит array — берём как есть, если string —
+	// сплитим по запятой и упаковываем в jsonb-array, иначе оставляем
+	// текущее значение.
 	query := `
 		UPDATE projects
 		SET
@@ -185,7 +190,20 @@ func (r *ProjectRepository) ApproveChangeRequest(ctx context.Context, projectID 
 		    company = COALESCE(pending_proposal_data->>'company', company),
 		    goal = COALESCE(pending_proposal_data->>'goal', goal),
 		    expected_result = COALESCE(pending_proposal_data->>'expectedResult', expected_result),
-		    technologies = COALESCE(pending_proposal_data->>'technologies', technologies),
+		    technologies = CASE
+		        WHEN pending_proposal_data->'technologies' IS NULL THEN technologies
+		        WHEN jsonb_typeof(pending_proposal_data->'technologies') = 'array'
+		            THEN pending_proposal_data->'technologies'
+		        WHEN jsonb_typeof(pending_proposal_data->'technologies') = 'string'
+		            AND COALESCE(NULLIF(pending_proposal_data->>'technologies', ''), '') <> ''
+		            THEN COALESCE(
+		                (SELECT jsonb_agg(trim(item))
+		                 FROM unnest(string_to_array(pending_proposal_data->>'technologies', ',')) AS item
+		                 WHERE trim(item) <> ''),
+		                technologies
+		            )
+		        ELSE technologies
+		    END,
 		    competencies = COALESCE(pending_proposal_data->>'competencies', competencies),
 		    description = COALESCE(pending_proposal_data->>'description', description),
 		    acceptance_criteria = COALESCE(pending_proposal_data->>'acceptanceCriteria', acceptance_criteria),
