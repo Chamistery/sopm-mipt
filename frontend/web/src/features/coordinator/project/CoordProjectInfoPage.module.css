@@ -1,0 +1,178 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.breadcrumbLink {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.breadcrumbLink:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbCurrent {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Жёлтый банер «Карточка завершённого проекта» — pixel-port
+   mentor.html:100-110 (.readonly-archive-banner). Жёстко закодированные
+   цвета — это уникальная архивная палитра МФТИ, нет в tokens.css. */
+.readonlyBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #f59e0b;
+  border-radius: 7px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.readonlyBanner svg {
+  flex-shrink: 0;
+  color: #78350f;
+}
+
+/* Синий банер «Редактирование проекта» — pixel-port
+   mentor.html:466-472 (.edit-project-banner). */
+.editBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid var(--color-accent);
+  border-left: 4px solid var(--color-accent);
+  border-radius: 7px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.editBanner svg {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+/* Координаторский banner — отличается цветом (зелёный — «применяется сразу»,
+   синий менторский говорит «отправится на утверждение»). */
+.coordBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success);
+  border-left: 4px solid var(--color-success);
+  border-radius: 7px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.coordBanner svg {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
+/* Оранжевый банер «Изменения отправлены координатору» — отличается
+   от жёлтого архивного visible-ом «pending change request»: палитра
+   оранжевая (warning), не янтарная (archive). */
+.pendingBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid #f59e0b;
+  border-left: 4px solid #f59e0b;
+  border-radius: 7px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.pendingBanner svg {
+  flex-shrink: 0;
+  color: #d97706;
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px 32px;
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  max-width: 720px;
+}
+
+.skeletonRow {
+  height: 18px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--color-border-light) 0%,
+    var(--color-surface-alt) 50%,
+    var(--color-border-light) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s infinite ease;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.closeLink {
+  padding: 10px 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-card);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.closeLink:hover {
+  background: var(--color-surface-alt);
+  text-decoration: none;
+}
