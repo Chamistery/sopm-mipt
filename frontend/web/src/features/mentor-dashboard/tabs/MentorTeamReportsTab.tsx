@@ -47,9 +47,16 @@ import styles from './MentorTeamReportsTab.module.css';
 
 interface Props {
   teamId: number;
+  /**
+   * mode='coordinator' — режим только-чтения для координатора:
+   *   кнопки «Сохранить оценки» и «Принять отчёт» спрятаны, инпуты
+   *   баллов и комментариев заблокированы. Кнопка «Выгрузить отчёт»
+   *   остаётся — выгрузка не редактирует данные.
+   */
+  mode?: 'mentor' | 'coordinator';
 }
 
-export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
+export function MentorTeamReportsTab({ teamId, mode = 'mentor' }: Props): JSX.Element {
   const teamQuery = useTeam(teamId);
   const reportsQuery = useTeamReports(teamId);
   const projectId = teamQuery.data?.projectId ?? null;
@@ -154,6 +161,7 @@ export function MentorTeamReportsTab({ teamId }: Props): JSX.Element {
               members={members}
               teamId={teamId}
               defaultExpanded={report.sprintId === currentSprintId}
+              readOnly={mode === 'coordinator'}
             />
           ))}
         </div>
@@ -176,6 +184,7 @@ interface ReportCardWrapperProps {
   members: SprintReportCardMember[];
   teamId: number;
   defaultExpanded: boolean;
+  readOnly?: boolean;
 }
 
 function ReportCardWrapper({
@@ -184,6 +193,7 @@ function ReportCardWrapper({
   members,
   teamId,
   defaultExpanded,
+  readOnly = false,
 }: ReportCardWrapperProps): JSX.Element {
   const me = useRequireUser();
   const queryClient = useQueryClient();
@@ -238,6 +248,7 @@ function ReportCardWrapper({
       scores={scoresQuery.data ?? []}
       scoresLoading={scoresQuery.isLoading}
       expanded={expanded}
+      readOnly={readOnly}
       onToggle={() => setExpanded((v) => !v)}
       onSaveScores={async (drafts) => {
         try {

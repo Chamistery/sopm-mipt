@@ -26,9 +26,15 @@ import styles from './MentorTeamMeetingsTab.module.css';
 
 interface Props {
   teamId: number;
+  /**
+   * mode='coordinator' — режим только-чтения: кнопки «Назначить встречу»
+   * и confirm/decline на карточках спрятаны. Координатор видит, какие
+   * встречи запланированы и прошли.
+   */
+  mode?: 'mentor' | 'coordinator';
 }
 
-export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
+export function MentorTeamMeetingsTab({ teamId, mode = 'mentor' }: Props): JSX.Element {
   const meetingsQuery = useMeetings(teamId);
   const teamQuery = useTeam(teamId);
 
@@ -127,13 +133,15 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
     <>
       <div className={styles.head}>
         <h2 className={styles.sectionTitle}>Встречи команды</h2>
-        <button
-          type="button"
-          className={styles.btnPrimary}
-          onClick={() => setShowModal(true)}
-        >
-          <PlusIcon /> Назначить встречу
-        </button>
+        {mode === 'mentor' ? (
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => setShowModal(true)}
+          >
+            <PlusIcon /> Назначить встречу
+          </button>
+        ) : null}
       </div>
 
       <Section title="Предстоящие">
@@ -145,7 +153,7 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
               <MeetingCard
                 key={m.id}
                 meeting={m}
-                canMentorAct
+                canMentorAct={mode === 'mentor'}
                 isPast={false}
                 createdByLabel={m.createdById ? createdByLabels.get(m.createdById) : undefined}
                 onConfirm={handleConfirm}
@@ -182,7 +190,7 @@ export function MentorTeamMeetingsTab({ teamId }: Props): JSX.Element {
               <MeetingCard
                 key={m.id}
                 meeting={m}
-                canMentorAct
+                canMentorAct={mode === 'mentor'}
                 isPast
                 createdByLabel={m.createdById ? createdByLabels.get(m.createdById) : undefined}
               />

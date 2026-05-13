@@ -66,6 +66,12 @@ interface Props {
     drafts: ScoreDraft[],
   ) => Promise<{ ok: true; saved: SprintScore[] } | { ok: false; error: string }>;
   onAcceptReport: (mentorComment: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /**
+   * Когда true, скрываем кнопки «Сохранить оценки» и «Принять отчёт»
+   * и блокируем редактирование инпутов. Используется на координаторской
+   * странице команды — координатор смотрит отчёт без права редактирования.
+   */
+  readOnly?: boolean;
 }
 
 export function SprintReportCard({
@@ -78,6 +84,7 @@ export function SprintReportCard({
   onToggle,
   onSaveScores,
   onAcceptReport,
+  readOnly = false,
 }: Props): JSX.Element {
   const { showSuccess } = useToast();
   const [comment, setComment] = useState(report.mentorComment ?? '');
@@ -274,6 +281,7 @@ export function SprintReportCard({
                       key={d.studentId}
                       draft={d}
                       index={idx}
+                      readOnly={readOnly}
                       onChange={(next) =>
                         setDrafts((prev) =>
                           prev.map((x) => (x.studentId === next.studentId ? next : x)),
@@ -283,16 +291,18 @@ export function SprintReportCard({
                   ))}
                 </div>
                 {scoreError ? <div className={styles.error}>{scoreError}</div> : null}
-                <div className={styles.actionsRow}>
-                  <button
-                    type="button"
-                    className={styles.btnPrimary}
-                    onClick={handleSaveScores}
-                    disabled={!canSaveScores}
-                  >
-                    {savingScores ? 'Сохраняем…' : 'Сохранить оценки'}
-                  </button>
-                </div>
+                {!readOnly ? (
+                  <div className={styles.actionsRow}>
+                    <button
+                      type="button"
+                      className={styles.btnPrimary}
+                      onClick={handleSaveScores}
+                      disabled={!canSaveScores}
+                    >
+                      {savingScores ? 'Сохраняем…' : 'Сохранить оценки'}
+                    </button>
+                  </div>
+                ) : null}
               </>
             )}
           </div>
@@ -304,10 +314,10 @@ export function SprintReportCard({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Что обсудить с командой..."
-              readOnly={isAccepted && !isReviewable}
+              readOnly={readOnly || (isAccepted && !isReviewable)}
             />
             {acceptError ? <div className={styles.error}>{acceptError}</div> : null}
-            {isReviewable ? (
+            {isReviewable && !readOnly ? (
               <div className={styles.actionsRow}>
                 <button
                   type="button"
@@ -376,9 +386,10 @@ interface ScoreRowProps {
   draft: ScoreDraft;
   index: number;
   onChange: (next: ScoreDraft) => void;
+  readOnly?: boolean;
 }
 
-function ScoreRow({ draft, index, onChange }: ScoreRowProps): JSX.Element {
+function ScoreRow({ draft, index, onChange, readOnly = false }: ScoreRowProps): JSX.Element {
   const error = draft.score == null ? null : validateScore(draft.score);
 
   return (
@@ -396,6 +407,8 @@ function ScoreRow({ draft, index, onChange }: ScoreRowProps): JSX.Element {
         className={`${styles.scoreInput} ${error ? styles.scoreInputError : ''}`}
         value={draft.score ?? ''}
         aria-label={`Балл, ${draft.studentName}`}
+        readOnly={readOnly}
+        disabled={readOnly}
         onChange={(e) => {
           const raw = e.target.value;
           const parsed = raw === '' ? null : Number.parseInt(raw, 10);
@@ -409,6 +422,8 @@ function ScoreRow({ draft, index, onChange }: ScoreRowProps): JSX.Element {
         className={styles.commentInput}
         value={draft.comment}
         aria-label={`Комментарий, ${draft.studentName}`}
+        readOnly={readOnly}
+        disabled={readOnly}
         onChange={(e) => onChange({ ...draft, comment: e.target.value, dirty: true })}
       />
     </div>

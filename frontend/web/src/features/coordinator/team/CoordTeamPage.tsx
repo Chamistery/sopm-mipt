@@ -19,13 +19,10 @@
  */
 
 import type { JSX } from 'react';
-import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
-import { type Team, type TeamMember, assignTeamLeader } from '@/api/teams';
-import { useToast } from '@/_shared/Toast';
+import { type Team, type TeamMember } from '@/api/teams';
 import { useProject } from '@/features/mentor-dashboard/hooks/useProject';
 import { useTeam } from '@/features/mentor-dashboard/hooks/useTeam';
 import { avatarColorByIndex, initials } from '@/features/student-project/lib/people';
@@ -133,9 +130,15 @@ export function CoordTeamPage(): JSX.Element {
       </nav>
 
       <div className={styles.tabContent}>
-        {tab === 'gantt' ? <MentorTeamGanttTab teamId={teamId} /> : null}
-        {tab === 'reports' ? <MentorTeamReportsTab teamId={teamId} /> : null}
-        {tab === 'meetings' ? <MentorTeamMeetingsTab teamId={teamId} /> : null}
+        {tab === 'gantt' ? (
+          <MentorTeamGanttTab teamId={teamId} mode="coordinator" />
+        ) : null}
+        {tab === 'reports' ? (
+          <MentorTeamReportsTab teamId={teamId} mode="coordinator" />
+        ) : null}
+        {tab === 'meetings' ? (
+          <MentorTeamMeetingsTab teamId={teamId} mode="coordinator" />
+        ) : null}
       </div>
     </div>
   );
@@ -177,45 +180,10 @@ function Tab({ active, label, onClick }: TabProps): JSX.Element {
 }
 
 function MembersCard({ team }: { team: Team }): JSX.Element {
-  const queryClient = useQueryClient();
-  const { showSuccess } = useToast();
-  const [serverError, setServerError] = useState<string | null>(null);
-
-  const assignMutation = useMutation({
-    mutationFn: ({ userId }: { userId: number; displayName: string }) =>
-      assignTeamLeader(team.id, userId),
-    onSuccess: async (_data, vars) => {
-      setServerError(null);
-      showSuccess(`${vars.displayName} назначен тимлидом`);
-      await queryClient.invalidateQueries({ queryKey: ['team', team.id] });
-    },
-    onError: (err: unknown) => {
-      setServerError(
-        err instanceof ApiError
-          ? `Ошибка ${err.status}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : 'Не удалось назначить тимлида',
-      );
-    },
-  });
-
   const members = team.members ?? [];
-  const hasLeader = team.leaderId != null && team.leaderId > 0;
 
   return (
     <section className={styles.membersCard} aria-label="Состав команды">
-      {!hasLeader ? (
-        <div className={styles.leaderHint} role="note">
-          <HintIcon />
-          <span>
-            Тимлид ещё не назначен. Выберите студента из состава — назначить можно только один раз.
-          </span>
-        </div>
-      ) : null}
-
-      {serverError ? <div className={styles.error}>{serverError}</div> : null}
-
       {members.length === 0 ? (
         <div className={styles.empty}>В команде пока нет участников.</div>
       ) : (
@@ -226,16 +194,6 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
               member={m}
               avatarBg={avatarColorByIndex(idx)}
               isLeader={team.leaderId === m.userId}
-              showAssign={!hasLeader}
-              isAssigning={
-                assignMutation.isPending && assignMutation.variables?.userId === m.userId
-              }
-              onAssign={() =>
-                assignMutation.mutate({
-                  userId: m.userId,
-                  displayName: `${m.user.lastName} ${m.user.firstName.charAt(0)}.`.trim(),
-                })
-              }
             />
           ))}
         </div>
@@ -248,19 +206,9 @@ interface MemberChipProps {
   member: TeamMember;
   avatarBg: string;
   isLeader: boolean;
-  showAssign: boolean;
-  isAssigning: boolean;
-  onAssign: () => void;
 }
 
-function MemberChip({
-  member,
-  avatarBg,
-  isLeader,
-  showAssign,
-  isAssigning,
-  onAssign,
-}: MemberChipProps): JSX.Element {
+function MemberChip({ member, avatarBg, isLeader }: MemberChipProps): JSX.Element {
   const person = {
     firstName: member.user.firstName,
     lastName: member.user.lastName,
@@ -278,53 +226,7 @@ function MemberChip({
           {isLeader ? <span className={styles.memberLeaderBadge}>Лидер</span> : null}
         </div>
       </div>
-      {!isLeader && showAssign ? (
-        <button
-          type="button"
-          className={styles.assignBtn}
-          onClick={onAssign}
-          disabled={isAssigning}
-          title="Назначить тимлидом команды"
-        >
-          <CrownIcon />
-          {isAssigning ? 'Назначаем…' : 'Сделать тимлидом'}
-        </button>
-      ) : null}
     </div>
-  );
-}
-
-function HintIcon(): JSX.Element {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-      className={styles.hintIcon}
-    >
-      <path
-        d="M8 1.5v5M8 10v4.5M1.5 8h5M9.5 8h5"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.2" />
-    </svg>
-  );
-}
-
-function CrownIcon(): JSX.Element {
-  return (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d="M2 5l3 3 3-5 3 5 3-3-1 7H3L2 5z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
 

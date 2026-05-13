@@ -28,9 +28,15 @@ import styles from './MentorTeamGanttTab.module.css';
 
 interface Props {
   teamId: number;
+  /**
+   * mode='coordinator' — режим только-чтения. Клик по задаче открывает
+   * попап с информацией, но без кнопок approve/reject/accept/return.
+   * task-flow остаётся за ментором/тимлидом.
+   */
+  mode?: 'mentor' | 'coordinator';
 }
 
-export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
+export function MentorTeamGanttTab({ teamId, mode = 'mentor' }: Props): JSX.Element {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -173,6 +179,7 @@ export function MentorTeamGanttTab({ teamId }: Props): JSX.Element {
         todayIso={todayIso}
         isSubmitting={mutation.isPending}
         serverError={serverError}
+        readOnly={mode === 'coordinator'}
         onClose={() => {
           if (!mutation.isPending) {
             setPopupTask(null);
