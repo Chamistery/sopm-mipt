@@ -76,12 +76,12 @@ const PROJECT: ProjectFull = {
 };
 
 const SCORES: SprintScore[] = [
-  { id: 1, sprintId: 220, teamId: TEAM_ID, studentId: 3, score: 5, scoredById: 1 },
-  { id: 2, sprintId: 220, teamId: TEAM_ID, studentId: 4, score: 4, scoredById: 1 },
-  { id: 3, sprintId: 220, teamId: TEAM_ID, studentId: 5, score: 5, scoredById: 1 },
-  { id: 4, sprintId: 221, teamId: TEAM_ID, studentId: 3, score: 4, scoredById: 1 },
-  { id: 5, sprintId: 221, teamId: TEAM_ID, studentId: 4, score: 5, scoredById: 1 },
-  { id: 6, sprintId: 221, teamId: TEAM_ID, studentId: 5, score: 5, scoredById: 1 },
+  { id: 1, sprintId: 220, teamId: TEAM_ID, studentId: 3, score: 5, category: 'mentor', scoredById: 1 },
+  { id: 2, sprintId: 220, teamId: TEAM_ID, studentId: 4, score: 4, category: 'mentor', scoredById: 1 },
+  { id: 3, sprintId: 220, teamId: TEAM_ID, studentId: 5, score: 5, category: 'mentor', scoredById: 1 },
+  { id: 4, sprintId: 221, teamId: TEAM_ID, studentId: 3, score: 4, category: 'mentor', scoredById: 1 },
+  { id: 5, sprintId: 221, teamId: TEAM_ID, studentId: 4, score: 5, category: 'mentor', scoredById: 1 },
+  { id: 6, sprintId: 221, teamId: TEAM_ID, studentId: 5, score: 5, category: 'mentor', scoredById: 1 },
 ];
 
 const REPORTS: TeamReport[] = [

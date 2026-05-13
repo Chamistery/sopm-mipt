@@ -115,8 +115,8 @@ export const TwoSprints: Story = {
       reports: REPORTS_BOTH,
       scoresBySprintId: {
         200: [
-          { id: 1, sprintId: 200, teamId: 300, studentId: 3, score: 9, scoredById: 1 },
-          { id: 2, sprintId: 200, teamId: 300, studentId: 4, score: 7, scoredById: 1 },
+          { id: 1, sprintId: 200, teamId: 300, studentId: 3, score: 9, category: 'mentor', scoredById: 1 },
+          { id: 2, sprintId: 200, teamId: 300, studentId: 4, score: 7, category: 'mentor', scoredById: 1 },
         ],
       },
     });

@@ -14,6 +14,7 @@ type CoordinatorGradingRow struct {
 	StudentID    int      `json:"studentId"`
 	StudentName  string   `json:"studentName"`
 	ProjectTitle string   `json:"projectTitle,omitempty"`
+	TeamID       int      `json:"teamId"`
 	TeamName     string   `json:"teamName,omitempty"`
 	MentorAvg    *float64 `json:"mentorAvg,omitempty"`
 	Ktu          *float64 `json:"ktu,omitempty"`

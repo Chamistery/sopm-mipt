@@ -75,8 +75,8 @@ describe('SprintReportCard', () => {
     renderCard({
       status: 'Проверен',
       scores: [
-        { id: 1, sprintId: 201, teamId: 300, studentId: 3, score: 9, scoredById: 1 },
-        { id: 2, sprintId: 201, teamId: 300, studentId: 4, score: 7, scoredById: 1 },
+        { id: 1, sprintId: 201, teamId: 300, studentId: 3, score: 9, category: 'mentor', scoredById: 1 },
+        { id: 2, sprintId: 201, teamId: 300, studentId: 4, score: 7, category: 'mentor', scoredById: 1 },
       ],
     });
     expect(screen.getByText('Проверен · 8/10')).toBeInTheDocument();

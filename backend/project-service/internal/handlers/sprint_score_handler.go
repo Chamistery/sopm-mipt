@@ -18,14 +18,37 @@ func NewSprintScoreHandler(repo repository.SprintScoreRepositoryInterface) *Spri
 	return &SprintScoreHandler{repo: repo}
 }
 
-func (h *SprintScoreHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
-		httputil.RespondError(w, http.StatusForbidden, "forbidden")
-		return
+// canEditScore разрешает редактирование оценок:
+//   - mentor — только свою категорию (mentor) и КТУ.
+//   - coordinator/admin — любую категорию.
+//
+// Трекер и эксперты сейчас редактируют через координатора (отдельных ролей
+// в системе пока нет, см. project_roles_and_business_logic.md).
+func canEditScore(user *auth.CurrentUser, category models.SprintScoreCategory) bool {
+	if user.HasAnyRole(auth.RoleAdmin) {
+		return true
 	}
+	if user.HasAnyRole(auth.RoleCoordinator) {
+		return true
+	}
+	if user.HasAnyRole(auth.RoleMentor) {
+		return category == "" || category == models.SprintScoreCategoryMentor
+	}
+	return false
+}
+
+func (h *SprintScoreHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var score models.SprintScore
 	if err := json.NewDecoder(r.Body).Decode(&score); err != nil {
 		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if score.Category != "" && !score.Category.Valid() {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid category")
+		return
+	}
+	if !canEditScore(currentUser(r), score.Category) {
+		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
 	score.ScoredByID = currentUser(r).ID
@@ -61,10 +84,6 @@ func (h *SprintScoreHandler) GetList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SprintScoreHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
-		httputil.RespondError(w, http.StatusForbidden, "forbidden")
-		return
-	}
 	id, err := httputil.ParsePathInt(r, "id")
 	if err != nil {
 		httputil.RespondError(w, http.StatusBadRequest, err.Error())
@@ -75,8 +94,16 @@ func (h *SprintScoreHandler) Update(w http.ResponseWriter, r *http.Request) {
 		respondServiceError(w, err)
 		return
 	}
+	if !canEditScore(currentUser(r), score.Category) {
+		httputil.RespondError(w, http.StatusForbidden, "forbidden")
+		return
+	}
 	if err := json.NewDecoder(r.Body).Decode(score); err != nil {
 		httputil.RespondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if score.Category != "" && !score.Category.Valid() {
+		httputil.RespondError(w, http.StatusBadRequest, "invalid category")
 		return
 	}
 	score.ID = id

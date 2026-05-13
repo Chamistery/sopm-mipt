@@ -30,6 +30,7 @@ describe('buildScoreDrafts', () => {
         teamId: 7,
         studentId: 1,
         score: 8,
+        category: 'mentor',
         comment: 'Хорошо',
         scoredById: 100,
       },
