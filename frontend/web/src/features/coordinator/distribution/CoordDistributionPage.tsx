@@ -130,6 +130,47 @@ export function CoordDistributionPage(): JSX.Element {
     onError: (err) => showError(formatError(err, 'Не удалось создать заявку')),
   });
 
+  // Кросс-проектный перенос: координатор тащит чип студента из команды
+  // проекта A в команду проекта B. Бэк хранит team_id внутри одной заявки,
+  // которая всегда привязана к одному project_id, поэтому move-team в
+  // другой проект не валиден — нужно сменить заявку. Делаем цепочку:
+  //   1) unrecommend старой заявки → освобождает team_id и удаляет team_members;
+  //   2) если у студента уже есть заявка на target project — recommend её
+  //      в новую команду; иначе — submitApplication (force-create) + recommend.
+  const crossProjectMoveMut = useMutation({
+    mutationFn: async ({
+      sourceApplicationId,
+      targetProjectId,
+      targetTeamId,
+      studentId,
+      existingTargetAppId,
+      priority,
+    }: {
+      sourceApplicationId: number;
+      targetProjectId: number;
+      targetTeamId: number;
+      studentId: number;
+      existingTargetAppId: number | null;
+      priority: number;
+    }) => {
+      await unrecommendApplicant(sourceApplicationId);
+      if (existingTargetAppId != null) {
+        return recommendApplicant(existingTargetAppId, targetTeamId);
+      }
+      const newApp = await submitApplication({
+        studentId,
+        projectId: targetProjectId,
+        priority,
+      });
+      return recommendApplicant(newApp.id, targetTeamId);
+    },
+    onSuccess: () => {
+      invalidate();
+      showSuccess('Студент перемещён в другой проект');
+    },
+    onError: (err) => showError(formatError(err, 'Не удалось перенести студента')),
+  });
+
   const statusMut = useSetApplicationStatus();
 
   const handleSetStatus = (
@@ -157,6 +198,42 @@ export function CoordDistributionPage(): JSX.Element {
   const handleDropToTeam = (payload: DistDragPayload, teamId: number, projectId: number): void => {
     if (payload.kind === 'team-member') {
       if (payload.sourceTeamId === teamId) return;
+
+      // Кросс-проектный перенос: новая команда лежит в другом проекте.
+      // Backend не разрешает менять project через move-team или recommend
+      // (заявка привязана к одному проекту), поэтому делаем chain через
+      // crossProjectMoveMut.
+      if (payload.sourceProjectId !== projectId) {
+        if (payload.sourceStatus === 'Принят' || payload.sourceStatus === 'Принято ментором') {
+          const ok = window.confirm(
+            'Студент уже привязан к команде другого проекта. Перенести в новую? ' +
+              'Старая заявка вернётся в пул со статусом «Заявка не отправлена».',
+          );
+          if (!ok) return;
+        }
+        const existingTargetAppId = payload.applicationsByProject[projectId] ?? null;
+        const freePriority = pickFreePriorityForStudent(
+          payload.studentId,
+          dataQuery.data,
+          payload.applicationsByProject,
+        );
+        if (existingTargetAppId == null && freePriority == null) {
+          showError(
+            'У студента уже 5 приоритетов. Освободите один из них перед переносом в новый проект.',
+          );
+          return;
+        }
+        crossProjectMoveMut.mutate({
+          sourceApplicationId: payload.applicationId,
+          targetProjectId: projectId,
+          targetTeamId: teamId,
+          studentId: payload.studentId,
+          existingTargetAppId,
+          priority: freePriority ?? 1,
+        });
+        return;
+      }
+
       // Pixel-port из admin.html:2880-2912:
       //   - status='Принят' (accepted): confirm + reset на 'Рекомендован'
       //     (потому что student-side accept нужно повторить в новой команде)
@@ -180,22 +257,12 @@ export function CoordDistributionPage(): JSX.Element {
       return;
     }
     // Force-create: студент не подавал заявку на этот проект.
-    const usedPriorities = new Set(
-      Object.values(payload.applicationsByProject).map((appId) => appId), // приоритеты не приходят в payload
+    const freePriority = pickFreePriorityForStudent(
+      payload.studentId,
+      dataQuery.data,
+      payload.applicationsByProject,
     );
-    // applicationsByProject содержит только projectId→applicationId, но нам
-    // нужны использованные ПРИОРИТЕТЫ. Тянем их из dataQuery.data.pool по
-    // studentId.
-    const poolEntry = dataQuery.data?.pool.find((s) => s.studentId === payload.studentId);
-    const priorityNumbers = new Set((poolEntry?.priorities ?? []).map((p) => p.priority));
-    let freePriority = 0;
-    for (let i = 1; i <= 5; i += 1) {
-      if (!priorityNumbers.has(i)) {
-        freePriority = i;
-        break;
-      }
-    }
-    if (!freePriority) {
+    if (freePriority == null) {
       showError(
         'У студента уже 5 приоритетов. Освободите один из них через «Архив заявок», прежде чем добавлять в новый проект.',
       );
@@ -207,8 +274,6 @@ export function CoordDistributionPage(): JSX.Element {
       teamId,
       priority: freePriority,
     });
-    // silence linter
-    void usedPriorities;
   };
 
   const handleDropToPool = (payload: DistDragPayload): void => {
@@ -362,6 +427,50 @@ function CheckIcon(): JSX.Element {
       <path d="M3 8l3 3 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
+}
+
+/**
+ * Возвращает свободный приоритет (1..5) для студента, проверяя все его
+ * существующие заявки. Используется при force-create новой заявки (как из
+ * пула, так и при кросс-проектном переносе). Если в payload-е уже есть
+ * mapping projectId→applicationId — берём из него приоритеты через данные
+ * запроса; если данных нет — fall back на 1 (бэк отдаст 400 при дубликате).
+ */
+function pickFreePriorityForStudent(
+  studentId: number,
+  data: CoordinatorDistributionResponse | undefined,
+  applicationsByProject: Record<number, number>,
+): number | null {
+  const used = new Set<number>();
+  if (data) {
+    const poolEntry = data.pool.find((s) => s.studentId === studentId);
+    if (poolEntry) {
+      for (const p of poolEntry.priorities) used.add(p.priority);
+    }
+    for (const project of data.projects) {
+      for (const team of project.teams) {
+        for (const m of team.members) {
+          if (m.studentId !== studentId) continue;
+          if (m.allPriorities && m.allPriorities.length > 0) {
+            for (const p of m.allPriorities) used.add(p.priority);
+          } else {
+            used.add(m.priority);
+          }
+        }
+      }
+    }
+  }
+  // applicationsByProject не несёт priorities, но если выше data отсутствует,
+  // хоть как-то ограничим количество — берём количество существующих заявок.
+  if (used.size === 0) {
+    for (let i = 1; i <= Object.keys(applicationsByProject).length; i += 1) {
+      used.add(i);
+    }
+  }
+  for (let i = 1; i <= 5; i += 1) {
+    if (!used.has(i)) return i;
+  }
+  return null;
 }
 
 function filterProject(

@@ -151,6 +151,7 @@ function TeamBlock({ project, team, onDrop, onOpenDrawer, onSetStatus }: TeamBlo
             key={m.applicationId}
             member={m}
             teamId={team.id}
+            projectId={project.id}
             onOpenDrawer={onOpenDrawer}
             onSetStatus={(key) => onSetStatus(m.applicationId, key)}
           />
@@ -163,6 +164,7 @@ function TeamBlock({ project, team, onDrop, onOpenDrawer, onSetStatus }: TeamBlo
 interface ChipProps {
   member: MentorDistributionTeamMember;
   teamId: number;
+  projectId: number;
   onOpenDrawer: (selection: DrawerSelection) => void;
   onSetStatus: (key: GdistStatusKey) => void;
 }
@@ -170,6 +172,7 @@ interface ChipProps {
 function TeamMemberChip({
   member,
   teamId,
+  projectId,
   onOpenDrawer,
   onSetStatus,
 }: ChipProps): JSX.Element {
@@ -179,12 +182,21 @@ function TeamMemberChip({
   const status = gdistStatusOf(member.status);
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>): void => {
+    const applicationsByProject: Record<number, number> = {};
+    for (const p of member.allPriorities ?? []) {
+      applicationsByProject[p.projectId] = p.applicationId;
+    }
+    // Текущая заявка может не быть в allPriorities, если backend отдал
+    // только «другие приоритеты». Гарантируем, что она там есть.
+    applicationsByProject[projectId] = member.applicationId;
     writeDragPayload(e.nativeEvent, {
       kind: 'team-member',
       applicationId: member.applicationId,
       studentId: member.studentId,
       sourceTeamId: teamId,
+      sourceProjectId: projectId,
       sourceStatus: member.status,
+      applicationsByProject,
     });
     e.currentTarget.classList.add(styles.dragging);
   };
