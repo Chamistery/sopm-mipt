@@ -58,13 +58,26 @@ export function CoordProjectInfoPage(): JSX.Element {
 
   const mutation = useMutation({
     mutationFn: (value: NewProjectFormSubmit) => {
-      // Координатор применяет изменения напрямую — без change-request.
-      // buildCreateProjectRequest даёт payload с теми же ключами, что
-      // принимает PUT /api/projects/:id (бэк хранит JSONB proposal_data
-      // + плоские колонки title / company / goal / ...).
-      const mentorId = projectQuery.data?.mentorId ?? 0;
-      const payload = buildCreateProjectRequest(value.proposal, { mentorId });
-      return updateProject(projectId, payload as unknown as Partial<Project>);
+      const current = projectQuery.data;
+      if (!current) throw new Error('Проект ещё не загружен');
+      // Backend.Update делает full UPDATE: все колонки (включая status)
+      // перезаписываются значениями из payload. Если шлём только
+      // ProposalData-поля, status/courses/submittedAt затрутся zero-value
+      // (пустая строка для status — и проект пропадает с дашборда, потому
+      // что фильтр по статусу его не находит).
+      // Решение: payload = current ⨁ proposalData. Status/mentorId/id
+      // явно сохраняем поверх, чтобы overlay их не перебил.
+      const proposalPayload = buildCreateProjectRequest(value.proposal, {
+        mentorId: current.mentorId,
+      });
+      const payload: Partial<Project> = {
+        ...current,
+        ...(proposalPayload as unknown as Partial<Project>),
+        status: current.status,
+        mentorId: current.mentorId,
+        id: current.id,
+      };
+      return updateProject(projectId, payload);
     },
     onSuccess: async () => {
       toast.showSuccess('Изменения применены к проекту');
