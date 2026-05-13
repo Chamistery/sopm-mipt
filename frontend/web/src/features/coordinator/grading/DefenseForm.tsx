@@ -1,16 +1,21 @@
 /*
- * DefenseForm — форма создания/редактирования защиты. Простой однопо-
- * страничный layout с полями: название / дата (datetime-local) /
- * место / описание / семестр / projectIds (textarea с id через запятую) /
- * expertUserIds (textarea с id через запятую).
+ * DefenseForm — форма создания/редактирования защиты.
  *
- * UX-упрощение: вместо мультиселекта проектов и экспертов — текстовое
- * поле с ID. Достаточно для MVP; полноценный picker — KNOWN TODO.
+ * Проекты и эксперты выбираются мультиселектом через чекбоксы из реальных
+ * данных:
+ *   - проекты — listProjects({ limit: 200 }), показываем те, что могут
+ *     дойти до защиты (Активный / Опубликован / Утверждён / Завершён);
+ *   - эксперты — listUsers().filter(role === 'mentor') (роли «эксперт» в
+ *     системе нет, см. project_roles_and_business_logic.md — на защите
+ *     выступают менторы как эксперты).
  */
 
 import { useState, type FormEvent, type JSX } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import type { Defense, DefenseInput } from '@/api/defenses';
+import { listProjects, type ProjectListItem } from '@/api/projects';
+import { listUsers, type UserSummary } from '@/api/users';
 import styles from './DefenseForm.module.css';
 
 interface Props {
@@ -20,6 +25,13 @@ interface Props {
   submitting: boolean;
   title: string;
 }
+
+const DEFENSE_PROJECT_STATUSES = new Set<ProjectListItem['status']>([
+  'Активный',
+  'Опубликован',
+  'Утверждён',
+  'Завершён',
+]);
 
 export function DefenseForm({
   initial,
@@ -35,12 +47,33 @@ export function DefenseForm({
   const [description, setDescription] = useState(initial?.description ?? '');
   const [semesterLabel, setSemesterLabel] = useState(initial?.semesterLabel ?? '');
   const [completed, setCompleted] = useState(initial?.completed ?? false);
-  const [projectIds, setProjectIds] = useState(
-    (initial?.projectIds ?? []).join(', '),
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<number>>(
+    () => new Set(initial?.projectIds ?? []),
   );
-  const [expertIds, setExpertIds] = useState(
-    (initial?.experts ?? []).map((e) => e.userId).join(', '),
+  const [selectedExpertIds, setSelectedExpertIds] = useState<Set<number>>(
+    () => new Set((initial?.experts ?? []).map((e) => e.userId)),
   );
+
+  const projectsQuery = useQuery({
+    queryKey: ['defense-form', 'projects'],
+    queryFn: () => listProjects({ limit: 200 }),
+  });
+  const usersQuery = useQuery({
+    queryKey: ['defense-form', 'experts'],
+    queryFn: listUsers,
+  });
+
+  const availableProjects = (projectsQuery.data?.projects ?? []).filter((p) =>
+    DEFENSE_PROJECT_STATUSES.has(p.status),
+  );
+  const availableExperts = (usersQuery.data ?? []).filter((u) => u.role === 'mentor');
+
+  const toggleProject = (id: number): void => {
+    setSelectedProjectIds((prev) => toggle(prev, id));
+  };
+  const toggleExpert = (id: number): void => {
+    setSelectedExpertIds((prev) => toggle(prev, id));
+  };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
@@ -56,8 +89,8 @@ export function DefenseForm({
       description: description.trim() || undefined,
       semesterLabel: semesterLabel.trim() || undefined,
       completed,
-      projectIds: parseIds(projectIds),
-      expertUserIds: parseIds(expertIds),
+      projectIds: [...selectedProjectIds].sort((a, b) => a - b),
+      expertUserIds: [...selectedExpertIds].sort((a, b) => a - b),
     });
   };
 
@@ -120,30 +153,63 @@ export function DefenseForm({
         />
       </label>
 
-      <label className={styles.field}>
-        <span className={styles.label}>ID проектов (через запятую)</span>
-        <input
-          type="text"
-          className={styles.input}
-          value={projectIds}
-          onChange={(e) => setProjectIds(e.target.value)}
-          placeholder="1, 2, 3"
-        />
-        <span className={styles.hint}>
-          Полноценный селектор проектов будет добавлен позже.
-        </span>
-      </label>
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.label}>
+          Проекты ({selectedProjectIds.size})
+        </legend>
+        <div className={styles.list}>
+          {projectsQuery.isLoading ? (
+            <div className={styles.listPlaceholder}>Загружаем проекты…</div>
+          ) : projectsQuery.error ? (
+            <div className={styles.listError}>Не удалось загрузить проекты</div>
+          ) : availableProjects.length === 0 ? (
+            <div className={styles.listPlaceholder}>
+              Нет проектов в статусах Активный / Опубликован / Утверждён / Завершён.
+            </div>
+          ) : (
+            availableProjects.map((p) => (
+              <label key={p.id} className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={selectedProjectIds.has(p.id)}
+                  onChange={() => toggleProject(p.id)}
+                />
+                <span className={styles.checkLabel}>{p.title}</span>
+                <span className={styles.checkMeta}>{p.status}</span>
+              </label>
+            ))
+          )}
+        </div>
+      </fieldset>
 
-      <label className={styles.field}>
-        <span className={styles.label}>ID экспертов (через запятую)</span>
-        <input
-          type="text"
-          className={styles.input}
-          value={expertIds}
-          onChange={(e) => setExpertIds(e.target.value)}
-          placeholder="42, 43"
-        />
-      </label>
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.label}>
+          Эксперты ({selectedExpertIds.size})
+        </legend>
+        <div className={styles.list}>
+          {usersQuery.isLoading ? (
+            <div className={styles.listPlaceholder}>Загружаем экспертов…</div>
+          ) : usersQuery.error ? (
+            <div className={styles.listError}>Не удалось загрузить пользователей</div>
+          ) : availableExperts.length === 0 ? (
+            <div className={styles.listPlaceholder}>
+              В системе нет менторов, которых можно назначить экспертами.
+            </div>
+          ) : (
+            availableExperts.map((u) => (
+              <label key={u.id} className={styles.checkRow}>
+                <input
+                  type="checkbox"
+                  checked={selectedExpertIds.has(u.id)}
+                  onChange={() => toggleExpert(u.id)}
+                />
+                <span className={styles.checkLabel}>{expertLabel(u)}</span>
+                <span className={styles.checkMeta}>{u.company ?? '—'}</span>
+              </label>
+            ))
+          )}
+        </div>
+      </fieldset>
 
       <label className={styles.field}>
         <span className={styles.label}>Описание</span>
@@ -176,19 +242,23 @@ export function DefenseForm({
   );
 }
 
+function toggle(set: Set<number>, id: number): Set<number> {
+  const next = new Set(set);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  return next;
+}
+
+function expertLabel(u: UserSummary): string {
+  const first = u.firstName ? `${u.firstName.charAt(0)}.` : '';
+  const middle = u.middleName ? `${u.middleName.charAt(0)}.` : '';
+  return `${u.lastName} ${first}${middle}`.trim();
+}
+
 function toLocalInput(iso?: string | null): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   const pad = (n: number): string => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function parseIds(raw: string): number[] {
-  return raw
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((s) => Number.parseInt(s, 10))
-    .filter((n) => Number.isFinite(n) && n > 0);
 }
