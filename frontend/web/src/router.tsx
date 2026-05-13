@@ -27,7 +27,7 @@ import { ProjectDetailPage as CoordProjectDetailPage } from '@/features/coordina
 import { CoordDistributionPage } from '@/features/coordinator/distribution/CoordDistributionPage';
 import { CoordApplicationsPage } from '@/features/coordinator/applications/CoordApplicationsPage';
 import { CoordNewProjectPage } from '@/features/coordinator/create/CoordNewProjectPage';
-import { CoordTeamRedirect } from '@/features/coordinator/team/CoordTeamRedirect';
+import { CoordTeamPage } from '@/features/coordinator/team/CoordTeamPage';
 import { CoordGradingPage } from '@/features/coordinator/grading/CoordGradingPage';
 
 export const router = createBrowserRouter([
@@ -79,7 +79,7 @@ export const router = createBrowserRouter([
       { path: 'admin/distribution', element: <CoordDistributionPage /> },
       { path: 'admin/applications', element: <CoordApplicationsPage /> },
       { path: 'admin/projects/new', element: <CoordNewProjectPage /> },
-      { path: 'admin/teams/:teamId', element: <CoordTeamRedirect /> },
+      { path: 'admin/teams/:teamId', element: <CoordTeamPage /> },
       { path: 'admin/grading', element: <CoordGradingPage /> },
       {
         path: 'admin/archive',
