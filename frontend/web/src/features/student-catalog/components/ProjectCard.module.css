@@ -4,39 +4,25 @@
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
   padding: 18px 20px;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   overflow: hidden;
-  transition: var(--transition-base);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.15s ease, border-color 0.15s ease;
+  z-index: 1;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 12px 40px rgba(30, 42, 94, 0.14);
+  z-index: 10;
+  transform: scale(1.03);
 }
 
 .card.selected {
   border: 2px solid var(--color-selected-border);
   background: var(--color-selected-bg);
-}
-
-.card.unqualified {
-  opacity: 0.6;
-}
-
-.unqualifiedBadge {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
-  z-index: 2;
-  background: var(--color-danger);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  text-align: center;
+  padding: 17px 19px;
 }
 
 .selectedBadge {
@@ -49,7 +35,33 @@
   font-weight: 700;
   background: var(--color-accent);
   color: #fff;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.unqualifiedBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  z-index: 4;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  pointer-events: none;
+}
+
+.unqualifiedOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-lg);
   z-index: 2;
+  pointer-events: none;
 }
 
 .company {
@@ -58,6 +70,7 @@
   color: var(--color-accent);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  margin-bottom: 6px;
 }
 
 .title {
@@ -65,6 +78,7 @@
   font-weight: 700;
   line-height: 1.35;
   color: var(--color-text);
+  margin-bottom: 8px;
 }
 
 .mentor {
@@ -76,10 +90,45 @@
 }
 
 .expanded {
-  margin-top: 8px;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  margin-top: 0;
+  transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.card:hover .expanded {
+  max-height: 400px;
+  opacity: 1;
+  margin-top: 12px;
+}
+
+.desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-surface-alt);
+  color: var(--color-text-secondary);
 }
 
 .stats {
@@ -102,6 +151,7 @@
 .actions {
   display: flex;
   gap: 8px;
+  margin-top: 2px;
 }
 
 .wantBtn,
@@ -168,4 +218,59 @@
   color: var(--color-success);
   padding: 8px;
   font-weight: 600;
+}
+
+/* ─── Slot variant ─── */
+
+.card.inSlot {
+  cursor: grab;
+  border: none;
+  background: transparent;
+  padding: 14px 16px;
+  border-radius: 8px;
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
+}
+
+.card.inSlot:hover {
+  transform: none;
+  box-shadow: 0 4px 16px rgba(30, 42, 94, 0.08);
+}
+
+.card.inSlot.selected {
+  border: none;
+  background: transparent;
+  padding: 14px 16px;
+}
+
+.card.inSlot:active {
+  cursor: grabbing;
+}
+
+.closeX {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+  z-index: 5;
+  font-family: inherit;
+  line-height: 1;
+  padding: 0;
+}
+
+.closeX:hover {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }

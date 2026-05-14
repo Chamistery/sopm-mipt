@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError, submitApplication } from '@/api';
@@ -6,7 +6,7 @@ import { useRequireUser } from '@/auth/useCurrentUser';
 
 import { ProjectCard } from './components/ProjectCard';
 import { PrioritySlot } from './components/PrioritySlot';
-import { ProjectDetailsModal } from './components/ProjectDetailsModal';
+import { ProjectDetailsView } from './components/ProjectDetailsView';
 import {
   EMPTY_FILTERS,
   addToFirstFreeSlot,
@@ -21,10 +21,11 @@ import {
   type CatalogFilters,
 } from './hooks/catalogLogic';
 import { useCatalog } from './hooks/useCatalog';
-import { SLOT_COUNT, SLOT_INDICES, type PrioritySlots } from './types';
+import { SLOT_INDICES, type CatalogProject, type PrioritySlots } from './types';
 import styles from './StudentCatalogPage.module.css';
 
 type Tab = 'projects' | 'choices';
+type DetailsOrigin = 'catalog' | 'choices';
 
 export function StudentCatalogPage(): JSX.Element {
   const me = useRequireUser();
@@ -35,9 +36,13 @@ export function StudentCatalogPage(): JSX.Element {
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
   const [slots, setSlots] = useState<PrioritySlots>({});
   const [detailsId, setDetailsId] = useState<number | null>(null);
+  const [detailsOrigin, setDetailsOrigin] = useState<DetailsOrigin>('catalog');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [justFilledSlot, setJustFilledSlot] = useState<number | null>(null);
+  const [pulseKey, setPulseKey] = useState(0);
 
-  // Restore slots from existing applications (read-only mode after refresh).
+  const choicesTabRef = useRef<HTMLButtonElement | null>(null);
+
   const persistedSlots = useMemo(
     () => slotsFromApplications(catalog.applications),
     [catalog.applications],
@@ -50,6 +55,12 @@ export function StudentCatalogPage(): JSX.Element {
     }
   }, [hasSubmittedApplications, persistedSlots]);
 
+  useEffect(() => {
+    if (justFilledSlot === null) return;
+    const t = window.setTimeout(() => setJustFilledSlot(null), 400);
+    return () => window.clearTimeout(t);
+  }, [justFilledSlot]);
+
   const readOnly = hasSubmittedApplications;
   const selectionCount = countSelected(slots);
   const selectionFull = isSlotsFull(slots);
@@ -61,10 +72,14 @@ export function StudentCatalogPage(): JSX.Element {
 
   const companies = useMemo(() => uniqueCompanies(catalog.projects), [catalog.projects]);
 
-  const detailsProject = useMemo(
+  const detailsProject = useMemo<CatalogProject | null>(
     () => (detailsId !== null ? catalog.projects.find((p) => p.id === detailsId) ?? null : null),
     [detailsId, catalog.projects],
   );
+
+  const detailsMentor = detailsProject
+    ? catalog.mentorById.get(detailsProject.mentorId) ?? null
+    : null;
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -96,7 +111,22 @@ export function StudentCatalogPage(): JSX.Element {
 
   const handleSelect = (id: number): void => {
     if (readOnly) return;
-    setSlots((prev) => addToFirstFreeSlot(prev, id));
+    let filledSlot: number | null = null;
+    setSlots((prev) => {
+      const next = addToFirstFreeSlot(prev, id);
+      for (const i of SLOT_INDICES) {
+        if (prev[i] === undefined && next[i] !== undefined) {
+          filledSlot = i;
+          break;
+        }
+      }
+      return next;
+    });
+    if (filledSlot !== null) {
+      setJustFilledSlot(filledSlot);
+      setPulseKey((k) => k + 1);
+      flyCardToTab(id, choicesTabRef.current);
+    }
   };
 
   const handleRemove = (id: number): void => {
@@ -104,9 +134,32 @@ export function StudentCatalogPage(): JSX.Element {
     setSlots((prev) => removeProject(prev, id));
   };
 
-  const handleMoveSlot = (from: number, to: number): void => {
+  const handleSwap = (from: number, to: number): void => {
     if (readOnly) return;
     setSlots((prev) => moveSlot(prev, from, to));
+  };
+
+  const openCatalogDetails = (id: number): void => {
+    setDetailsOrigin('catalog');
+    setDetailsId(id);
+    window.scrollTo({ top: 0 });
+  };
+
+  const openChoicesDetails = (id: number): void => {
+    setDetailsOrigin('choices');
+    setDetailsId(id);
+    window.scrollTo({ top: 0 });
+  };
+
+  const closeDetails = (): void => {
+    setDetailsId(null);
+  };
+
+  const handleTabChange = (next: Tab): void => {
+    if (next === 'choices' && detailsId !== null && detailsOrigin === 'choices') {
+      setDetailsId(null);
+    }
+    setTab(next);
   };
 
   if (catalog.isError) {
@@ -127,6 +180,11 @@ export function StudentCatalogPage(): JSX.Element {
     );
   }
 
+  const showCatalogDetails =
+    detailsId !== null && detailsOrigin === 'catalog' && detailsProject !== null;
+  const showChoicesDetails =
+    detailsId !== null && detailsOrigin === 'choices' && detailsProject !== null;
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -143,37 +201,64 @@ export function StudentCatalogPage(): JSX.Element {
           role="tab"
           aria-selected={tab === 'projects'}
           className={[styles.tab, tab === 'projects' ? styles.tabActive : ''].join(' ')}
-          onClick={() => setTab('projects')}
+          onClick={() => handleTabChange('projects')}
         >
           Доступные проекты
         </button>
         <button
           type="button"
           role="tab"
+          ref={choicesTabRef}
           aria-selected={tab === 'choices'}
           className={[styles.tab, tab === 'choices' ? styles.tabActive : ''].join(' ')}
-          onClick={() => setTab('choices')}
+          onClick={() => handleTabChange('choices')}
         >
           Мои выборы
-          <span className={styles.tabBadge}>
-            {selectionCount}/{SLOT_COUNT}
+          <span key={pulseKey} className={styles.tabBadge}>
+            {selectionCount}
           </span>
         </button>
       </div>
 
       {tab === 'projects' ? (
-        <ProjectsTab
-          loading={catalog.isLoading}
-          filters={filters}
-          companies={companies}
-          onFiltersChange={setFilters}
-          projects={filteredProjects}
-          slots={slots}
+        showCatalogDetails && detailsProject ? (
+          <ProjectDetailsView
+            baseInfo={detailsProject}
+            mentor={detailsMentor}
+            origin="catalog"
+            selected={isProjectSelected(slots, detailsProject.id)}
+            selectionFull={selectionFull}
+            readOnly={readOnly}
+            onBack={closeDetails}
+            onSelect={handleSelect}
+            onRemove={handleRemove}
+          />
+        ) : (
+          <ProjectsTab
+            loading={catalog.isLoading}
+            filters={filters}
+            companies={companies}
+            onFiltersChange={setFilters}
+            projects={filteredProjects}
+            slots={slots}
+            selectionFull={selectionFull}
+            readOnly={readOnly}
+            onSelect={handleSelect}
+            onRemove={handleRemove}
+            onShowDetails={openCatalogDetails}
+          />
+        )
+      ) : showChoicesDetails && detailsProject ? (
+        <ProjectDetailsView
+          baseInfo={detailsProject}
+          mentor={detailsMentor}
+          origin="choices"
+          selected={isProjectSelected(slots, detailsProject.id)}
           selectionFull={selectionFull}
           readOnly={readOnly}
+          onBack={closeDetails}
           onSelect={handleSelect}
           onRemove={handleRemove}
-          onShowDetails={setDetailsId}
         />
       ) : (
         <ChoicesTab
@@ -184,15 +269,13 @@ export function StudentCatalogPage(): JSX.Element {
           submitError={submitError}
           submitted={readOnly}
           canSubmit={selectionFull && !readOnly}
+          justFilledSlot={justFilledSlot}
           onRemove={handleRemove}
-          onMoveSlot={handleMoveSlot}
+          onSwap={handleSwap}
+          onShowDetails={openChoicesDetails}
           onSubmit={() => submitMutation.mutate()}
         />
       )}
-
-      {detailsProject ? (
-        <ProjectDetailsModal baseInfo={detailsProject} onClose={() => setDetailsId(null)} />
-      ) : null}
     </div>
   );
 }
@@ -231,7 +314,7 @@ function ProjectsTab({
           type="search"
           aria-label="Поиск по проектам"
           className={styles.searchInput}
-          placeholder="Поиск по названию, технологии или ментору…"
+          placeholder="Поиск по названию или технологии..."
           value={filters.search}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
         />
@@ -292,8 +375,10 @@ interface ChoicesTabProps {
   submitError: string | null;
   submitted: boolean;
   canSubmit: boolean;
+  justFilledSlot: number | null;
   onRemove: (id: number) => void;
-  onMoveSlot: (from: number, to: number) => void;
+  onSwap: (from: number, to: number) => void;
+  onShowDetails: (id: number) => void;
   onSubmit: () => void;
 }
 
@@ -305,8 +390,10 @@ function ChoicesTab({
   submitError,
   submitted,
   canSubmit,
+  justFilledSlot,
   onRemove,
-  onMoveSlot,
+  onSwap,
+  onShowDetails,
   onSubmit,
 }: ChoicesTabProps): JSX.Element {
   const projectsById = useMemo(() => {
@@ -320,7 +407,7 @@ function ChoicesTab({
       <p className={styles.choicesHint}>
         {submitted
           ? 'Заявка отправлена. Изменить выбор пока нельзя — дождитесь распределения.'
-          : 'Распределите выбранные проекты по 5 приоритетам. 1 — самый желаемый.'}
+          : 'Перетаскивайте карточки между слотами, чтобы расставить приоритеты. Выберите от 1 до 5 проектов.'}
       </p>
       <div className={styles.slots}>
         {SLOT_INDICES.map((i) => {
@@ -332,11 +419,10 @@ function ChoicesTab({
               index={i}
               project={project}
               readOnly={readOnly}
-              canMoveUp={i > 1 && pid !== undefined}
-              canMoveDown={i < SLOT_COUNT && pid !== undefined}
+              justFilled={justFilledSlot === i}
               onRemove={onRemove}
-              onMoveUp={(idx) => onMoveSlot(idx, idx - 1)}
-              onMoveDown={(idx) => onMoveSlot(idx, idx + 1)}
+              onShowDetails={onShowDetails}
+              onSwap={onSwap}
             />
           );
         })}
@@ -365,10 +451,48 @@ function ChoicesTab({
             disabled={!canSubmit || submitting}
             onClick={onSubmit}
           >
-            {submitting ? 'Отправляем…' : 'Подать заявку'}
+            {submitting ? 'Отправляем…' : 'Отправить заявку'}
           </button>
         )}
       </div>
     </div>
   );
+}
+
+function flyCardToTab(projectId: number, tabEl: HTMLElement | null): void {
+  if (!tabEl || typeof document === 'undefined') return;
+  const sourceEl = document.querySelector<HTMLElement>(
+    `[data-testid="project-card-${projectId}"]`,
+  );
+  if (!sourceEl) return;
+
+  const src = sourceEl.getBoundingClientRect();
+  const tgt = tabEl.getBoundingClientRect();
+  const clone = sourceEl.cloneNode(true) as HTMLElement;
+  clone.style.cssText = [
+    'position:fixed',
+    `left:${src.left}px`,
+    `top:${src.top}px`,
+    `width:${src.width}px`,
+    `height:${src.height}px`,
+    'margin:0',
+    'z-index:1000',
+    'pointer-events:none',
+    'border-radius:10px',
+    'overflow:hidden',
+    'transition:all 0.5s cubic-bezier(0.4,0,0.2,1)',
+  ].join(';');
+  document.body.appendChild(clone);
+
+  requestAnimationFrame(() => {
+    clone.style.left = `${tgt.left + tgt.width / 2 - 60}px`;
+    clone.style.top = `${tgt.top}px`;
+    clone.style.width = '120px';
+    clone.style.height = '40px';
+    clone.style.opacity = '0';
+    clone.style.transform = 'scale(0.3)';
+    clone.style.borderRadius = '20px';
+  });
+
+  window.setTimeout(() => clone.remove(), 550);
 }

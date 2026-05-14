@@ -55,9 +55,9 @@ test.describe('student catalog', () => {
     // Перейти на «Мои выборы», убедиться что 5 слотов заполнены.
     await page.getByRole('tab', { name: /Мои выборы/ }).click();
 
-    await expect(page.getByRole('button', { name: 'Подать заявку' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Отправить заявку' })).toBeEnabled();
 
-    await page.getByRole('button', { name: 'Подать заявку' }).click();
+    await page.getByRole('button', { name: 'Отправить заявку' }).click();
 
     await expect(page.getByText('Заявка отправлена')).toBeVisible({ timeout: 15_000 });
   });
