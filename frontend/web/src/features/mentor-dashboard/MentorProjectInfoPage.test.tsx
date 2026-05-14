@@ -121,7 +121,7 @@ describe('MentorProjectInfoPage', () => {
 
     // Кнопок навигации «Далее» / «Создать» нет; есть «Закрыть»
     expect(screen.queryByTestId('form-next')).not.toBeInTheDocument();
-    expect(screen.getByTestId('info-close')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Закрыть' })).toBeInTheDocument();
   });
 
   it('edit mode без pending: синий банер и кнопка «Отправить на согласование» на последней секции', async () => {

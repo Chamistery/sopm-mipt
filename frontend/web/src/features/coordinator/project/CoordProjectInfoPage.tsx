@@ -139,11 +139,7 @@ export function CoordProjectInfoPage(): JSX.Element {
           hideIntro
           headerBanner={<CoordEditBanner projectTitle={project?.title} />}
           submitLabel="Сохранить изменения"
-          footerExtras={
-            <Link to={backTo} className={styles.closeLink}>
-              {backLabel}
-            </Link>
-          }
+          cancelLabel={backLabel}
           onSubmit={(value) => mutation.mutate(value)}
           onCancel={() => navigate(backTo)}
           isSubmitting={mutation.isPending}
