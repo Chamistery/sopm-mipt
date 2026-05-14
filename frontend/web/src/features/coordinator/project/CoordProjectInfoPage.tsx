@@ -45,11 +45,9 @@ export function CoordProjectInfoPage(): JSX.Element {
   const projectId = Number(params.id);
 
   // Откуда пришёл координатор — берём из location.state.from. Используется
-  // и кнопкой Cancel/«К дашборду», и редиректом после Save. Источники:
-  //   /admin/applications — карточка заявки «Посмотреть проект»;
-  //   /admin              — дашборд (fallback).
+  // только для редиректа после Save / Cancel; подпись secondary-кнопки
+  // оставляем нейтральной «Закрыть», чтобы не плодить варианты.
   const backTo = ((location.state as { from?: string } | null)?.from) ?? '/admin';
-  const backLabel = backTo === '/admin/applications' ? 'К заявкам' : 'К дашборду';
 
   const projectQuery = useQuery<Project>({
     queryKey: ['project', projectId],
@@ -139,7 +137,7 @@ export function CoordProjectInfoPage(): JSX.Element {
           hideIntro
           headerBanner={<CoordEditBanner projectTitle={project?.title} />}
           submitLabel="Сохранить изменения"
-          cancelLabel={backLabel}
+          cancelLabel="Закрыть"
           onSubmit={(value) => mutation.mutate(value)}
           onCancel={() => navigate(backTo)}
           isSubmitting={mutation.isPending}
