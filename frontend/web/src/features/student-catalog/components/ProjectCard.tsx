@@ -16,6 +16,8 @@ interface Props {
 
   /** Slot variant: native HTML5 drag — wired by the parent slot. */
   draggable?: boolean;
+  /** Visual cue while this card is being dragged (opacity dim). */
+  dragging?: boolean;
   onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
 
@@ -31,6 +33,7 @@ export function ProjectCard({
   readOnly,
   variant = 'catalog',
   draggable = false,
+  dragging = false,
   onDragStart,
   onDragEnd,
   onSelect,
@@ -47,6 +50,7 @@ export function ProjectCard({
         selected ? styles.selected : '',
         unqualified ? styles.unqualified : '',
         isSlot ? styles.inSlot : '',
+        dragging ? styles.dragging : '',
       ]
         .filter(Boolean)
         .join(' ')}
@@ -66,19 +70,33 @@ export function ProjectCard({
       ) : null}
 
       {isSlot ? (
-        <button
-          type="button"
-          className={styles.closeX}
-          aria-label="Убрать"
-          title="Убрать"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRemove(project.id);
-          }}
-          style={{ visibility: readOnly ? 'hidden' : 'visible' }}
-        >
-          ✕
-        </button>
+        <>
+          {!readOnly ? (
+            <div className={styles.gripHandle} aria-hidden="true" title="Перетащите для смены приоритета">
+              <svg width="14" height="20" viewBox="0 0 14 20" fill="none">
+                <circle cx="4" cy="5" r="1.2" fill="currentColor" />
+                <circle cx="10" cy="5" r="1.2" fill="currentColor" />
+                <circle cx="4" cy="10" r="1.2" fill="currentColor" />
+                <circle cx="10" cy="10" r="1.2" fill="currentColor" />
+                <circle cx="4" cy="15" r="1.2" fill="currentColor" />
+                <circle cx="10" cy="15" r="1.2" fill="currentColor" />
+              </svg>
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className={styles.closeX}
+            aria-label="Убрать"
+            title="Убрать"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(project.id);
+            }}
+            style={{ visibility: readOnly ? 'hidden' : 'visible' }}
+          >
+            ✕
+          </button>
+        </>
       ) : selected ? (
         <div className={styles.selectedBadge}>✓ Выбран</div>
       ) : null}
