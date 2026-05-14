@@ -1,82 +1,98 @@
+import { useState, type DragEvent } from 'react';
+
 import type { CatalogProject } from '../types';
+import { ProjectCard } from './ProjectCard';
 import styles from './PrioritySlot.module.css';
 
 interface Props {
   index: number;
   project: CatalogProject | null;
-  /** Read-only after submission — disables move/remove buttons. */
+  /** Read-only after submission — disables drag/remove. */
   readOnly: boolean;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
+  /** Was just filled — triggers slotPop animation. */
+  justFilled?: boolean;
   onRemove: (id: number) => void;
-  onMoveUp: (index: number) => void;
-  onMoveDown: (index: number) => void;
+  onShowDetails: (id: number) => void;
+  /** Swap content between two slots (or move one into an empty slot). */
+  onSwap: (from: number, to: number) => void;
 }
+
+const DRAG_MIME = 'application/x-sopm-slot';
 
 export function PrioritySlot({
   index,
   project,
   readOnly,
-  canMoveUp,
-  canMoveDown,
+  justFilled = false,
   onRemove,
-  onMoveUp,
-  onMoveDown,
+  onShowDetails,
+  onSwap,
 }: Props): JSX.Element {
+  const [dragOver, setDragOver] = useState(false);
   const filled = project !== null;
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>): void => {
+    if (readOnly) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (!dragOver) setDragOver(true);
+  };
+
+  const handleDragLeave = (): void => {
+    if (dragOver) setDragOver(false);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>): void => {
+    if (readOnly) return;
+    e.preventDefault();
+    setDragOver(false);
+    const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
+    const from = Number.parseInt(raw, 10);
+    if (Number.isFinite(from) && from !== index) {
+      onSwap(from, index);
+    }
+  };
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>): void => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData(DRAG_MIME, String(index));
+    e.dataTransfer.setData('text/plain', String(index));
+  };
 
   return (
     <div
-      className={[styles.slot, filled ? styles.filled : '', readOnly ? styles.readOnly : '']
+      className={[
+        styles.slot,
+        filled ? styles.filled : '',
+        readOnly ? styles.readOnly : '',
+        dragOver ? styles.dragOver : '',
+        justFilled ? styles.justFilled : '',
+      ]
         .filter(Boolean)
         .join(' ')}
       data-testid={`priority-slot-${index}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
     >
       <span className={styles.label}>
         {`Приоритет ${index}${index === 1 ? ' — самый желаемый' : ''}`}
       </span>
       {project ? (
-        <div className={styles.cardInside}>
-          <div className={styles.cardHeader}>
-            <div className={styles.company}>{project.company ?? '—'}</div>
-            {!readOnly ? (
-              <button
-                type="button"
-                className={styles.removeX}
-                aria-label="Убрать"
-                onClick={() => onRemove(project.id)}
-              >
-                ✕
-              </button>
-            ) : null}
-          </div>
-          <div className={styles.title}>{project.title}</div>
-          <div className={styles.mentor}>{project.mentorName}</div>
-          {!readOnly ? (
-            <div className={styles.moveRow}>
-              <button
-                type="button"
-                className={styles.moveBtn}
-                disabled={!canMoveUp}
-                onClick={() => onMoveUp(index)}
-                aria-label="Поднять приоритет"
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                className={styles.moveBtn}
-                disabled={!canMoveDown}
-                onClick={() => onMoveDown(index)}
-                aria-label="Опустить приоритет"
-              >
-                ↓
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <ProjectCard
+          project={project}
+          selected
+          selectionFull={false}
+          readOnly={readOnly}
+          variant="slot"
+          draggable={!readOnly}
+          onDragStart={handleDragStart}
+          onSelect={() => {}}
+          onRemove={onRemove}
+          onShowDetails={onShowDetails}
+        />
       ) : (
-        <div className={styles.empty}>Здесь будет проект</div>
+        <div className={styles.empty}>Перетащите сюда проект</div>
       )}
     </div>
   );

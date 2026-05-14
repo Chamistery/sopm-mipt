@@ -32,6 +32,7 @@ interface CatalogData {
   error: unknown;
   refetch: () => void;
   studentCourse: string | null;
+  mentorById: Map<number, UserSummary>;
 }
 
 export function useCatalog(): CatalogData {
@@ -59,11 +60,12 @@ export function useCatalog(): CatalogData {
     return usersQuery.data?.find((u) => u.id === me.userId)?.course ?? null;
   }, [usersQuery.data, me.userId]);
 
+  const mentorById = useMemo(() => indexById(usersQuery.data ?? []), [usersQuery.data]);
+
   const projects = useMemo<CatalogProject[]>(() => {
     const list = projectsQuery.data?.projects ?? [];
-    const mentorById = indexById(usersQuery.data ?? []);
     return list.map((p) => enrichProject(p, mentorById, studentCourse));
-  }, [projectsQuery.data, usersQuery.data, studentCourse]);
+  }, [projectsQuery.data, mentorById, studentCourse]);
 
   const isLoading =
     projectsQuery.isLoading || usersQuery.isLoading || applicationsQuery.isLoading;
@@ -79,6 +81,7 @@ export function useCatalog(): CatalogData {
       void applicationsQuery.refetch();
     },
     studentCourse,
+    mentorById,
   };
 }
 

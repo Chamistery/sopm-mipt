@@ -1,3 +1,5 @@
+import type { DragEvent } from 'react';
+
 import type { CatalogProject } from '../types';
 import styles from './ProjectCard.module.css';
 
@@ -9,6 +11,14 @@ interface Props {
   selectionFull: boolean;
   /** Application has been submitted — UI is read-only. */
   readOnly: boolean;
+  /** 'catalog' (in the projects grid) or 'slot' (inside a priority slot). */
+  variant?: 'catalog' | 'slot';
+
+  /** Slot variant: native HTML5 drag — wired by the parent slot. */
+  draggable?: boolean;
+  onDragStart?: (e: DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
+
   onSelect: (id: number) => void;
   onRemove: (id: number) => void;
   onShowDetails: (id: number) => void;
@@ -19,11 +29,16 @@ export function ProjectCard({
   selected,
   selectionFull,
   readOnly,
+  variant = 'catalog',
+  draggable = false,
+  onDragStart,
+  onDragEnd,
   onSelect,
   onRemove,
   onShowDetails,
 }: Props): JSX.Element {
   const { unqualified } = project;
+  const isSlot = variant === 'slot';
 
   return (
     <div
@@ -31,17 +46,42 @@ export function ProjectCard({
         styles.card,
         selected ? styles.selected : '',
         unqualified ? styles.unqualified : '',
+        isSlot ? styles.inSlot : '',
       ]
         .filter(Boolean)
         .join(' ')}
       data-testid={`project-card-${project.id}`}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={isSlot ? () => onShowDetails(project.id) : undefined}
     >
       {unqualified ? (
-        <div className={styles.unqualifiedBadge} title={project.unqualifiedReason}>
-          Не соответствует требованиям
-        </div>
+        <>
+          <div className={styles.unqualifiedBadge} title={project.unqualifiedReason}>
+            Не соответствует требованиям
+          </div>
+          <div className={styles.unqualifiedOverlay} aria-hidden="true" />
+        </>
       ) : null}
-      {selected ? <div className={styles.selectedBadge}>✓ Выбран</div> : null}
+
+      {isSlot ? (
+        <button
+          type="button"
+          className={styles.closeX}
+          aria-label="Убрать"
+          title="Убрать"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(project.id);
+          }}
+          style={{ visibility: readOnly ? 'hidden' : 'visible' }}
+        >
+          ✕
+        </button>
+      ) : selected ? (
+        <div className={styles.selectedBadge}>✓ Выбран</div>
+      ) : null}
 
       <div className={styles.company}>{project.company ?? '—'}</div>
       <div className={styles.title}>{project.title}</div>
@@ -51,64 +91,82 @@ export function ProjectCard({
       </div>
 
       <div className={styles.expanded}>
+        {project.description ? (
+          <div className={styles.desc}>{project.description}</div>
+        ) : null}
+
+        {project.technologies && project.technologies.length > 0 ? (
+          <div className={styles.tags}>
+            {project.technologies.map((t) => (
+              <span key={t} className={styles.tag}>
+                {t}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         <div className={styles.stats}>
-          <span className={styles.stat}>
-            <b>{project.maxSlots}</b> мест
-          </span>
+          {project.teamSizeMax ? (
+            <span className={styles.stat}>
+              <b>{project.teamSizeMax}</b> чел.
+            </span>
+          ) : null}
+          {!isSlot && project.numTeams ? (
+            <span className={styles.stat}>
+              <b>{project.numTeams}</b> {project.numTeams === 1 ? 'команда' : 'команды'}
+            </span>
+          ) : null}
           {project.filledSlots != null ? (
             <span className={styles.stat}>
               <b>{project.filledSlots}</b> занято
             </span>
           ) : null}
-          {project.course ? (
-            <span className={styles.stat}>
-              <b>{project.course}</b> курс
-            </span>
-          ) : null}
         </div>
 
-        <div className={styles.actions}>
-          {readOnly ? (
-            selected ? (
-              <div className={styles.readOnlyMark}>✓ В заявке</div>
-            ) : null
-          ) : selected ? (
+        {isSlot ? null : (
+          <div className={styles.actions}>
+            {readOnly ? (
+              selected ? (
+                <div className={styles.readOnlyMark}>✓ В заявке</div>
+              ) : null
+            ) : selected ? (
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(project.id);
+                }}
+              >
+                Убрать из выбранных
+              </button>
+            ) : selectionFull ? (
+              <div className={styles.fullHint}>Выбрано 5 проектов</div>
+            ) : (
+              <button
+                type="button"
+                className={styles.wantBtn}
+                disabled={unqualified}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(project.id);
+                }}
+              >
+                Хочу в проект
+              </button>
+            )}
             <button
               type="button"
-              className={styles.removeBtn}
+              className={styles.detailsBtn}
               onClick={(e) => {
                 e.stopPropagation();
-                onRemove(project.id);
+                onShowDetails(project.id);
               }}
             >
-              Убрать из выбранных
+              Подробнее
             </button>
-          ) : selectionFull ? (
-            <div className={styles.fullHint}>Выбрано 5 проектов</div>
-          ) : (
-            <button
-              type="button"
-              className={styles.wantBtn}
-              disabled={unqualified}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(project.id);
-              }}
-            >
-              Хочу в проект
-            </button>
-          )}
-          <button
-            type="button"
-            className={styles.detailsBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowDetails(project.id);
-            }}
-          >
-            Подробнее
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

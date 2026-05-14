@@ -12,6 +12,11 @@ const baseProject: CatalogProject = {
   course: '2',
   maxSlots: 5,
   filledSlots: 1,
+  teamSizeMax: 4,
+  numTeams: 2,
+  description:
+    'Разработка CRM для отслеживания клиентов малого бизнеса с интеграцией Telegram-бота и Яндекс.Почты.',
+  technologies: ['Python', 'Django', 'PostgreSQL', 'Redis'],
   createdAt: '2026-04-01T10:00:00Z',
   mentorName: 'Тимохин В.Н.',
   unqualified: false,
@@ -77,4 +82,8 @@ export const ReadOnlySelected: Story = {
 
 export const ReadOnlyNotSelected: Story = {
   args: { project: baseProject, readOnly: true },
+};
+
+export const InSlot: Story = {
+  args: { project: baseProject, selected: true, variant: 'slot' },
 };

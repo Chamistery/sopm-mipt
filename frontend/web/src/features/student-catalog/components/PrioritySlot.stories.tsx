@@ -12,6 +12,10 @@ const sample: CatalogProject = {
   course: '2',
   maxSlots: 5,
   filledSlots: 1,
+  teamSizeMax: 4,
+  numTeams: 2,
+  description: 'CRM для отслеживания клиентов малого бизнеса с интеграцией Telegram-бота.',
+  technologies: ['Python', 'Django', 'PostgreSQL'],
   createdAt: '2026-04-01T10:00:00Z',
   mentorName: 'Тимохин В.Н.',
   unqualified: false,
@@ -23,12 +27,11 @@ const meta = {
   component: PrioritySlot,
   parameters: { layout: 'padded' },
   args: {
-    canMoveUp: true,
-    canMoveDown: true,
     readOnly: false,
+    justFilled: false,
     onRemove: () => {},
-    onMoveUp: () => {},
-    onMoveDown: () => {},
+    onShowDetails: () => {},
+    onSwap: () => {},
   },
   decorators: [
     (Story): JSX.Element => (
@@ -43,11 +46,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {
-  args: { index: 1, project: null, canMoveUp: false, canMoveDown: false },
+  args: { index: 1, project: null },
 };
 
 export const Filled: Story = {
-  args: { index: 1, project: sample, canMoveUp: false, canMoveDown: true },
+  args: { index: 1, project: sample },
 };
 
 export const Middle: Story = {
@@ -55,5 +58,9 @@ export const Middle: Story = {
 };
 
 export const ReadOnly: Story = {
-  args: { index: 1, project: sample, readOnly: true, canMoveUp: false, canMoveDown: false },
+  args: { index: 1, project: sample, readOnly: true },
+};
+
+export const JustFilled: Story = {
+  args: { index: 2, project: sample, justFilled: true },
 };
