@@ -755,18 +755,21 @@ export function NewProjectForm({
           ) : isEdit ? (
             // В edit-режиме «Сохранить изменения» всегда доступно — ментор не
             // обязан долистывать до последней секции, чтобы применить правку
-            // одного поля. «Далее» остаётся отдельной кнопкой, пока есть куда
-            // переходить.
+            // одного поля. На section 0 нет отдельной «Закрыть» — для выхода
+            // без сохранения есть breadcrumb. «Назад» / «Далее» показываем
+            // только когда есть куда переходить.
             <div className={styles.actions}>
               {footerExtras}
-              <button
-                type="button"
-                className={styles.btnSecondary}
-                onClick={section === 0 ? onCancel : goPrev}
-                disabled={isSubmitting}
-              >
-                {section === 0 ? cancelLabel ?? 'Закрыть' : 'Назад'}
-              </button>
+              {section > 0 ? (
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={goPrev}
+                  disabled={isSubmitting}
+                >
+                  Назад
+                </button>
+              ) : null}
               {section < 3 ? (
                 <button
                   type="button"
