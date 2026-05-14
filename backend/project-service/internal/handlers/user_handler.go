@@ -41,7 +41,7 @@ func NewUserHandler(
 }
 
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin, auth.RoleMentor) {
+	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -113,7 +113,7 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if currentUser(r).ID != id && !currentUser(r).HasAnyRole(auth.RoleAdmin) {
+	if currentUser(r).ID != id && !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -141,7 +141,7 @@ func (h *UserHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if currentUser(r).ID != id && !currentUser(r).HasAnyRole(auth.RoleAdmin) {
+	if currentUser(r).ID != id && !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -207,7 +207,7 @@ func (h *UserHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		httputil.RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if currentUser(r).ID != id && !currentUser(r).HasAnyRole(auth.RoleAdmin) {
+	if currentUser(r).ID != id && !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}

@@ -28,7 +28,7 @@ func NewMeetingHandler(
 }
 
 func (h *MeetingHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleTeamLead, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleTeamLead) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -42,7 +42,7 @@ func (h *MeetingHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	meeting.CreatedByID = currentUser(r).ID
-	if currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if currentUser(r).HasAnyRole(auth.RoleMentor) {
 		ok := true
 		now := time.Now()
 		meeting.MentorConfirmed = &ok
@@ -99,7 +99,7 @@ func (h *MeetingHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	meeting.ID = id
 	meeting.CreatedByID = existing.CreatedByID
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor) {
 		meeting.MentorConfirmed = existing.MentorConfirmed
 		meeting.MentorDeclineReason = existing.MentorDeclineReason
 		meeting.ConfirmedAt = existing.ConfirmedAt
@@ -131,7 +131,7 @@ func (h *MeetingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		respondServiceError(w, err)
 		return
 	}
-	if currentUser(r).ID != meeting.CreatedByID && !currentUser(r).HasAnyRole(auth.RoleAdmin) {
+	if currentUser(r).ID != meeting.CreatedByID && !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -143,7 +143,7 @@ func (h *MeetingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MeetingHandler) ensureMeetingAccess(ctx context.Context, user *auth.CurrentUser, teamID int, create bool) error {
-	if user.HasAnyRole(auth.RoleAdmin, auth.RoleCoordinator) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		return nil
 	}
 	team, err := h.teams.GetByID(ctx, teamID)
@@ -179,7 +179,7 @@ func (h *MeetingHandler) ensureMeetingAccess(ctx context.Context, user *auth.Cur
 }
 
 func (h *MeetingHandler) ensureMeetingUpdateAccess(ctx context.Context, user *auth.CurrentUser, meeting *models.Meeting) error {
-	if user.HasAnyRole(auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		return nil
 	}
 	if user.HasAnyRole(auth.RoleMentor) {

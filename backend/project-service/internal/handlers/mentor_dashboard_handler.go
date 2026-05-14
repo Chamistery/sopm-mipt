@@ -35,7 +35,7 @@ func (h *MentorDashboardHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mentorID := user.ID
-	if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		if override := httputil.ParseQueryInt(r, "mentorId", 0); override > 0 {
 			mentorID = override
 		}

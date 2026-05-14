@@ -6,7 +6,6 @@ const ROLE_HOME: Record<Role, string> = {
   teamlead: '/student/project',
   mentor: '/mentor',
   coordinator: '/admin',
-  admin: '/admin',
 };
 
 export function redirectByRole(): string {

@@ -47,7 +47,7 @@ func NewApplicationService(
 
 func (s *ApplicationService) Create(ctx context.Context, user *auth.CurrentUser, app *models.Application) error {
 	logDist("create.start", user, "studentId=%d projectId=%d priority=%d", app.StudentID, app.ProjectID, app.Priority)
-	if err := RequireRoles(user, auth.RoleStudent, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleStudent, auth.RoleCoordinator); err != nil {
 		return err
 	}
 	if user.HasAnyRole(auth.RoleStudent) && user.ID != app.StudentID {
@@ -112,7 +112,7 @@ func (s *ApplicationService) Recommend(ctx context.Context, user *auth.CurrentUs
 	if app.Status != models.ApplicationStatusPending &&
 		app.Status != models.ApplicationStatusNotRecommended &&
 		app.Status != models.ApplicationStatusUnqualified {
-		if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+		if !user.HasAnyRole(auth.RoleCoordinator) {
 			logDist("recommend.forbid_status", user, "appId=%d status=%s", applicationID, app.Status)
 			return nil, WrapStateError("application cannot be recommended from status %s", app.Status)
 		}
@@ -156,7 +156,7 @@ func (s *ApplicationService) Unrecommend(ctx context.Context, user *auth.Current
 	// статуса, связанного с командой, чтобы можно было вернуть в пул
 	// принятого студента (admin.html распределение).
 	if app.Status != models.ApplicationStatusRecommended &&
-		!user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+		!user.HasAnyRole(auth.RoleCoordinator) {
 		logDist("unrecommend.forbid_status", user, "appId=%d status=%s", applicationID, app.Status)
 		return nil, WrapStateError("application cannot be removed from team from status %s", app.Status)
 	}
@@ -232,7 +232,7 @@ func (s *ApplicationService) Invite(ctx context.Context, user *auth.CurrentUser,
 	// может в admin.html status-menu переключать туда-обратно — поэтому
 	// допускаем 'Принят' тоже (как deescalation от accepted).
 	if app.Status != models.ApplicationStatusRecommended {
-		if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) &&
+		if user.HasAnyRole(auth.RoleCoordinator) &&
 			app.Status == models.ApplicationStatusAccepted {
 			// OK — coordinator deescalates accepted → invited
 		} else {
@@ -250,7 +250,7 @@ func (s *ApplicationService) Invite(ctx context.Context, user *auth.CurrentUser,
 }
 
 func (s *ApplicationService) Accept(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, error) {
-	if err := RequireRoles(user, auth.RoleStudent, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleStudent, auth.RoleCoordinator); err != nil {
 		return nil, err
 	}
 	app, err := s.applications.GetByID(ctx, applicationID)
@@ -267,7 +267,7 @@ func (s *ApplicationService) Accept(ctx context.Context, user *auth.CurrentUser,
 	if user.HasAnyRole(auth.RoleStudent) && app.Status != models.ApplicationStatusMentorAccepted {
 		return nil, WrapStateError("application cannot be accepted from status %s", app.Status)
 	}
-	if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		if app.Status != models.ApplicationStatusRecommended &&
 			app.Status != models.ApplicationStatusMentorAccepted &&
 			app.Status != models.ApplicationStatusAccepted {
@@ -307,7 +307,7 @@ func (s *ApplicationService) Accept(ctx context.Context, user *auth.CurrentUser,
 }
 
 func (s *ApplicationService) Decline(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, error) {
-	if err := RequireRoles(user, auth.RoleStudent, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleStudent); err != nil {
 		return nil, err
 	}
 	app, err := s.applications.GetByID(ctx, applicationID)
@@ -330,7 +330,7 @@ func (s *ApplicationService) Decline(ctx context.Context, user *auth.CurrentUser
 }
 
 func (s *ApplicationService) Exclude(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, error) {
-	if err := RequireRoles(user, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleCoordinator); err != nil {
 		return nil, err
 	}
 	app, err := s.applications.GetByID(ctx, applicationID)
@@ -349,7 +349,7 @@ func (s *ApplicationService) Exclude(ctx context.Context, user *auth.CurrentUser
 }
 
 func (s *ApplicationService) loadManagedApplication(ctx context.Context, user *auth.CurrentUser, applicationID int) (*models.Application, *models.Project, error) {
-	if err := RequireRoles(user, auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleMentor, auth.RoleCoordinator); err != nil {
 		return nil, nil, err
 	}
 	app, err := s.applications.GetByID(ctx, applicationID)
@@ -360,7 +360,7 @@ func (s *ApplicationService) loadManagedApplication(ctx context.Context, user *a
 	if err != nil {
 		return nil, nil, err
 	}
-	if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) || project.MentorID == user.ID {
+	if user.HasAnyRole(auth.RoleCoordinator) || project.MentorID == user.ID {
 		return app, project, nil
 	}
 	return nil, nil, ErrForbidden

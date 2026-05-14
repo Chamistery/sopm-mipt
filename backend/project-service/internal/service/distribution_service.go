@@ -41,7 +41,7 @@ func NewDistributionService(
 }
 
 func (s *DistributionService) Generate(ctx context.Context, user *auth.CurrentUser) error {
-	if err := RequireRoles(user, auth.RoleCoordinator, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleCoordinator); err != nil {
 		return err
 	}
 

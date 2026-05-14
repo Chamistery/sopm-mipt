@@ -211,14 +211,14 @@ func (v *Validator) ValidRole(field, role string) {
 		return
 	}
 
-	validRoles := []string{"student", "teamlead", "mentor", "coordinator", "admin"}
+	validRoles := []string{"student", "teamlead", "mentor", "coordinator"}
 	for _, validRole := range validRoles {
 		if strings.EqualFold(role, validRole) {
 			return
 		}
 	}
 
-	v.AddError(field, "must be one of: student, teamlead, mentor, coordinator, admin")
+	v.AddError(field, "must be one of: student, teamlead, mentor, coordinator")
 }
 
 func (v *Validator) UniqueStrings(field string, values []string) {

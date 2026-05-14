@@ -21,7 +21,7 @@ func NewProjectHandler(repo repository.ProjectRepositoryInterface) *ProjectHandl
 
 func (h *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -170,7 +170,7 @@ func (h *ProjectHandler) GetProposal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	canSeeOthers := user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin)
+	canSeeOthers := user.HasAnyRole(auth.RoleCoordinator)
 	if !canSeeOthers && user.ID != mentorID {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
@@ -218,7 +218,7 @@ func (h *ProjectHandler) GetApplicants(w http.ResponseWriter, r *http.Request) {
 
 func (h *ProjectHandler) Update(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -295,7 +295,7 @@ func (h *ProjectHandler) SubmitChangeRequest(w http.ResponseWriter, r *http.Requ
 		respondServiceError(w, err)
 		return
 	}
-	allowed := user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) ||
+	allowed := user.HasAnyRole(auth.RoleCoordinator) ||
 		(user.HasAnyRole(auth.RoleMentor) && user.ID == mentorID)
 	if !allowed {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
@@ -319,7 +319,7 @@ func (h *ProjectHandler) ApproveChangeRequest(w http.ResponseWriter, r *http.Req
 		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
 		return
 	}
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}
@@ -348,7 +348,7 @@ func (h *ProjectHandler) RejectChangeRequest(w http.ResponseWriter, r *http.Requ
 		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
 		return
 	}
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}
@@ -371,7 +371,7 @@ func (h *ProjectHandler) RejectChangeRequest(w http.ResponseWriter, r *http.Requ
 
 func (h *ProjectHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}

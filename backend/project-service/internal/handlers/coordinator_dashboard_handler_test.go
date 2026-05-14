@@ -117,7 +117,7 @@ func TestCoordinatorDashboardHandler_AdminAllowed(t *testing.T) {
 	lister := &stubCoordProjectsLister{}
 	h := NewCoordinatorDashboardHandler(repo, lister)
 
-	user := &auth.CurrentUser{ID: 1, Role: auth.RoleAdmin}
+	user := &auth.CurrentUser{ID: 1, Role: auth.RoleCoordinator}
 	req := newRequestWithUser(http.MethodGet, "/api/coordinator/dashboard", user)
 	w := httptest.NewRecorder()
 	h.Get(w, req)

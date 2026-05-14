@@ -19,7 +19,7 @@ func NewSprintHandler(repo repository.SprintRepositoryInterface) *SprintHandler 
 }
 
 func (h *SprintHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -39,7 +39,7 @@ func (h *SprintHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SprintHandler) CreateBatch(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -92,7 +92,7 @@ func (h *SprintHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SprintHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}

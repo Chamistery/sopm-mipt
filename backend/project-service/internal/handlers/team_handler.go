@@ -23,7 +23,7 @@ func NewTeamHandler(
 }
 
 func (h *TeamHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -68,7 +68,7 @@ func (h *TeamHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -101,7 +101,7 @@ func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
 // один раз»).
 func (h *TeamHandler) SetLeader(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -159,7 +159,7 @@ func (h *TeamHandler) SetLeader(w http.ResponseWriter, r *http.Request) {
 // Это лишь переключает teams.launched=true; кто-куда уже распределён через
 // applications.team_id + invite/accept (отдельные ручки).
 func (h *TeamHandler) Launch(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleCoordinator, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -181,7 +181,7 @@ func (h *TeamHandler) Launch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TeamHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -198,7 +198,7 @@ func (h *TeamHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -221,7 +221,7 @@ func (h *TeamHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TeamHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleCoordinator, auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
