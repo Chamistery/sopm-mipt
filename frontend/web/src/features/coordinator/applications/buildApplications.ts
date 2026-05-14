@@ -130,14 +130,25 @@ function buildEditDiff(p: Project): ApplicationDiffItem[] {
 function push(
   items: ApplicationDiffItem[],
   field: string,
-  oldValue: string | undefined | null,
-  newValue: string | undefined | null,
+  oldValue: unknown,
+  newValue: unknown,
 ): void {
-  const oldStr = (oldValue ?? '').trim();
-  const newStr = (newValue ?? '').trim();
+  // ProposalData декларирует technologies как string, но в БД (и в payload'е
+  // change-request) тех же самых полях может приехать массив строк — например
+  // если ментор послал proposalData.technologies = ["Go", "React", ...].
+  // Поэтому tolerantно приводим к строке.
+  const oldStr = toDisplayString(oldValue).trim();
+  const newStr = toDisplayString(newValue).trim();
   if (newStr === oldStr) return;
   if (!newStr && !oldStr) return;
   items.push({ field, old: oldStr || '—', new: newStr || '—' });
+}
+
+function toDisplayString(value: unknown): string {
+  if (value == null) return '';
+  if (Array.isArray(value)) return value.map((v) => String(v ?? '')).join(', ');
+  if (typeof value === 'string') return value;
+  return String(value);
 }
 
 function pushNum(
