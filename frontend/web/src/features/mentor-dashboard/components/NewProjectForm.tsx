@@ -62,6 +62,11 @@ interface Props {
   /** Если true (или есть `submitDisabledHint`) — финальная кнопка disabled. */
   submitDisabled?: boolean;
   submitDisabledHint?: string;
+  /**
+   * Подпись secondary-кнопки возврата на section 0 (в edit/readonly).
+   * Например: 'К дашборду', 'К заявкам', 'Архив'. По умолчанию — 'Закрыть'.
+   */
+  cancelLabel?: string;
   /** Доп. слот в подвале (например, ссылка «Закрыть» в readonly). */
   footerExtras?: React.ReactNode;
   /** Доп. слот перед карточкой (банеры edit/readonly). */
@@ -91,6 +96,7 @@ export function NewProjectForm({
   submitLabel,
   submitDisabled,
   submitDisabledHint,
+  cancelLabel,
   footerExtras,
   headerBanner,
   hideIntro,
@@ -736,7 +742,16 @@ export function NewProjectForm({
         <div className={styles.footer}>
           <StepDots total={4} active={section} onSelect={goTo} />
           {isReadonly ? (
-            <div className={styles.actions}>{footerExtras}</div>
+            <div className={styles.actions}>
+              {footerExtras}
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={onCancel}
+              >
+                {cancelLabel ?? 'Закрыть'}
+              </button>
+            </div>
           ) : isEdit ? (
             // В edit-режиме «Сохранить изменения» всегда доступно — ментор не
             // обязан долистывать до последней секции, чтобы применить правку
@@ -750,7 +765,7 @@ export function NewProjectForm({
                 onClick={section === 0 ? onCancel : goPrev}
                 disabled={isSubmitting}
               >
-                {section === 0 ? 'Закрыть' : 'Назад'}
+                {section === 0 ? cancelLabel ?? 'Закрыть' : 'Назад'}
               </button>
               {section < 3 ? (
                 <button

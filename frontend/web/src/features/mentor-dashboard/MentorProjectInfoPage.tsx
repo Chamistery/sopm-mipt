@@ -136,11 +136,7 @@ export function MentorProjectInfoPage(): JSX.Element {
             )
           }
           submitLabel={hasPending ? 'Обновить запрос' : 'Отправить на согласование'}
-          footerExtras={
-            <Link to={backTo} className={styles.closeLink} data-testid="info-close">
-              {mode === 'readonly' ? 'Закрыть' : backLabel}
-            </Link>
-          }
+          cancelLabel={mode === 'readonly' ? 'Закрыть' : backLabel}
           onSubmit={(value) => mutation.mutate(value)}
           onCancel={() => navigate(backTo)}
           isSubmitting={mutation.isPending}
