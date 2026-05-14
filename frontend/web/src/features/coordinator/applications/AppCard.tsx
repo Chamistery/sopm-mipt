@@ -88,6 +88,7 @@ export function AppCard({
         </button>
         <Link
           to={`/admin/projects/${application.projectId}`}
+          state={{ from: '/admin/applications' }}
           className={styles.btnSecondary}
         >
           Посмотреть проект
