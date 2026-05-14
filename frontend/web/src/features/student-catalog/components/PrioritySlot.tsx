@@ -19,6 +19,26 @@ interface Props {
 
 const DRAG_MIME = 'application/x-sopm-slot';
 
+function DragIcon(): JSX.Element {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <circle cx="7" cy="5" r="1.2" fill="currentColor" />
+      <circle cx="13" cy="5" r="1.2" fill="currentColor" />
+      <circle cx="7" cy="10" r="1.2" fill="currentColor" />
+      <circle cx="13" cy="10" r="1.2" fill="currentColor" />
+      <circle cx="7" cy="15" r="1.2" fill="currentColor" />
+      <circle cx="13" cy="15" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function PrioritySlot({
   index,
   project,
@@ -29,6 +49,7 @@ export function PrioritySlot({
   onSwap,
 }: Props): JSX.Element {
   const [dragOver, setDragOver] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const filled = project !== null;
 
   const handleDragOver = (e: DragEvent<HTMLDivElement>): void => {
@@ -57,6 +78,11 @@ export function PrioritySlot({
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData(DRAG_MIME, String(index));
     e.dataTransfer.setData('text/plain', String(index));
+    setDragging(true);
+  };
+
+  const handleDragEnd = (): void => {
+    setDragging(false);
   };
 
   return (
@@ -86,13 +112,18 @@ export function PrioritySlot({
           readOnly={readOnly}
           variant="slot"
           draggable={!readOnly}
+          dragging={dragging}
           onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
           onSelect={() => {}}
           onRemove={onRemove}
           onShowDetails={onShowDetails}
         />
       ) : (
-        <div className={styles.empty}>Перетащите сюда проект</div>
+        <div className={styles.empty}>
+          <DragIcon />
+          <span>Перетащите сюда проект</span>
+        </div>
       )}
     </div>
   );
