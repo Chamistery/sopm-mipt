@@ -167,15 +167,10 @@ describe('MentorProjectInfoPage', () => {
       expect(screen.getByDisplayValue(PROPOSAL.title)).toBeInTheDocument(),
     );
 
-    // Прокликиваем секции 0..3 через step-dots: на каждой step-dots
-    // используют data-testid из StepDots. Проще — пройдём через «Далее»
-    // 3 раза, у нас всё валидное (fixture-данные).
-    const next = screen.getByTestId('form-next');
-    fireEvent.click(next); // → section 1
-    fireEvent.click(screen.getByTestId('form-next')); // → section 2
-    fireEvent.click(screen.getByTestId('form-next')); // → section 3
-    // На section 3 кнопка превращается в submit
-    const submitBtn = screen.getByTestId('form-next');
+    // В edit-режиме «Сохранить изменения» доступно с любой секции — ментор
+    // не обязан долистывать до section 3. Берём кнопку form-save и сразу
+    // нажимаем; fixture полностью валидна, поэтому submit пройдёт.
+    const submitBtn = screen.getByTestId('form-save');
     expect(submitBtn).toHaveTextContent(/Отправить на согласование/);
     fireEvent.click(submitBtn);
 
