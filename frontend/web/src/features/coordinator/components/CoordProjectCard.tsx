@@ -11,7 +11,7 @@
  */
 
 import type { JSX } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import type {
   DashboardIterState,
@@ -33,6 +33,8 @@ interface Props {
 
 export function CoordProjectCard({ project }: Props): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromHere = location.pathname + location.search;
   const isDraft = project.status === 'Черновик';
   const sprints = project.sprints ?? [];
   const teams = project.teams ?? [];
@@ -97,6 +99,7 @@ export function CoordProjectCard({ project }: Props): JSX.Element {
         </span>
         <Link
           to={`/admin/projects/${project.id}`}
+          state={{ from: fromHere }}
           className={styles.infoLink}
           data-testid="coord-card-info-link"
         >

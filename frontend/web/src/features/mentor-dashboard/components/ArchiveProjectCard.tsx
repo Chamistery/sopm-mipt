@@ -18,7 +18,7 @@
  */
 
 import type { JSX } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 import { IterSquare } from './ProjectCard';
 import type { ArchiveDashboardProject } from '../hooks/useMentorArchiveDashboard';
@@ -37,6 +37,8 @@ export function ArchiveProjectCard({
   highlighted = false,
 }: Props): JSX.Element {
   const basePath = useArchiveBasePath();
+  const location = useLocation();
+  const fromHere = location.pathname + location.search;
   const isContinuation = project.predecessorId != null;
   const teamsLabel = project.teams.length > 1 ? 'команды' : 'команда';
 
@@ -90,6 +92,7 @@ export function ArchiveProjectCard({
         </span>
         <Link
           to={`${basePath}/projects/${project.id}/info`}
+          state={{ from: fromHere }}
           className={styles.infoLink}
           aria-label={`Полная информация о проекте ${project.title}`}
           data-testid="archive-card-info-link"
