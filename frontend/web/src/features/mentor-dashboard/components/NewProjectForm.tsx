@@ -138,6 +138,22 @@ export function NewProjectForm({
     }
   };
 
+  // Сохранение из любой секции — для edit-режима. Проверяем все 4 секции
+  // подряд, и если какая-то не заполнена — переключаем на неё и подсвечиваем
+  // обязательное поле. Иначе — submit.
+  const saveFromAnywhere = (): void => {
+    for (let i = 0; i <= 3; i += 1) {
+      const idx = i as SectionIndex;
+      const missing = firstMissingField(data, idx);
+      if (missing) {
+        if (idx !== section) setSection(idx);
+        setHighlightField(missing);
+        return;
+      }
+    }
+    onSubmit({ proposal: data });
+  };
+
   const goPrev = (): void => {
     if (section > 0) setSection(((section - 1) as SectionIndex));
   };
@@ -721,6 +737,43 @@ export function NewProjectForm({
           <StepDots total={4} active={section} onSelect={goTo} />
           {isReadonly ? (
             <div className={styles.actions}>{footerExtras}</div>
+          ) : isEdit ? (
+            // В edit-режиме «Сохранить изменения» всегда доступно — ментор не
+            // обязан долистывать до последней секции, чтобы применить правку
+            // одного поля. «Далее» остаётся отдельной кнопкой, пока есть куда
+            // переходить.
+            <div className={styles.actions}>
+              {footerExtras}
+              <button
+                type="button"
+                className={styles.btnSecondary}
+                onClick={section === 0 ? onCancel : goPrev}
+                disabled={isSubmitting}
+              >
+                {section === 0 ? 'Закрыть' : 'Назад'}
+              </button>
+              {section < 3 ? (
+                <button
+                  type="button"
+                  className={styles.btnSecondary}
+                  onClick={goNext}
+                  disabled={isSubmitting}
+                  data-testid="form-next"
+                >
+                  Далее
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={styles.btnPrimary}
+                onClick={saveFromAnywhere}
+                disabled={isSubmitting || Boolean(submitDisabled)}
+                data-testid="form-save"
+                title={submitDisabledHint}
+              >
+                {isSubmitting ? 'Сохраняем…' : submitLabel ?? 'Сохранить изменения'}
+              </button>
+            </div>
           ) : (
             <div className={styles.actions}>
               {footerExtras}
@@ -730,7 +783,7 @@ export function NewProjectForm({
                 onClick={section === 0 ? onCancel : goPrev}
                 disabled={isSubmitting}
               >
-                {section === 0 ? (isEdit ? 'Закрыть' : 'Отмена') : 'Назад'}
+                {section === 0 ? 'Отмена' : 'Назад'}
               </button>
               <button
                 type="button"
@@ -743,7 +796,7 @@ export function NewProjectForm({
                 {section === 3
                   ? isSubmitting
                     ? 'Сохраняем…'
-                    : submitLabel ?? (isEdit ? 'Сохранить изменения' : 'Создать проект')
+                    : submitLabel ?? 'Создать проект'
                   : 'Далее'}
               </button>
             </div>
