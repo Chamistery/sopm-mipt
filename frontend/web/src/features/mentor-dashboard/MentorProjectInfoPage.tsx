@@ -67,6 +67,7 @@ export function MentorProjectInfoPage(): JSX.Element {
       toast.showSuccess('Изменения отправлены координатору');
       await queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       await queryClient.invalidateQueries({ queryKey: ['project', projectId, 'proposal'] });
+      navigate(backTo);
     },
     onError: (error) => {
       const message = error instanceof Error ? error.message : 'Не удалось отправить изменения';
@@ -91,8 +92,13 @@ export function MentorProjectInfoPage(): JSX.Element {
       proposal ||
       proposalFromProject(project);
 
-  const backTo = isArchive ? '/mentor/archive' : '/mentor';
-  const backLabel = isArchive ? 'Архив' : 'Дашборд';
+  // Откуда пришёл пользователь — берём из location.state.from. Используется
+  // и кнопкой «К дашборду»/«Закрыть», и редиректом после Save. Если
+  // state.from отсутствует (открыли по прямой ссылке) — fallback на
+  // /mentor или /mentor/archive в зависимости от роута.
+  const fromState = (location.state as { from?: string } | null)?.from;
+  const backTo = fromState ?? (isArchive ? '/mentor/archive' : '/mentor');
+  const backLabel = pickBackLabel(backTo, isArchive);
   const title = project?.title ?? (isLoading ? 'Загрузка…' : 'Проект не найден');
 
   return (
@@ -132,7 +138,7 @@ export function MentorProjectInfoPage(): JSX.Element {
           submitLabel={hasPending ? 'Обновить запрос' : 'Отправить на согласование'}
           footerExtras={
             <Link to={backTo} className={styles.closeLink} data-testid="info-close">
-              {mode === 'readonly' ? 'Закрыть' : 'К дашборду'}
+              {mode === 'readonly' ? 'Закрыть' : backLabel}
             </Link>
           }
           onSubmit={(value) => mutation.mutate(value)}
@@ -198,6 +204,19 @@ function PendingBanner({ submittedAt }: { submittedAt: string }): JSX.Element {
       </span>
     </div>
   );
+}
+
+/**
+ * Подпись для кнопки/ссылки возврата. Если from совпадает с известным
+ * страничным контекстом — берём осмысленное название; иначе «Назад».
+ */
+function pickBackLabel(backTo: string, isArchive: boolean): string {
+  if (backTo === '/mentor' || backTo === '/admin') return 'К дашборду';
+  if (backTo === '/mentor/archive' || backTo === '/admin/archive') return 'Архив';
+  if (backTo === '/admin/applications') return 'К заявкам';
+  if (backTo === '/admin/distribution' || backTo === '/mentor/distribution')
+    return 'К распределению';
+  return isArchive ? 'Архив' : 'Назад';
 }
 
 function Chevron(): JSX.Element {

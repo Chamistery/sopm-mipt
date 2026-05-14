@@ -18,7 +18,7 @@
  */
 
 import type { JSX } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import type { MentorDashboardProject, DashboardIterState, DashboardTeam } from '@/api/projects';
 import { StatusBadge } from './StatusBadge';
@@ -35,6 +35,8 @@ interface Props {
 
 export function ProjectCard({ project }: Props): JSX.Element {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromHere = location.pathname + location.search;
   const isDraft = project.status === 'Черновик';
   const sprints = project.sprints ?? [];
   const teams = project.teams ?? [];
@@ -118,6 +120,7 @@ export function ProjectCard({ project }: Props): JSX.Element {
         ) : (
           <Link
             to={`/mentor/projects/${project.id}/info`}
+            state={{ from: fromHere }}
             className={styles.infoLink}
             data-testid="project-card-info-link"
           >
