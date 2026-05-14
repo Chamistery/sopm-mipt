@@ -104,27 +104,64 @@ function buildCreateFields(p: Project): ApplicationDiffItem[] {
 }
 
 function buildEditDiff(p: Project): ApplicationDiffItem[] {
-  const pending = p.pendingProposalData;
+  // pendingProposalData декларируется как полный ProposalData, но на бэке
+  // это произвольный jsonb: ментор может отправить только подмножество
+  // полей. Backend ApproveChangeRequest применяет лишь присутствующие
+  // ключи через COALESCE, остальные значения сохраняются. Поэтому здесь
+  // показываем diff ТОЛЬКО для ключей, действительно присутствующих в
+  // pending — иначе таблица заявки врёт пользователю «значение → —».
+  const pending = p.pendingProposalData as Record<string, unknown> | null;
   if (!pending) return [];
-  const current = p.proposalData ?? null;
+  const current = (p.proposalData ?? null) as Record<string, unknown> | null;
   const items: ApplicationDiffItem[] = [];
 
-  push(items, 'Полное название', current?.title, pending.title);
-  push(items, 'Инициатор', current?.company, pending.company);
-  push(items, 'Цель проекта', current?.goal, pending.goal);
-  push(items, 'Результат (продукт)', current?.expectedResult, pending.expectedResult);
-  push(items, 'Технологии', current?.technologies, pending.technologies);
-  push(items, 'Компетенции', current?.competencies, pending.competencies);
-  push(items, 'Описание проекта', current?.description, pending.description);
-  push(items, 'Критерии приёмки', current?.acceptanceCriteria, pending.acceptanceCriteria);
-  push(items, 'Образовательный результат', current?.eduResult, pending.eduResult);
-  push(items, 'Ресурсы', current?.resources, pending.resources);
-  pushNum(items, 'Срок (семестров)', current?.durationSemesters, pending.durationSemesters);
-  pushNum(items, 'Количество команд', current?.numTeams, pending.numTeams);
-  pushNum(items, 'Минимальный размер команды', current?.teamSizeMin, pending.teamSizeMin);
-  pushNum(items, 'Максимальный размер команды', current?.teamSizeMax, pending.teamSizeMax);
+  pushIfPresent(items, pending, current, 'Полное название', 'title');
+  pushIfPresent(items, pending, current, 'Инициатор', 'company');
+  pushIfPresent(items, pending, current, 'Цель проекта', 'goal');
+  pushIfPresent(items, pending, current, 'Результат (продукт)', 'expectedResult');
+  pushIfPresent(items, pending, current, 'Технологии', 'technologies');
+  pushIfPresent(items, pending, current, 'Компетенции', 'competencies');
+  pushIfPresent(items, pending, current, 'Описание проекта', 'description');
+  pushIfPresent(items, pending, current, 'Критерии приёмки', 'acceptanceCriteria');
+  pushIfPresent(items, pending, current, 'Образовательный результат', 'eduResult');
+  pushIfPresent(items, pending, current, 'Ресурсы', 'resources');
+  pushNumIfPresent(items, pending, current, 'Срок (семестров)', 'durationSemesters');
+  pushNumIfPresent(items, pending, current, 'Количество команд', 'numTeams');
+  pushNumIfPresent(items, pending, current, 'Минимальный размер команды', 'teamSizeMin');
+  pushNumIfPresent(items, pending, current, 'Максимальный размер команды', 'teamSizeMax');
 
   return items;
+}
+
+function pushIfPresent(
+  items: ApplicationDiffItem[],
+  pending: Record<string, unknown>,
+  current: Record<string, unknown> | null,
+  field: string,
+  key: string,
+): void {
+  if (!Object.prototype.hasOwnProperty.call(pending, key)) return;
+  push(items, field, current?.[key], pending[key]);
+}
+
+function pushNumIfPresent(
+  items: ApplicationDiffItem[],
+  pending: Record<string, unknown>,
+  current: Record<string, unknown> | null,
+  field: string,
+  key: string,
+): void {
+  if (!Object.prototype.hasOwnProperty.call(pending, key)) return;
+  pushNum(items, field, toNumber(current?.[key]), toNumber(pending[key]));
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }
 
 function push(
