@@ -1,6 +1,6 @@
 /*
  * Cross-feature «Требует внимания» block. Lives in `_shared/` because every
- * role dashboard (student, mentor, coordinator, future admin) needs the
+ * role dashboard (student, mentor, coordinator) needs the
  * exact same widget — extracting it once keeps notification policy in one
  * place and lets us iterate on icons / sort order without touching N pages.
  *

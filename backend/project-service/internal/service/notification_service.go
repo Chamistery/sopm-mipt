@@ -20,7 +20,7 @@ func NewNotificationService(db *pgxpool.Pool, profiles repository.UserProfileRep
 }
 
 func (s *NotificationService) GetForUser(ctx context.Context, user *auth.CurrentUser, userID int) ([]models.Notification, error) {
-	if err := RequireSelfOrRoles(user, userID, auth.RoleAdmin, auth.RoleCoordinator); err != nil {
+	if err := RequireSelfOrRoles(user, userID, auth.RoleCoordinator); err != nil {
 		return nil, err
 	}
 

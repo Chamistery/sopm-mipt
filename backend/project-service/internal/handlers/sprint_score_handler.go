@@ -25,7 +25,7 @@ func NewSprintScoreHandler(repo repository.SprintScoreRepositoryInterface) *Spri
 // Трекер и эксперты сейчас редактируют через координатора (отдельных ролей
 // в системе пока нет, см. project_roles_and_business_logic.md).
 func canEditScore(user *auth.CurrentUser, category models.SprintScoreCategory) bool {
-	if user.HasAnyRole(auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		return true
 	}
 	if user.HasAnyRole(auth.RoleCoordinator) {

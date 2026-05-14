@@ -20,7 +20,7 @@ func NewTeamReportHandler(repo repository.TeamReportRepositoryInterface) *TeamRe
 }
 
 func (h *TeamReportHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleTeamLead, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleTeamLead) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -68,7 +68,7 @@ func (h *TeamReportHandler) GetList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TeamReportHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleTeamLead, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleTeamLead) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}
@@ -99,7 +99,7 @@ func (h *TeamReportHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TeamReportHandler) Review(w http.ResponseWriter, r *http.Request) {
-	if !currentUser(r).HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if !currentUser(r).HasAnyRole(auth.RoleMentor) {
 		httputil.RespondError(w, http.StatusForbidden, "forbidden")
 		return
 	}

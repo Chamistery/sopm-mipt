@@ -15,7 +15,6 @@ const (
 	RoleTeamLead    Role = "teamlead"
 	RoleMentor      Role = "mentor"
 	RoleCoordinator Role = "coordinator"
-	RoleAdmin       Role = "admin"
 )
 
 type CurrentUser struct {
@@ -37,8 +36,6 @@ func ParseRole(value string) Role {
 		return RoleMentor
 	case string(RoleCoordinator):
 		return RoleCoordinator
-	case string(RoleAdmin):
-		return RoleAdmin
 	default:
 		return RoleAnonymous
 	}

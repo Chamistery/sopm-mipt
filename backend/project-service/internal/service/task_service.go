@@ -26,7 +26,7 @@ func NewTaskService(
 }
 
 func (s *TaskService) Create(ctx context.Context, user *auth.CurrentUser, task *models.Task) error {
-	if err := RequireRoles(user, auth.RoleStudent, auth.RoleTeamLead, auth.RoleAdmin, auth.RoleCoordinator); err != nil {
+	if err := RequireRoles(user, auth.RoleStudent, auth.RoleTeamLead, auth.RoleCoordinator); err != nil {
 		return err
 	}
 	team, sprint, project, err := s.loadTeamSprintProject(ctx, task.TeamID, task.SprintID)
@@ -62,7 +62,7 @@ func (s *TaskService) Create(ctx context.Context, user *auth.CurrentUser, task *
 			return ErrForbidden
 		}
 	}
-	if user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		if project.ID == 0 {
 			return ErrForbidden
 		}
@@ -117,7 +117,7 @@ func (s *TaskService) Update(ctx context.Context, user *auth.CurrentUser, update
 	}
 
 	isMentorEditor := false
-	if user.HasAnyRole(auth.RoleMentor, auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleMentor) {
 		if s.ensureMentorForTask(ctx, user, task) == nil {
 			isMentorEditor = true
 		}
@@ -205,7 +205,7 @@ func (s *TaskService) Delete(ctx context.Context, user *auth.CurrentUser, id int
 	if task.Status != models.TaskStatusPendingApproval {
 		return WrapStateError("task can only be deleted before mentor approval")
 	}
-	if user.ID != task.CreatedByID && !user.HasAnyRole(auth.RoleAdmin) {
+	if user.ID != task.CreatedByID && !user.HasAnyRole(auth.RoleCoordinator) {
 		return ErrForbidden
 	}
 	return s.tasks.SoftDelete(ctx, id, user.ID)
@@ -249,7 +249,7 @@ func (s *TaskService) ensureTaskVisible(ctx context.Context, user *auth.CurrentU
 	if err := RequireAuth(user); err != nil {
 		return err
 	}
-	if user.HasAnyRole(auth.RoleAdmin, auth.RoleCoordinator) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		return nil
 	}
 	if user.ID == task.AssigneeID || user.ID == task.CreatedByID {
@@ -279,7 +279,7 @@ func (s *TaskService) ensureTaskEditor(ctx context.Context, user *auth.CurrentUs
 	if err := s.ensureTaskVisible(ctx, user, task); err != nil {
 		return err
 	}
-	if user.HasAnyRole(auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		return nil
 	}
 	if user.ID == task.AssigneeID {
@@ -302,10 +302,10 @@ func (s *TaskService) ensureTaskEditor(ctx context.Context, user *auth.CurrentUs
 }
 
 func (s *TaskService) ensureMentorForTask(ctx context.Context, user *auth.CurrentUser, task *models.Task) error {
-	if err := RequireRoles(user, auth.RoleMentor, auth.RoleAdmin); err != nil {
+	if err := RequireRoles(user, auth.RoleMentor); err != nil {
 		return err
 	}
-	if user.HasAnyRole(auth.RoleAdmin) {
+	if user.HasAnyRole(auth.RoleCoordinator) {
 		return nil
 	}
 	_, _, project, err := s.loadTeamSprintProject(ctx, task.TeamID, task.SprintID)

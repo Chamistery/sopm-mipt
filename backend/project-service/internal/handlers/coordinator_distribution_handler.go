@@ -29,7 +29,7 @@ func (h *CoordinatorDistributionHandler) Get(w http.ResponseWriter, r *http.Requ
 		httputil.RespondError(w, http.StatusUnauthorized, "authentication required")
 		return
 	}
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}

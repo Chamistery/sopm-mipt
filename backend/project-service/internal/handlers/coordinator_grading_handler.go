@@ -23,7 +23,7 @@ func NewCoordinatorGradingHandler(repo CoordinatorGradingRepoInterface) *Coordin
 
 func (h *CoordinatorGradingHandler) Get(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}

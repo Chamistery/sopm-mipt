@@ -61,7 +61,7 @@ type defenseRequest struct {
 
 func (h *DefenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}
@@ -94,7 +94,7 @@ func (h *DefenseHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 func (h *DefenseHandler) Update(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}
@@ -128,7 +128,7 @@ func (h *DefenseHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 func (h *DefenseHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
-	if !user.HasAnyRole(auth.RoleCoordinator, auth.RoleAdmin) {
+	if !user.HasAnyRole(auth.RoleCoordinator) {
 		httputil.RespondError(w, http.StatusForbidden, "coordinator or admin only")
 		return
 	}
