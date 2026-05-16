@@ -22,12 +22,12 @@ std::string HttpApplicationsAdapter::MakeGetRequest(const std::string& url) {
 
     std::string response_body;
     struct curl_slist* headers = nullptr;
-    // project-service ожидает X-User-Id/X-User-Role от middleware/auth.go;
-    // сервис распределения ходит с правами координатора. Дополнительно
-    // шлём internal service-token — если в Go выставлен INTERNAL_SERVICE_TOKEN,
-    // middleware принимает его как маркер доверенного вызова.
-    headers = curl_slist_append(headers, "X-User-Id: 0");
-    headers = curl_slist_append(headers, "X-User-Role: coordinator");
+    // Единственный канал аутентификации service-to-service — токен.
+    // Намеренно не шлём X-User-Id/X-User-Role: иначе при пустом
+    // INTERNAL_SERVICE_TOKEN на стороне Go fallback на header-parsing
+    // молча пропустил бы нас как координатора (выключение токена
+    // оказалось бы no-op'ом). Пустой токен здесь = ошибка конфигурации,
+    // и project-service вернёт 401/403 — это и есть желаемое поведение.
     std::string token = config_->GetInternalServiceToken();
     std::string token_header;
     if (!token.empty()) {

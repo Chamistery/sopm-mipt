@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/hsse/project-service/internal/auth"
 )
 
 type responseWriter struct {
@@ -25,12 +27,17 @@ func Logger(next http.Handler) http.Handler {
 		start := time.Now()
 		rw := newResponseWriter(w)
 		next.ServeHTTP(rw, r)
+		caller := ""
+		if u := auth.UserFromContext(r.Context()); u.IsService {
+			caller = " service=true"
+		}
 		log.Printf(
-			"%s %s %d %s",
+			"%s %s %d %s%s",
 			r.Method,
 			r.URL.Path,
 			rw.statusCode,
 			time.Since(start),
+			caller,
 		)
 	})
 }

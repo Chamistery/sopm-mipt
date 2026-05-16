@@ -22,8 +22,7 @@ std::string HttpStudentsAdapter::MakeGetRequest(const std::string& url) {
 
     std::string response_body;
     struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, "X-User-Id: 0");
-    headers = curl_slist_append(headers, "X-User-Role: coordinator");
+    // service-token — единственный канал auth (см. applications_adapter).
     std::string token = config_->GetInternalServiceToken();
     std::string token_header;
     if (!token.empty()) {
