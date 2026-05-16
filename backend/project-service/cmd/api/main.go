@@ -232,7 +232,11 @@ func main() {
 		coordinatorGradingHandler,
 	)
 	authMiddleware := middleware.AuthContextWithServiceToken(os.Getenv("INTERNAL_SERVICE_TOKEN"))
-	handler := middleware.Logger(authMiddleware(middleware.CORS(mux)))
+	// Порядок: Auth → Logger → CORS → mux. Auth снаружи Logger'а, иначе
+	// Logger смотрит на до-аугментированный r и не увидит IsService в
+	// контексте. CORS остаётся ближе к mux, чтобы отвечать на OPTIONS
+	// preflight без побочки от Logger.
+	handler := authMiddleware(middleware.Logger(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
 	server := createServer(addr, handler)
 	log.Printf("Starting server on %s", addr)

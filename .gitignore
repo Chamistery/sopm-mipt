@@ -1,0 +1,9 @@
+# Локальные секреты — никогда не коммитить.
+.env
+.env.local
+*.env.local
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
