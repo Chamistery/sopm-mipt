@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hsse/project-service/internal/models"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -130,6 +131,85 @@ func (r *ApplicationRepository) Update(ctx context.Context, app *models.Applicat
 		return err
 	}
 	return CheckRowsAffected(result, "application")
+}
+
+// ApplyDistribution атомарно применяет результаты автоматического
+// распределения. Заявки в статусах «Принят» / «Принято ментором»
+// (ручные решения ментора и студента) НЕ перезаписываются — они
+// пропускаются и попадают в Skipped. Всё остальное — applied.
+//
+// SELECT ... FOR UPDATE удерживает блокировку до конца транзакции,
+// чтобы между чтением старого статуса и записью не вклинились
+// ручные действия координатора/ментора по тем же заявкам.
+func (r *ApplicationRepository) ApplyDistribution(
+	ctx context.Context,
+	updates []DistributionApplicationUpdate,
+) (DistributionApplyStats, error) {
+	stats := DistributionApplyStats{}
+	if len(updates) == 0 {
+		return stats, nil
+	}
+
+	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return stats, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	ids := make([]int, 0, len(updates))
+	for _, u := range updates {
+		ids = append(ids, u.ApplicationID)
+	}
+
+	rows, err := tx.Query(ctx,
+		`SELECT id, status FROM applications WHERE id = ANY($1) FOR UPDATE`,
+		ids)
+	if err != nil {
+		return stats, err
+	}
+	currentStatus := make(map[int]models.ApplicationStatus, len(ids))
+	for rows.Next() {
+		var id int
+		var status models.ApplicationStatus
+		if err := rows.Scan(&id, &status); err != nil {
+			rows.Close()
+			return stats, err
+		}
+		currentStatus[id] = status
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return stats, err
+	}
+
+	const updateSQL = `
+		UPDATE applications
+		SET team_id = $2,
+		    status = $3
+		WHERE id = $1
+	`
+
+	for _, u := range updates {
+		cur, found := currentStatus[u.ApplicationID]
+		if !found {
+			continue
+		}
+		// Защита ручных решений: ментор/студент уже зафиксировали
+		// исход — алгоритм не должен это отменять.
+		if cur == models.ApplicationStatusAccepted || cur == models.ApplicationStatusMentorAccepted {
+			stats.Skipped++
+			continue
+		}
+		if _, err := tx.Exec(ctx, updateSQL, u.ApplicationID, u.TeamID, u.Status); err != nil {
+			return stats, err
+		}
+		stats.Applied++
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return stats, err
+	}
+	return stats, nil
 }
 
 func (r *ApplicationRepository) Delete(ctx context.Context, id int) error {

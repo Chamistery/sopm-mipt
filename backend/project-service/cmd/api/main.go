@@ -176,7 +176,14 @@ func main() {
 	)
 	taskService := service.NewTaskService(taskRepo, sprintRepo, teamRepo, projectRepo)
 	notificationService := service.NewNotificationService(db.Pool, userProfileRepo)
-	distributionService := service.NewDistributionService(projectRepo, applicationRepo, teamRepo)
+	var distributionClient service.DistributionClient
+	if distURL := os.Getenv("DISTRIBUTION_SERVICE_URL"); distURL != "" {
+		distributionClient = service.NewHTTPDistributionClient(distURL)
+		log.Printf("Distribution service: external at %s", distURL)
+	} else {
+		log.Printf("Distribution service: in-process fallback (DISTRIBUTION_SERVICE_URL unset)")
+	}
+	distributionService := service.NewDistributionService(projectRepo, applicationRepo, teamRepo, distributionClient)
 	fileStorage := service.NewLocalFileStorage(cfg.App.StorageDir)
 
 	projectHandler := handlers.NewProjectHandler(projectRepo)

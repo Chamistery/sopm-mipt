@@ -16,11 +16,12 @@ func NewDistributionHandler(service *service.DistributionService) *DistributionH
 }
 
 func (h *DistributionHandler) Generate(w http.ResponseWriter, r *http.Request) {
-	if err := h.service.Generate(r.Context(), currentUser(r)); err != nil {
+	result, err := h.service.Generate(r.Context(), currentUser(r))
+	if err != nil {
 		respondServiceError(w, err)
 		return
 	}
-	httputil.RespondSuccess(w, http.StatusOK, map[string]string{"status": "started"})
+	httputil.RespondSuccess(w, http.StatusOK, result)
 }
 
 func (h *DistributionHandler) Status(w http.ResponseWriter, r *http.Request) {

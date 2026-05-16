@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	ErrUnauthorized = errors.New("authentication required")
-	ErrForbidden    = errors.New("forbidden")
-	ErrInvalidState = errors.New("invalid state transition")
-	ErrNotFound     = errors.New("not found")
+	ErrUnauthorized      = errors.New("authentication required")
+	ErrForbidden         = errors.New("forbidden")
+	ErrInvalidState      = errors.New("invalid state transition")
+	ErrNotFound          = errors.New("not found")
+	ErrServiceUnavailable = errors.New("upstream service unavailable")
 )
 
 func RequireAuth(user *auth.CurrentUser) error {

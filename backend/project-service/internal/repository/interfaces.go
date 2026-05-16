@@ -30,6 +30,25 @@ type ApplicationRepositoryInterface interface {
 	GetByStudentAndStatus(ctx context.Context, studentID int, statuses ...models.ApplicationStatus) ([]models.Application, error)
 	Update(ctx context.Context, app *models.Application) error
 	Delete(ctx context.Context, id int) error
+	ApplyDistribution(ctx context.Context, updates []DistributionApplicationUpdate) (DistributionApplyStats, error)
+}
+
+// DistributionApplicationUpdate описывает одну заявку, которую нужно
+// перевести в указанный статус в рамках транзакции применения
+// результата распределения.
+type DistributionApplicationUpdate struct {
+	ApplicationID int
+	TeamID        *int
+	Status        models.ApplicationStatus
+}
+
+// DistributionApplyStats возвращается из ApplyDistribution, чтобы
+// вызывающая сторона знала, сколько заявок применено и сколько
+// пропущено (потому что были в защищённых статусах
+// «Принят»/«Принято ментором»).
+type DistributionApplyStats struct {
+	Applied int
+	Skipped int
 }
 
 type UserRepositoryInterface interface {

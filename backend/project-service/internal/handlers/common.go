@@ -24,6 +24,8 @@ func respondServiceError(w http.ResponseWriter, err error) {
 		httputil.RespondError(w, http.StatusForbidden, err.Error())
 	case errors.Is(err, service.ErrInvalidState):
 		httputil.RespondError(w, http.StatusBadRequest, err.Error())
+	case errors.Is(err, service.ErrServiceUnavailable):
+		httputil.RespondError(w, http.StatusServiceUnavailable, err.Error())
 	default:
 		if err != nil && strings.Contains(err.Error(), "not found") {
 			httputil.RespondError(w, http.StatusNotFound, err.Error())

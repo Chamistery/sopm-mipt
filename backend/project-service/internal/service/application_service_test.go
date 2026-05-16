@@ -38,6 +38,9 @@ func (s *stubApplicationRepo) Update(_ context.Context, app *models.Application)
 	return nil
 }
 func (s *stubApplicationRepo) Delete(context.Context, int) error { return nil }
+func (s *stubApplicationRepo) ApplyDistribution(context.Context, []repository.DistributionApplicationUpdate) (repository.DistributionApplyStats, error) {
+	return repository.DistributionApplyStats{}, nil
+}
 
 type stubProjectRepo struct{ project *models.Project }
 
