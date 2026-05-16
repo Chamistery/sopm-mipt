@@ -10,18 +10,16 @@ namespace Core::Ports::Driven {
 using namespace Core::Domain;
 
 /// @brief Порт для работы с заявками студентов на проекты
+/// @note Сервис распределения работает как «чистый калькулятор»:
+/// результаты возвращаются HTTP-клиенту, а в БД их применяет
+/// вызывающая сторона (project-service в транзакции). Поэтому порт
+/// предоставляет только чтение.
 class IApplicationsPort {
 public:
     virtual ~IApplicationsPort() = default;
 
-    /// @brief Получить все заявки
-    virtual std::vector<Application> GetAllApplications() = 0;
-
     /// @brief Получить заявки для конкретного проекта
     virtual std::vector<Application> GetApplicationsForProject(int32_t project_id) = 0;
-
-    /// @brief Обновить статус заявки
-    virtual void UpdateApplicationStatus(const Application& application) = 0;
 };
 
 } // namespace Core::Ports::Driven

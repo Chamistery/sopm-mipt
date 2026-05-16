@@ -96,8 +96,8 @@ std::string ConfigManager::GetApplicationsEndpoint() const {
     return GetValue("applications_endpoint", "/api/applications/project");
 }
 
-std::string ConfigManager::GetApplicationUpdateEndpoint() const {
-    return GetValue("application_update_endpoint", "/api/applications/{id}/recommend");
+std::string ConfigManager::GetInternalServiceToken() const {
+    return GetValue("internal_service_token", "");
 }
 
 int ConfigManager::GetHttpTimeout() const {

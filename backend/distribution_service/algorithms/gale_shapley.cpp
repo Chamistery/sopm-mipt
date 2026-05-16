@@ -89,16 +89,22 @@ std::unordered_map<int32_t, std::vector<int32_t>> DistributionAlgorithm::Distrib
                 [app](const Project& p) { return p.id == app->project_id; });
             
             if (project_it == projects.end()) {
-                not_recommended.push_back(*app);
+                Application rejected = *app;
+                rejected.status = "not_recommended";
+                rejected.team_id = std::nullopt;
+                not_recommended.push_back(rejected);
                 continue;
             }
 
             const auto& project = *project_it;
             auto& proj_state = project_states[project.id];
 
-            // Проверить соответствие требованиям
+            // Проверить соответствие требованиям (курс, минимальный GPA)
             if (!StudentMeetsRequirements(*student, project)) {
-                not_recommended.push_back(*app);
+                Application rejected = *app;
+                rejected.status = "unqualified";
+                rejected.team_id = std::nullopt;
+                not_recommended.push_back(rejected);
                 continue;
             }
 
@@ -131,10 +137,14 @@ std::unordered_map<int32_t, std::vector<int32_t>> DistributionAlgorithm::Distrib
                     Application not_rec_app = *app;
                     not_rec_app.student_id = lowest_student;
                     not_rec_app.team_id = std::nullopt;
+                    not_rec_app.status = "not_recommended";
                     not_recommended.push_back(not_rec_app);
                 } else {
                     // Новый студент не берётся
-                    not_recommended.push_back(*app);
+                    Application rejected = *app;
+                    rejected.status = "not_recommended";
+                    rejected.team_id = std::nullopt;
+                    not_recommended.push_back(rejected);
                 }
             }
         }
@@ -225,6 +235,7 @@ DistributionAlgorithm::Result DistributionAlgorithm::Distribute(
                 if (app.project_id == project_id && app.student_id == student_id) {
                     Application rec_app = app;
                     rec_app.team_id = std::nullopt;
+                    rec_app.status = "recommended";
                     result.recommended.push_back(rec_app);
                     break;
                 }

@@ -21,19 +21,32 @@ std::string HttpStudentsAdapter::MakeGetRequest(const std::string& url) {
     }
 
     std::string response_body;
+    struct curl_slist* headers = nullptr;
+    headers = curl_slist_append(headers, "X-User-Id: 0");
+    headers = curl_slist_append(headers, "X-User-Role: coordinator");
+    std::string token = config_->GetInternalServiceToken();
+    std::string token_header;
+    if (!token.empty()) {
+        token_header = "X-Internal-Service-Token: " + token;
+        headers = curl_slist_append(headers, token_header.c_str());
+    }
+
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
+        curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
         throw std::runtime_error(std::string("CURL error: ") + curl_easy_strerror(res));
     }
 
     long response_code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
 
     if (response_code != 200) {
@@ -62,8 +75,25 @@ std::vector<Core::Domain::Student> HttpStudentsAdapter::GetStudents(const std::s
             for (const auto& user : data) {
                 Core::Domain::Student student;
                 student.id = user["id"];
-                student.course = user.value("course", 1);
-                student.gpa = user.value("gpa", 3.0);
+                // В swagger project-service User.course — строка ("1", "2", ...),
+                // а C++ алгоритм матчит её с Project.courses (vector<int>).
+                // Парсим максимально терпимо: пустое/непарсимое → 0.
+                if (user.contains("course") && !user["course"].is_null()) {
+                    if (user["course"].is_string()) {
+                        try {
+                            student.course = std::stoi(user["course"].get<std::string>());
+                        } catch (...) {
+                            student.course = 0;
+                        }
+                    } else if (user["course"].is_number_integer()) {
+                        student.course = user["course"].get<int32_t>();
+                    } else {
+                        student.course = 0;
+                    }
+                } else {
+                    student.course = 0;
+                }
+                student.gpa = user.value("gpa", 0.0);
                 students.push_back(student);
             }
         }

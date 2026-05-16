@@ -21,19 +21,32 @@ std::string HttpProjectsAdapter::MakeGetRequest(const std::string& url) {
     }
 
     std::string response_body;
+    struct curl_slist* headers = nullptr;
+    headers = curl_slist_append(headers, "X-User-Id: 0");
+    headers = curl_slist_append(headers, "X-User-Role: coordinator");
+    std::string token = config_->GetInternalServiceToken();
+    std::string token_header;
+    if (!token.empty()) {
+        token_header = "X-Internal-Service-Token: " + token;
+        headers = curl_slist_append(headers, token_header.c_str());
+    }
+
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_ms_);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response_body);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     CURLcode res = curl_easy_perform(curl);
     if (res != CURLE_OK) {
+        curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
         throw std::runtime_error(std::string("CURL error: ") + curl_easy_strerror(res));
     }
 
     long response_code = 0;
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
 
     if (response_code != 200) {

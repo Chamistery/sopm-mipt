@@ -55,8 +55,10 @@ public:
     /// @return Endpoint для получения заявок проекта
     std::string GetApplicationsEndpoint() const;
 
-    /// @return Endpoint для обновления заявки
-    std::string GetApplicationUpdateEndpoint() const;
+    /// @return Service-token для авторизации в project-service
+    /// @details Если пустой — заголовок не отправляется; project-service
+    /// тогда тоже не должен ожидать его (auth полностью на X-User-* хедерах).
+    std::string GetInternalServiceToken() const;
 
     /// @return Таймаут HTTP запросов (ms)
     int GetHttpTimeout() const;
