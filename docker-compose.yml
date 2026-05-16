@@ -42,6 +42,11 @@ services:
       STORAGE_DIR: /app/storage
       MAX_APPLICATION_CHOICES: "5"
       MAX_UPLOAD_BYTES: "10485760"
+      # Перенаправление /api/distribution/generate на C++ Гейля-Шепли.
+      # Если переменная пустая или сервис недоступен — fallback на
+      # встроенный наивный алгоритм / 503 соответственно.
+      DISTRIBUTION_SERVICE_URL: http://distribution-service:8090
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     expose:
       - "8080"
     volumes:
@@ -49,6 +54,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  distribution-service:
+    build:
+      context: backend/distribution_service
+      dockerfile: Dockerfile
+    container_name: sopm-distribution-service
+    environment:
+      # C++ сервис ходит назад в project-service за заявками/проектами/
+      # пользователями, и шлёт internal-service-token для прохода через
+      # middleware/auth.AuthContextWithServiceToken.
+      DIST_SERVICE_http_port: "8090"
+      DIST_SERVICE_projects_service_url: http://project-service:8080
+      DIST_SERVICE_users_service_url: http://project-service:8080
+      DIST_SERVICE_applications_service_url: http://project-service:8080
+      DIST_SERVICE_internal_service_token: ${INTERNAL_SERVICE_TOKEN:-}
+      DIST_SERVICE_log_level: INFO
+    expose:
+      - "8090"
+    depends_on:
+      - project-service
     restart: unless-stopped
 
   web:

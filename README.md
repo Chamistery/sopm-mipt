@@ -18,13 +18,14 @@ make up                 # собрать образы и поднять postgres
 open http://localhost:8080
 ```
 
-Поднимет три контейнера:
+Поднимет четыре контейнера:
 
-| Сервис            | Назначение                                                      |
-| ----------------- | --------------------------------------------------------------- |
-| `sopm-postgres`   | PostgreSQL 16, миграции применяются автоматически на init       |
-| `sopm-project-service` | Go API на порту 8080 (внутри docker-сети)                  |
-| `sopm-web`        | nginx: SPA на `/`, проксирует `/api` и `/health` на бэкенд       |
+| Сервис                       | Назначение                                                                |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `sopm-postgres`              | PostgreSQL 16, миграции применяются автоматически на init                 |
+| `sopm-project-service`       | Go API на порту 8080 (внутри docker-сети)                                 |
+| `sopm-distribution-service`  | C++ Гейля-Шепли на 8090, проксируется через project-service               |
+| `sopm-web`                   | nginx: SPA на `/`, проксирует `/api` и `/health` на бэкенд                |
 
 Дополнительные команды:
 
@@ -41,6 +42,12 @@ make seed           # применить seed-SQL, если он есть
 
 - `PORT` — внешний порт для web (по умолчанию `8080`)
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` — креды БД
+- `INTERNAL_SERVICE_TOKEN` — общий секрет между `project-service` и
+  `distribution-service` (см. [backend/distribution_service/](backend/distribution_service/)).
+  Если пустой — distribution-service ходит к Go без service-token'а
+  (project-service не аутентифицирует входящие, а Go отдаёт 401/403 на
+  попытках доступа к защищённым ручкам). В проде задать длинной случайной
+  строкой.
 
 ## Backend-only dev
 
