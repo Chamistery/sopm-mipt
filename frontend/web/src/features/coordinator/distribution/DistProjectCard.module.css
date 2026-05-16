@@ -112,7 +112,6 @@
   margin: 10px 0 5px;
   cursor: grab;
   user-select: none;
-  transition: box-shadow 0.15s, transform 0.08s, border-color 0.12s;
 }
 
 .chip:first-child {

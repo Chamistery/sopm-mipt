@@ -7,7 +7,6 @@
   background: var(--surface);
   border-radius: 8px;
   border: 2px dashed transparent;
-  transition: all 0.15s;
   min-width: 0;
 }
 
@@ -42,9 +41,6 @@
   font-size: 13px;
   font-weight: 500;
   user-select: none;
-  transition:
-    box-shadow 0.15s,
-    transform 0.1s;
   min-width: 0;
   width: 100%;
   overflow: hidden;
@@ -62,13 +58,11 @@
   cursor: grabbing;
 }
 
-/* Scale+shadow только во время реального drag (после dragstart), а не
- * на любом mousedown. Иначе клик по кнопке ✕/✓ внутри чипа тригерил
- * :active на родителе и чип «пульсировал». */
+/* Только opacity — никаких transform/scale во время drag, иначе браузер
+ * снимает drag-image в момент промежуточной анимации (scale 1.03) и чип
+ * визуально «отстаёт» от курсора. */
 .chipDragging {
   opacity: 0.4;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: scale(1.03);
 }
 
 .chipAccepted {

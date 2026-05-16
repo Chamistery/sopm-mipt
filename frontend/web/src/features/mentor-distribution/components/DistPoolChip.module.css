@@ -11,12 +11,6 @@
   border-radius: 7px;
   cursor: grab;
   user-select: none;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    box-shadow 0.15s,
-    opacity 0.1s,
-    transform 0.1s;
 }
 
 .chip:hover {
@@ -30,8 +24,6 @@
 
 .dragging {
   opacity: 0.4;
-  transform: scale(1.03);
-  box-shadow: var(--shadow-md);
 }
 
 .avatar {
