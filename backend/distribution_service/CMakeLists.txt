@@ -7,7 +7,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Зависимости
 find_package(CURL REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(httplib REQUIRED)
+
+# cpp-httplib обычно header-only. Через vcpkg/conan приходит CMake-config
+# (httplib::httplib), но в Ubuntu пакете libcpp-httplib-dev его нет — только
+# /usr/include/httplib.h. Поддерживаем оба случая.
+find_package(httplib QUIET CONFIG)
+if(NOT httplib_FOUND)
+    # Ubuntu's libcpp-httplib-dev ships /usr/include/httplib.h + a
+    # compiled libcpp-httplib.so (it patches out HEADER_ONLY). Find both.
+    find_path(HTTPLIB_INCLUDE_DIR httplib.h REQUIRED)
+    find_library(HTTPLIB_LIBRARY NAMES cpp-httplib httplib)
+    add_library(httplib::httplib INTERFACE IMPORTED)
+    target_include_directories(httplib::httplib INTERFACE ${HTTPLIB_INCLUDE_DIR})
+    if(HTTPLIB_LIBRARY)
+        target_link_libraries(httplib::httplib INTERFACE ${HTTPLIB_LIBRARY})
+    endif()
+endif()
 
 # Исходные файлы
 set(SOURCES
