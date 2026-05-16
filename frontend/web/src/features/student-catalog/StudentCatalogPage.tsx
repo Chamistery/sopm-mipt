@@ -402,6 +402,28 @@ function ChoicesTab({
     return m;
   }, [projects]);
 
+  /*
+   * Источник drag трекаем здесь, а не через DataTransfer — повторяем подход
+   * прототипа (student.html: модульная переменная `dragFrom`). Так надёжнее
+   * на всех браузерах и не зависит от MIME-типа в dataTransfer.
+   */
+  const dragFromRef = useRef<number | null>(null);
+
+  const handleDragStartSlot = (from: number): void => {
+    dragFromRef.current = from;
+  };
+
+  const handleDropOnSlot = (to: number): void => {
+    const from = dragFromRef.current;
+    dragFromRef.current = null;
+    if (from === null || from === to) return;
+    onSwap(from, to);
+  };
+
+  const handleDragEndSlot = (): void => {
+    dragFromRef.current = null;
+  };
+
   return (
     <div className={styles.choices}>
       <p className={styles.choicesHint}>
@@ -422,7 +444,9 @@ function ChoicesTab({
               justFilled={justFilledSlot === i}
               onRemove={onRemove}
               onShowDetails={onShowDetails}
-              onSwap={onSwap}
+              onDragStartSlot={handleDragStartSlot}
+              onDropOnSlot={handleDropOnSlot}
+              onDragEndSlot={handleDragEndSlot}
             />
           );
         })}

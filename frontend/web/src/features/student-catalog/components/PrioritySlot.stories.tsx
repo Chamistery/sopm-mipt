@@ -31,7 +31,9 @@ const meta = {
     justFilled: false,
     onRemove: () => {},
     onShowDetails: () => {},
-    onSwap: () => {},
+    onDragStartSlot: () => {},
+    onDropOnSlot: () => {},
+    onDragEndSlot: () => {},
   },
   decorators: [
     (Story): JSX.Element => (
