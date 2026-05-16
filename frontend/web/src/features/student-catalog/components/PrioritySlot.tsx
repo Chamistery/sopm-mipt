@@ -13,11 +13,13 @@ interface Props {
   justFilled?: boolean;
   onRemove: (id: number) => void;
   onShowDetails: (id: number) => void;
-  /** Swap content between two slots (or move one into an empty slot). */
-  onSwap: (from: number, to: number) => void;
+  /** Notify parent that a drag from this slot index has started. */
+  onDragStartSlot: (from: number) => void;
+  /** Notify parent that a drop happened on this slot index. */
+  onDropOnSlot: (to: number) => void;
+  /** Notify parent that the current drag operation ended (cleanup). */
+  onDragEndSlot: () => void;
 }
-
-const DRAG_MIME = 'application/x-sopm-slot';
 
 function DragIcon(): JSX.Element {
   return (
@@ -46,7 +48,9 @@ export function PrioritySlot({
   justFilled = false,
   onRemove,
   onShowDetails,
-  onSwap,
+  onDragStartSlot,
+  onDropOnSlot,
+  onDragEndSlot,
 }: Props): JSX.Element {
   const [dragOver, setDragOver] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -67,22 +71,23 @@ export function PrioritySlot({
     if (readOnly) return;
     e.preventDefault();
     setDragOver(false);
-    const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
-    const from = Number.parseInt(raw, 10);
-    if (Number.isFinite(from) && from !== index) {
-      onSwap(from, index);
-    }
+    onDropOnSlot(index);
   };
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>): void => {
     e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData(DRAG_MIME, String(index));
+    /*
+     * Firefox требует setData, иначе drag не стартует.
+     * Контент не используем — источник трекаем через ref в родителе.
+     */
     e.dataTransfer.setData('text/plain', String(index));
     setDragging(true);
+    onDragStartSlot(index);
   };
 
   const handleDragEnd = (): void => {
     setDragging(false);
+    onDragEndSlot();
   };
 
   return (
