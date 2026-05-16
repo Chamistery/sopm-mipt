@@ -1048,5 +1048,14 @@ export const handlers = [
 
   // ─── Distribution ──────────────────────────────────────────────────────
   http.get(`${API}/distribution/status`, () => ok(fixtureDistributionStatus)),
-  http.post(`${API}/distribution/generate`, () => ok({ message: 'started' })),
+  http.post(`${API}/distribution/generate`, () =>
+    ok({
+      state: 'завершено',
+      applied: 12,
+      skipped: 1,
+      recommendedCount: 10,
+      notRecommendedCount: 3,
+      message: 'Распределение завершено: 10 рекомендовано, 3 не рекомендовано (применено 12, пропущено 1 ручных решений)',
+    }),
+  ),
 ];

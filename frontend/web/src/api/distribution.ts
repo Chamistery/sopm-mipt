@@ -1,8 +1,9 @@
 /*
- * Distribution service is a separate microservice that is not yet on origin.
- * The project-service exposes thin proxy stubs at /api/distribution/*; we
- * call them directly and translate transport errors into domain values so
- * the UI can render «временно недоступен» without exposing stack traces.
+ * Distribution-сервис — отдельный C++ микросервис, project-service
+ * проксирует его через POST /api/distribution/generate и GET
+ * /api/distribution/status. При DISTRIBUTION_SERVICE_URL="" Go-сторона
+ * фолбэчится на встроенный наивный алгоритм; при недоступности —
+ * возвращает 503, который мы здесь маппим в stage='unavailable'.
  */
 
 import { ApiError, apiFetch } from './client';
@@ -17,7 +18,20 @@ export interface DistributionStatus {
   finishedAt?: string;
 }
 
+/**
+ * Результат вызова /api/distribution/generate. Бэкенд (после интеграции
+ * с C++ Гейля-Шепли) возвращает счётчики; UI показывает их в popup'е.
+ *
+ * `applied` — сколько заявок реально перевели в новый статус;
+ * `skipped` — сколько пропустили (защита ручных решений: статусы
+ * «Принят» / «Принято ментором» алгоритм не перезаписывает).
+ */
 export interface DistributionRunResult {
+  state: string;
+  applied: number;
+  skipped: number;
+  recommendedCount: number;
+  notRecommendedCount: number;
   message: string;
   raw: unknown;
 }
@@ -29,6 +43,15 @@ interface RawDistributionStatus {
   message?: string;
   startedAt?: string;
   finishedAt?: string;
+}
+
+interface RawDistributionRunResult {
+  state?: string;
+  applied?: number;
+  skipped?: number;
+  recommendedCount?: number;
+  notRecommendedCount?: number;
+  message?: string;
 }
 
 const RUNNING_TOKENS = ['running', 'in_progress', 'processing', 'в работе', 'выполняется'];
@@ -63,10 +86,21 @@ function isUnavailable(err: unknown): boolean {
   return err.status === 404 || err.status === 501 || err.status === 503;
 }
 
+/** Признак, что распределение недоступно (для catch в UI). */
+export function isDistributionUnavailable(err: unknown): boolean {
+  return isUnavailable(err);
+}
+
 export async function generateDistribution(): Promise<DistributionRunResult> {
   const data = await apiFetch<unknown>('/distribution/generate', { method: 'POST' });
+  const r = (data && typeof data === 'object' ? (data as RawDistributionRunResult) : {}) as RawDistributionRunResult;
   return {
-    message: extractMessage(data) ?? 'Запуск распределения принят сервисом',
+    state: r.state ?? 'завершено',
+    applied: typeof r.applied === 'number' ? r.applied : 0,
+    skipped: typeof r.skipped === 'number' ? r.skipped : 0,
+    recommendedCount: typeof r.recommendedCount === 'number' ? r.recommendedCount : 0,
+    notRecommendedCount: typeof r.notRecommendedCount === 'number' ? r.notRecommendedCount : 0,
+    message: r.message ?? extractMessage(data) ?? 'Распределение завершено',
     raw: data,
   };
 }

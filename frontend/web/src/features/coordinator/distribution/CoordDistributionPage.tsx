@@ -40,11 +40,17 @@ import type {
 } from '@/api/coordinatorDistribution';
 import { useToast } from '@/_shared/Toast';
 import {
+  generateDistribution,
+  isDistributionUnavailable,
+  type DistributionRunResult,
+} from '@/api/distribution';
+import {
   COORDINATOR_DISTRIBUTION_KEY,
   useCoordinatorDistribution,
 } from '../hooks/useCoordinatorDistribution';
 import { DistProjectCard } from './DistProjectCard';
 import { DistPool } from './DistPool';
+import { DistributionResultModal } from './DistributionResultModal';
 import { DistStudentDrawer, type DrawerStudent } from './DistStudentDrawer';
 import { useSetApplicationStatus } from './useStatusMutation';
 import type { DistDragPayload } from './dragData';
@@ -66,6 +72,23 @@ export function CoordDistributionPage(): JSX.Element {
   const [statusFilter, setStatusFilter] = useState('');
   const [collapsedProjects, setCollapsedProjects] = useState<Set<number>>(new Set());
   const [drawerSelection, setDrawerSelection] = useState<DrawerSelection | null>(null);
+  const [runResult, setRunResult] = useState<DistributionRunResult | null>(null);
+
+  const runMutation = useMutation({
+    mutationFn: generateDistribution,
+    onSuccess: (result) => {
+      setRunResult(result);
+      // Свежая выборка после применения новых статусов.
+      void queryClient.invalidateQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
+    },
+    onError: (err) => {
+      if (isDistributionUnavailable(err)) {
+        showError('Сервис распределения временно недоступен');
+      } else {
+        showError(formatError(err, 'Не удалось запустить распределение'));
+      }
+    },
+  });
 
   // Drawer-DTO собираем из FRESH-данных при каждом рендере. Так после
   // мутации (смена статуса / move-team) drawer мгновенно показывает
@@ -363,10 +386,11 @@ export function CoordDistributionPage(): JSX.Element {
         <button
           type="button"
           className={styles.btnPrimary}
-          onClick={() => showError('Сервис распределения временно недоступен')}
+          onClick={() => runMutation.mutate()}
+          disabled={runMutation.isPending}
         >
           <CheckIcon />
-          Запустить распределение
+          {runMutation.isPending ? 'Распределение…' : 'Запустить распределение'}
         </button>
       </div>
 
@@ -417,6 +441,10 @@ export function CoordDistributionPage(): JSX.Element {
         onSetStatus={handleSetStatus}
         onClose={() => setDrawerSelection(null)}
       />
+
+      {runResult ? (
+        <DistributionResultModal result={runResult} onClose={() => setRunResult(null)} />
+      ) : null}
     </div>
   );
 }
