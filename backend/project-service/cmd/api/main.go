@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/hsse/project-service/internal/config"
@@ -223,7 +224,8 @@ func main() {
 		defenseHandler,
 		coordinatorGradingHandler,
 	)
-	handler := middleware.Logger(middleware.AuthContext(middleware.CORS(mux)))
+	authMiddleware := middleware.AuthContextWithServiceToken(os.Getenv("INTERNAL_SERVICE_TOKEN"))
+	handler := middleware.Logger(authMiddleware(middleware.CORS(mux)))
 	addr := cfg.Server.Host + ":" + cfg.Server.Port
 	server := createServer(addr, handler)
 	log.Printf("Starting server on %s", addr)

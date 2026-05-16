@@ -18,8 +18,9 @@ const (
 )
 
 type CurrentUser struct {
-	ID   int  `json:"id"`
-	Role Role `json:"role"`
+	ID        int  `json:"id"`
+	Role      Role `json:"role"`
+	IsService bool `json:"-"`
 }
 
 type contextKey string
@@ -68,7 +69,12 @@ func UserFromContext(ctx context.Context) *CurrentUser {
 }
 
 func (u *CurrentUser) IsAuthenticated() bool {
-	return u != nil && u.ID > 0 && u.Role != RoleAnonymous
+	if u == nil || u.Role == RoleAnonymous {
+		return false
+	}
+	// Service-token устанавливает Role + IsService, но ID нулевой
+	// (системный вызов от distribution_service).
+	return u.ID > 0 || u.IsService
 }
 
 func (u *CurrentUser) HasAnyRole(roles ...Role) bool {
