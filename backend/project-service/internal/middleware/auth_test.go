@@ -32,7 +32,7 @@ func TestAuthContextWithServiceToken_AllowedPath(t *testing.T) {
 		got = auth.UserFromContext(r.Context())
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/api/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/internal/distribution/input", nil)
 	req.Header.Set("X-Internal-Service-Token", "secret")
 	rr := httptest.NewRecorder()
 	handler.ServeHTTP(rr, req)
@@ -70,7 +70,7 @@ func TestAuthContextWithServiceToken_WrongToken_FallsBackToHeaders(t *testing.T)
 		got = auth.UserFromContext(r.Context())
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/api/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/internal/distribution/input", nil)
 	req.Header.Set("X-Internal-Service-Token", "wrong")
 	req.Header.Set("X-User-Id", "7")
 	req.Header.Set("X-User-Role", "student")
@@ -90,7 +90,7 @@ func TestAuthContextWithServiceToken_EmptyExpected_Disabled(t *testing.T) {
 		got = auth.UserFromContext(r.Context())
 	}))
 
-	req := httptest.NewRequest(http.MethodGet, "/api/projects", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/internal/distribution/input", nil)
 	req.Header.Set("X-Internal-Service-Token", "anything")
 	req.Header.Set("X-User-Id", "1")
 	req.Header.Set("X-User-Role", "mentor")

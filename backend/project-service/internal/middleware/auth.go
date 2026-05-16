@@ -15,9 +15,9 @@ import (
 // сервиса распределения или утечки токена.
 var serviceAllowlist = map[string]map[string]struct{}{
 	http.MethodGet: {
-		"/api/projects":             {},
-		"/api/users":                {},
-		"/api/applications/project": {},
+		// distribution_service берёт всё, что нужно для алгоритма
+		// Гейля-Шепли, одним вызовом — internal-snapshot endpoint.
+		"/api/internal/distribution/input": {},
 	},
 }
 

@@ -33,6 +33,7 @@ func setupRoutes(
 	coordinatorApplicationsHandler *handlers.CoordinatorApplicationsHandler,
 	defenseHandler *handlers.DefenseHandler,
 	coordinatorGradingHandler *handlers.CoordinatorGradingHandler,
+	internalDistributionHandler *handlers.InternalDistributionHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
@@ -126,6 +127,7 @@ func setupRoutes(
 
 	mux.HandleFunc("POST /api/distribution/generate", distributionHandler.Generate)
 	mux.HandleFunc("GET /api/distribution/status", distributionHandler.Status)
+	mux.HandleFunc("GET /api/internal/distribution/input", internalDistributionHandler.Input)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -210,6 +212,7 @@ func main() {
 	defenseHandler := handlers.NewDefenseHandler(defenseRepo)
 	coordinatorGradingRepo := repository.NewCoordinatorGradingRepository(db.Pool)
 	coordinatorGradingHandler := handlers.NewCoordinatorGradingHandler(coordinatorGradingRepo)
+	internalDistributionHandler := handlers.NewInternalDistributionHandler(projectRepo, teamRepo, userRepo, applicationRepo)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -230,6 +233,7 @@ func main() {
 		coordinatorApplicationsHandler,
 		defenseHandler,
 		coordinatorGradingHandler,
+		internalDistributionHandler,
 	)
 	authMiddleware := middleware.AuthContextWithServiceToken(os.Getenv("INTERNAL_SERVICE_TOKEN"))
 	// Порядок: Auth → Logger → CORS → mux. Auth снаружи Logger'а, иначе

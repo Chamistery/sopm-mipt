@@ -1,4 +1,3 @@
-#include <iostream>
 #include <memory>
 #include <thread>
 #include <chrono>
@@ -8,9 +7,7 @@
 #include "./core/services/distribution_service.hpp"
 #include "./algorithms/gale_shapley.hpp"
 #include "./adapters/driving/http_server/http_server.hpp"
-#include "./adapters/driven/http/applications_adapter.hpp"
-#include "./adapters/driven/http/projects_adapter.hpp"
-#include "./adapters/driven/http/students_adapter.hpp"
+#include "./adapters/driven/http/distribution_input_adapter.hpp"
 
 using json = nlohmann::json;
 
@@ -30,14 +27,8 @@ static std::shared_ptr<Core::Services::DistributionService> CreateDistributionSe
     Core::Logger::Logger::Info("Creating distribution service dependencies");
 
     int timeout = config->GetHttpTimeout();
-    auto applications_adapter = std::make_shared<Adapters::Driven::HTTP::HttpApplicationsAdapter>(config, timeout);
-    auto projects_adapter = std::make_shared<Adapters::Driven::HTTP::HttpProjectsAdapter>(config, timeout);
-    auto students_adapter = std::make_shared<Adapters::Driven::HTTP::HttpStudentsAdapter>(config, timeout);
-
-    auto service = std::make_shared<Core::Services::DistributionService>(
-        applications_adapter,
-        projects_adapter,
-        students_adapter);
+    auto input_adapter = std::make_shared<Adapters::Driven::HTTP::HttpDistributionInputAdapter>(config, timeout);
+    auto service = std::make_shared<Core::Services::DistributionService>(input_adapter);
 
     Core::Logger::Logger::Info("Distribution service created successfully");
     return service;

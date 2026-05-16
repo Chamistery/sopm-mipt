@@ -1,47 +1,31 @@
 #ifndef CORE_SERVICES_DISTRIBUTION_SERVICE_HPP
 #define CORE_SERVICES_DISTRIBUTION_SERVICE_HPP
 
-#include <vector>
-#include <string>
 #include <memory>
-#include "../ports/driven/applications_port.hpp"
-#include "../ports/driven/projects_port.hpp"
-#include "../ports/driven/students_port.hpp"
-#include "../domain/models.hpp"
+#include "../ports/driven/distribution_input_port.hpp"
 #include "../../algorithms/gale_shapley.hpp"
 
 namespace Core::Services {
 
-using namespace Core::Domain;
 using namespace Core::Ports::Driven;
 using namespace Core::Algorithms;
 
 /**
- * Основной сервис распределения студентов
- * Орхестрирует получение данных через адаптеры и вызов алгоритма распределения
+ * Основной сервис распределения. Берёт снимок данных (проекты, студенты,
+ * заявки) из одного источника, прогоняет Гейля-Шепли, возвращает
+ * результат вызывающей стороне (HTTP-handler сериализует в JSON, а
+ * project-service применяет к БД в транзакции).
+ *
+ * Никаких записей здесь — это «чистый калькулятор».
  */
 class DistributionService {
 private:
-    std::shared_ptr<IApplicationsPort> applications_port_;
-    std::shared_ptr<IProjectsPort> projects_port_;
-    std::shared_ptr<IStudentsPort> students_port_;
+    std::shared_ptr<IDistributionInputPort> input_port_;
 
 public:
-    DistributionService(
-        std::shared_ptr<IApplicationsPort> applications_port,
-        std::shared_ptr<IProjectsPort> projects_port,
-        std::shared_ptr<IStudentsPort> students_port);
-
+    explicit DistributionService(std::shared_ptr<IDistributionInputPort> input_port);
     virtual ~DistributionService() = default;
 
-    /**
-     * Выполнить полный цикл распределения:
-     * 1. Получить все заявки
-     * 2. Получить все проекты и команды
-     * 3. Получить информацию о студентах
-     * 4. Запустить алгоритм распределения
-     * 5. Обновить статусы заявок
-     */
     DistributionAlgorithm::Result ExecuteDistribution();
 };
 

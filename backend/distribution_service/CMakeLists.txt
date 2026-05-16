@@ -27,19 +27,17 @@ endif()
 # Исходные файлы
 set(SOURCES
     main.cpp
-    
+
     # Core
     core/config/config_manager.cpp
     core/services/distribution_service.cpp
-    
+
     # Algorithms
     algorithms/gale_shapley.cpp
-    
+
     # Adapters - HTTP
-    adapters/driven/http/applications_adapter.cpp
-    adapters/driven/http/projects_adapter.cpp
-    adapters/driven/http/students_adapter.cpp
-    
+    adapters/driven/http/distribution_input_adapter.cpp
+
     # Adapters - Driving
     adapters/driving/http_server/http_server.cpp
 )
