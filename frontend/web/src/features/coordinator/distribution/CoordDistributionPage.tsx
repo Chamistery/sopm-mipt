@@ -32,6 +32,7 @@ import {
   recommendApplicant,
   submitApplication,
   unrecommendApplicant,
+  type ApplicationStatus,
 } from '@/api/applications';
 import type {
   CoordinatorDistributionProject,
@@ -53,6 +54,11 @@ import { DistPool } from './DistPool';
 import { DistributionResultModal } from './DistributionResultModal';
 import { DistStudentDrawer, type DrawerStudent } from './DistStudentDrawer';
 import { useSetApplicationStatus } from './useStatusMutation';
+import {
+  moveMemberToTeam,
+  recommendFromPool,
+  unrecommendToPool,
+} from './optimistic';
 import type { DistDragPayload } from './dragData';
 import styles from './CoordDistributionPage.module.css';
 
@@ -102,33 +108,71 @@ export function CoordDistributionPage(): JSX.Element {
     void queryClient.invalidateQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
   };
 
-  const recommendMut = useMutation({
-    mutationFn: ({ id, teamId }: { id: number; teamId: number }) =>
-      recommendApplicant(id, teamId),
-    onSuccess: () => {
-      invalidate();
-      showSuccess('Студент перемещён');
+  // Optimistic-обёртка над setQueryData: возвращает snapshot для
+  // отката в onError. Применяется в трёх главных D&D-мутациях, чтобы
+  // чип появился на новом месте до сетевого ответа (раньше пользователь
+  // ждал ~150-400ms между drop и визуальным переходом).
+  type DistData = CoordinatorDistributionResponse | undefined;
+  type Snapshot = { previous: DistData };
+  const optimistic = (
+    updater: (prev: DistData) => DistData,
+  ): Snapshot => {
+    void queryClient.cancelQueries({ queryKey: COORDINATOR_DISTRIBUTION_KEY });
+    const previous = queryClient.getQueryData<CoordinatorDistributionResponse>(COORDINATOR_DISTRIBUTION_KEY);
+    queryClient.setQueryData<CoordinatorDistributionResponse | undefined>(
+      COORDINATOR_DISTRIBUTION_KEY,
+      updater,
+    );
+    return { previous };
+  };
+  const rollback = (snap: Snapshot | undefined): void => {
+    if (snap?.previous !== undefined) {
+      queryClient.setQueryData(COORDINATOR_DISTRIBUTION_KEY, snap.previous);
+    }
+  };
+
+  // Намеренно НЕТ invalidate() в onSuccess: optimistic уже привёл кэш
+  // в то же состояние, которое вернёт сервер. invalidate сделал бы
+  // лишний refetch + ре-рендер всего tree после уже состоявшегося D&D —
+  // именно это раньше создавало визуальную «задержку» на 100-300ms.
+  const recommendMut = useMutation<
+    unknown,
+    unknown,
+    { id: number; teamId: number; studentId?: number; projectId?: number; fromPool?: boolean },
+    Snapshot
+  >({
+    mutationFn: ({ id, teamId }) => recommendApplicant(id, teamId),
+    onMutate: ({ id, teamId, studentId, projectId, fromPool }) => {
+      if (fromPool && studentId != null && projectId != null) {
+        return optimistic(recommendFromPool(id, studentId, projectId, teamId, 'Рекомендован'));
+      }
+      return optimistic(moveMemberToTeam(id, teamId, 'Рекомендован'));
     },
-    onError: (err) => showError(formatError(err, 'Не удалось переместить студента')),
+    onSuccess: () => showSuccess('Студент перемещён'),
+    onError: (err, _vars, snap) => {
+      rollback(snap);
+      showError(formatError(err, 'Не удалось переместить студента'));
+    },
   });
 
-  const moveTeamMut = useMutation({
-    mutationFn: ({ id, teamId }: { id: number; teamId: number }) =>
-      moveApplicationToTeam(id, teamId),
-    onSuccess: () => {
-      invalidate();
-      showSuccess('Студент перемещён (статус сохранён)');
+  const moveTeamMut = useMutation<unknown, unknown, { id: number; teamId: number; currentStatus: ApplicationStatus }, Snapshot>({
+    mutationFn: ({ id, teamId }) => moveApplicationToTeam(id, teamId),
+    onMutate: ({ id, teamId, currentStatus }) => optimistic(moveMemberToTeam(id, teamId, currentStatus)),
+    onSuccess: () => showSuccess('Студент перемещён (статус сохранён)'),
+    onError: (err, _vars, snap) => {
+      rollback(snap);
+      showError(formatError(err, 'Не удалось переместить студента'));
     },
-    onError: (err) => showError(formatError(err, 'Не удалось переместить студента')),
   });
 
-  const unrecommendMut = useMutation({
+  const unrecommendMut = useMutation<unknown, unknown, number, Snapshot>({
     mutationFn: (id: number) => unrecommendApplicant(id),
-    onSuccess: () => {
-      invalidate();
-      showSuccess('Студент возвращён в пул');
+    onMutate: (id) => optimistic(unrecommendToPool(id)),
+    onSuccess: () => showSuccess('Студент возвращён в пул'),
+    onError: (err, _vars, snap) => {
+      rollback(snap);
+      showError(formatError(err, 'Не удалось вернуть студента в пул'));
     },
-    onError: (err) => showError(formatError(err, 'Не удалось вернуть студента в пул')),
   });
 
   const forceCreateMut = useMutation({
@@ -270,13 +314,23 @@ export function CoordDistributionPage(): JSX.Element {
         recommendMut.mutate({ id: payload.applicationId, teamId });
         return;
       }
-      moveTeamMut.mutate({ id: payload.applicationId, teamId });
+      moveTeamMut.mutate({
+        id: payload.applicationId,
+        teamId,
+        currentStatus: payload.sourceStatus as ApplicationStatus,
+      });
       return;
     }
     // payload.kind === 'pool-student'
     const existing = payload.applicationsByProject[projectId];
     if (existing) {
-      recommendMut.mutate({ id: existing, teamId });
+      recommendMut.mutate({
+        id: existing,
+        teamId,
+        studentId: payload.studentId,
+        projectId,
+        fromPool: true,
+      });
       return;
     }
     // Force-create: студент не подавал заявку на этот проект.
