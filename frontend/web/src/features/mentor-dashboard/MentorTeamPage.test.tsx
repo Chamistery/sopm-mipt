@@ -123,15 +123,18 @@ describe('MentorTeamPage', () => {
     expect(buttons).toHaveLength(2);
   });
 
-  it('hides «Сделать тимлидом» buttons when leader is already assigned', async () => {
+  it('shows «Сделать тимлидом» on non-leaders even after leader is assigned (reassign supported)', async () => {
     renderAt(
       '/mentor/teams/300',
       makeTeam({ leaderId: 3, leader: TEAMLEAD }),
     );
 
     expect(await screen.findByRole('heading', { name: 'Команда 1' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Сделать тимлидом/ })).not.toBeInTheDocument();
+    // Подсказка про «нет тимлида» уходит, потому что лидер уже назначен.
     expect(screen.queryByText(/Тимлид ещё не назначен/)).not.toBeInTheDocument();
+    // Кнопка остаётся у всех, кроме самого лидера (членов 2, лидер 1, кнопок ожидаем 1).
+    const buttons = screen.getAllByRole('button', { name: /Сделать тимлидом/ });
+    expect(buttons).toHaveLength(1);
   });
 
   it('selects the meetings tab when ?tab=meetings and renders the meetings sections', async () => {

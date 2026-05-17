@@ -18,11 +18,13 @@
  *   - Шапка проекта линкуется на /admin/projects/:id, а не /mentor.
  */
 
-import type { JSX } from 'react';
+import { useState, type JSX } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError } from '@/api/client';
-import { type Team, type TeamMember } from '@/api/teams';
+import { useToast } from '@/_shared/Toast';
+import { assignTeamLeader, type Team, type TeamMember } from '@/api/teams';
 import { useProject } from '@/features/mentor-dashboard/hooks/useProject';
 import { useTeam } from '@/features/mentor-dashboard/hooks/useTeam';
 import { avatarColorByIndex, initials } from '@/features/student-project/lib/people';
@@ -180,10 +182,39 @@ function Tab({ active, label, onClick }: TabProps): JSX.Element {
 }
 
 function MembersCard({ team }: { team: Team }): JSX.Element {
+  const queryClient = useQueryClient();
+  const { showSuccess } = useToast();
+  const [serverError, setServerError] = useState<string | null>(null);
+
+  const assignMutation = useMutation({
+    mutationFn: ({ userId }: { userId: number; displayName: string }) =>
+      assignTeamLeader(team.id, userId),
+    onSuccess: async (_data, vars) => {
+      setServerError(null);
+      showSuccess(`${vars.displayName} назначен тимлидом`);
+      await queryClient.invalidateQueries({ queryKey: ['team', team.id] });
+    },
+    onError: (err: unknown) => {
+      setServerError(
+        err instanceof ApiError
+          ? `Ошибка ${err.status}: ${err.message}`
+          : err instanceof Error
+            ? err.message
+            : 'Не удалось назначить тимлида',
+      );
+    },
+  });
+
   const members = team.members ?? [];
+  const hasLeader = team.leaderId != null && team.leaderId > 0;
+  const currentLeader = members.find((m) => m.userId === team.leaderId);
+  const currentLeaderName = currentLeader
+    ? `${currentLeader.user.lastName} ${currentLeader.user.firstName.charAt(0)}.`
+    : null;
 
   return (
     <section className={styles.membersCard} aria-label="Состав команды">
+      {serverError ? <div className={styles.empty} role="alert">{serverError}</div> : null}
       {members.length === 0 ? (
         <div className={styles.empty}>В команде пока нет участников.</div>
       ) : (
@@ -194,6 +225,19 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
               member={m}
               avatarBg={avatarColorByIndex(idx)}
               isLeader={team.leaderId === m.userId}
+              isAssigning={
+                assignMutation.isPending && assignMutation.variables?.userId === m.userId
+              }
+              onAssign={() => {
+                const displayName = `${m.user.lastName} ${m.user.firstName.charAt(0)}.`.trim();
+                if (hasLeader && currentLeaderName) {
+                  const ok = window.confirm(
+                    `Текущий тимлид: ${currentLeaderName}. Назначить тимлидом ${displayName}?`,
+                  );
+                  if (!ok) return;
+                }
+                assignMutation.mutate({ userId: m.userId, displayName });
+              }}
             />
           ))}
         </div>
@@ -206,9 +250,11 @@ interface MemberChipProps {
   member: TeamMember;
   avatarBg: string;
   isLeader: boolean;
+  isAssigning: boolean;
+  onAssign: () => void;
 }
 
-function MemberChip({ member, avatarBg, isLeader }: MemberChipProps): JSX.Element {
+function MemberChip({ member, avatarBg, isLeader, isAssigning, onAssign }: MemberChipProps): JSX.Element {
   const person = {
     firstName: member.user.firstName,
     lastName: member.user.lastName,
@@ -226,6 +272,17 @@ function MemberChip({ member, avatarBg, isLeader }: MemberChipProps): JSX.Elemen
           {isLeader ? <span className={styles.memberLeaderBadge}>Лидер</span> : null}
         </div>
       </div>
+      {!isLeader ? (
+        <button
+          type="button"
+          className={styles.assignBtn}
+          onClick={onAssign}
+          disabled={isAssigning}
+          title="Назначить тимлидом команды"
+        >
+          {isAssigning ? 'Назначаем…' : 'Сделать тимлидом'}
+        </button>
+      ) : null}
     </div>
   );
 }

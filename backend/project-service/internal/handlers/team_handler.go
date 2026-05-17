@@ -95,10 +95,14 @@ func (h *TeamHandler) Update(w http.ResponseWriter, r *http.Request) {
 	httputil.RespondSuccess(w, http.StatusOK, updated)
 }
 
-// SetLeader — POST /api/teams/{id}/leader. Ментор/координатор/админ
-// назначает тимлида команде. One-shot: если leader_id уже установлен,
-// возвращаем 409 Conflict (как в прототипе UI: «назначить можно только
-// один раз»).
+// SetLeader — POST /api/teams/{id}/leader. Координатор может менять
+// тимлида любой команды; ментор — только в собственном проекте. Менять
+// можно сколько угодно раз (раньше был one-shot, но это противоречило
+// процессу: тимлид может уйти, заболеть, его могут заменить).
+//
+// Кандидат на тимлида ОБЯЗАН быть участником команды (запись в
+// team_members), иначе получим тимлида со стороны — это противоречит
+// модели и сломает все view, где лидер ожидается из members[].
 func (h *TeamHandler) SetLeader(w http.ResponseWriter, r *http.Request) {
 	user := currentUser(r)
 	if !user.HasAnyRole(auth.RoleMentor, auth.RoleCoordinator) {
@@ -122,7 +126,6 @@ func (h *TeamHandler) SetLeader(w http.ResponseWriter, r *http.Request) {
 		respondServiceError(w, err)
 		return
 	}
-	// Mentor — только в собственном проекте.
 	if user.Role == auth.RoleMentor {
 		project, err := h.projects.GetByID(r.Context(), team.ProjectID)
 		if err != nil {
@@ -134,9 +137,18 @@ func (h *TeamHandler) SetLeader(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// One-shot.
-	if team.LeaderID != nil && *team.LeaderID > 0 {
-		httputil.RespondError(w, http.StatusConflict, "team already has a leader")
+	// Идемпотентность: если тимлид тот же — возвращаем 200, не дёргаем БД.
+	if team.LeaderID != nil && *team.LeaderID == body.UserID {
+		httputil.RespondSuccess(w, http.StatusOK, team)
+		return
+	}
+	isMember, err := h.repo.IsMember(r.Context(), id, body.UserID)
+	if err != nil {
+		respondServiceError(w, err)
+		return
+	}
+	if !isMember {
+		httputil.RespondError(w, http.StatusBadRequest, "leader must be a member of the team")
 		return
 	}
 	updated := *team

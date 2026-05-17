@@ -195,15 +195,17 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
   // расходиться с PUT-результатом (бэк правит leaderId, но не пере-
   // присваивает members[].isLeader пока инвалидация не дойдёт).
   const hasLeader = team.leaderId != null && team.leaderId > 0;
+  const currentLeaderName = (() => {
+    const leader = members.find((m) => m.userId === team.leaderId);
+    return leader ? `${leader.user.lastName} ${leader.user.firstName.charAt(0)}.` : null;
+  })();
 
   return (
     <section className={styles.membersCard} aria-label="Состав команды">
       {!hasLeader ? (
         <div className={styles.leaderHint} role="note">
           <HintIcon />
-          <span>
-            Тимлид ещё не назначен. Выберите студента из состава — назначить можно только один раз.
-          </span>
+          <span>Тимлид ещё не назначен. Выберите студента из состава.</span>
         </div>
       ) : null}
 
@@ -219,16 +221,20 @@ function MembersCard({ team }: { team: Team }): JSX.Element {
               member={m}
               avatarBg={avatarColorByIndex(idx)}
               isLeader={team.leaderId === m.userId}
-              showAssign={!hasLeader}
+              showAssign={team.leaderId !== m.userId}
               isAssigning={
                 assignMutation.isPending && assignMutation.variables?.userId === m.userId
               }
-              onAssign={() =>
-                assignMutation.mutate({
-                  userId: m.userId,
-                  displayName: `${m.user.lastName} ${m.user.firstName.charAt(0)}.`.trim(),
-                })
-              }
+              onAssign={() => {
+                const displayName = `${m.user.lastName} ${m.user.firstName.charAt(0)}.`.trim();
+                if (hasLeader && currentLeaderName) {
+                  const ok = window.confirm(
+                    `Текущий тимлид: ${currentLeaderName}. Назначить тимлидом ${displayName}?`,
+                  );
+                  if (!ok) return;
+                }
+                assignMutation.mutate({ userId: m.userId, displayName });
+              }}
             />
           ))}
         </div>

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { ApiError, submitApplication } from '@/api';
 import { useRequireUser } from '@/auth/useCurrentUser';
+import { useTeamContext } from '@/features/student-project/hooks/useTeamContext';
 
 import { ProjectCard } from './components/ProjectCard';
 import { PrioritySlot } from './components/PrioritySlot';
@@ -29,8 +31,20 @@ type DetailsOrigin = 'catalog' | 'choices';
 
 export function StudentCatalogPage(): JSX.Element {
   const me = useRequireUser();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const catalog = useCatalog();
+
+  // Если у студента уже есть команда (запись в team_members) — каталог
+  // ему не нужен, отправляем на личную страницу команды. 404 от
+  // /users/{id}/team = «нет команды» → остаёмся в каталоге. Делаем через
+  // useEffect (не early return), чтобы порядок хуков ниже не нарушался.
+  const teamQuery = useTeamContext(me.userId);
+  useEffect(() => {
+    if (teamQuery.isSuccess && teamQuery.data) {
+      navigate('/student/team', { replace: true });
+    }
+  }, [teamQuery.isSuccess, teamQuery.data, navigate]);
 
   const [tab, setTab] = useState<Tab>('projects');
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);

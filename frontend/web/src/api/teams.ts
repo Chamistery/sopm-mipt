@@ -113,9 +113,9 @@ export function launchTeam(id: number): Promise<Team> {
   return apiFetch<Team>(`/teams/${id}/launch`, { method: 'POST' });
 }
 
-/** Назначить тимлида (one-shot — повторный вызов вернёт 409). Бэкенд
- *  проверяет что текущий пользователь — ментор этого проекта или
- *  координатор/админ. */
+/** Назначить или сменить тимлида. Можно вызывать сколько угодно раз.
+ *  Бэкенд проверяет: вызывающий — ментор этого проекта или координатор,
+ *  и что новый лидер — участник команды (запись в team_members). */
 export function assignTeamLeader(teamId: number, userId: number): Promise<Team> {
   return apiFetch<Team>(`/teams/${teamId}/leader`, {
     method: 'POST',

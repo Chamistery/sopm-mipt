@@ -1,0 +1,1 @@
+export { StudentTeamPage } from './StudentTeamPage';
