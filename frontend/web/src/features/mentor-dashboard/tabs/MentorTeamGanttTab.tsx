@@ -167,7 +167,6 @@ export function MentorTeamGanttTab({ teamId, mode = 'mentor' }: Props): JSX.Elem
           }}
           onAddTask={() => undefined}
           sprintNumber={selectedSprint.number}
-          sprintsTotal={sprints.length}
           showLegend={false}
         />
       ) : null}

@@ -1,51 +1,45 @@
+/*
+ * StudentProjectPage CSS. Зеркалит MentorTeamPage.module.css — у обоих
+ * экранов одинаковые header + members + tabs + gantt-controls.
+ *
+ * Прототип: student_assigned.html. Без max-width: Гант растягивается
+ * на всю ширину контента.
+ */
 .page {
-  max-width: 1240px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
 
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
 .title {
-  font-size: 24px;
-  font-weight: 700;
   margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   color: var(--color-text);
 }
 
-.context {
-  font-size: 13px;
+.subtitle {
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
-  margin: 0;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 6px;
-  background: var(--color-surface-alt);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .membersCard {
   background: var(--color-card);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
-  padding: 16px 20px;
+  padding: 20px;
 }
 
 .membersGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 12px;
 }
 
@@ -53,9 +47,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 10px 16px;
   background: var(--color-surface);
+  border-radius: 8px;
+  min-width: 200px;
 }
 
 .memberAvatar {
@@ -65,7 +60,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
@@ -94,11 +89,11 @@
 }
 
 .badgeLeader {
-  background: var(--color-accent);
-  color: #fff;
+  background: #dbeafe;
+  color: var(--color-accent);
   font-size: 10px;
   font-weight: 700;
-  padding: 0 5px;
+  padding: 1px 6px;
   border-radius: 3px;
 }
 
@@ -107,26 +102,34 @@
   color: var(--color-success);
   font-size: 10px;
   font-weight: 700;
-  padding: 0 5px;
+  padding: 1px 6px;
   border-radius: 3px;
 }
 
+/* Tabs — pixel-port из common.css прототипа (.tabs / .tab / .tab.active) */
 .tabs {
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--color-border-light);
+  gap: 0;
+  border-bottom: 2px solid var(--color-border-light);
+  margin-bottom: 24px;
 }
 
 .tab {
-  background: none;
+  padding: 10px 20px;
   border: none;
-  padding: 12px 18px;
-  font-size: 14px;
+  background: none;
+  font-size: 13px;
   font-weight: 600;
+  font-family: inherit;
   color: var(--color-text-muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  font-family: inherit;
+  margin-bottom: -2px;
+  transition: all 0.15s;
+}
+
+.tab:hover {
+  color: var(--color-text);
 }
 
 .tabActive {
@@ -135,13 +138,66 @@
 }
 
 .tabContent {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Gantt-таб: контролы (легенда слева + sprint switcher справа) + chart */
+.gantt {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.controlsRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Передаётся в <GanttLegend className=...>, чтобы убрать его собственный
+   margin-bottom (он рассчитан на отдельный ряд). */
+.legendInControls {
+  margin-bottom: 0 !important;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.addBtn:hover {
+  background: var(--color-primary-light);
 }
 
 .placeholder {
   padding: var(--space-8);
   text-align: center;
   color: var(--color-text-muted);
+  background: var(--color-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
 }
 
 .empty {
@@ -157,7 +213,8 @@
 .error {
   background: var(--color-danger-bg);
   color: var(--color-danger);
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   font-size: 13px;
+  font-weight: var(--font-weight-semibold);
 }

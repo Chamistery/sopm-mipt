@@ -1,16 +1,39 @@
-import { useMemo, useState } from 'react';
+/*
+ * StudentProjectPage — страница «Текущий проект» распределённого
+ * студента / тимлида. Структурно повторяет MentorTeamPage:
+ *   header (название команды + проект)
+ *   members-card
+ *   tabs (Диаграмма Ганта / Отчёты по спринтам / Встречи)
+ *
+ * Гант-таб использует тот же layout, что у ментора (controls с легендой
+ * слева и SprintSwitcher справа, потом GanttChart с showLegend={false}),
+ * чтобы оба экрана выглядели идентично.
+ *
+ * Отличия от ментора:
+ * - студент видит ровно одну свою команду (без хлебных крошек)
+ * - студент может править свои задачи и нажимать «Добавить задачу» в
+ *   активном спринте; на завершённых и будущих спринтах — только
+ *   просмотр.
+ */
 
-import type { TaskDto, TeamContextDto } from '@/api/teams';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+import type { Sprint, TaskDto, TeamContextDto } from '@/api/teams';
 import { ApiError } from '@/api/client';
 import { useRequireUser } from '@/auth/useCurrentUser';
 import { ROLE_LABELS_RU } from '@/auth/roles';
 import { RequiresAttention } from '@/_shared/RequiresAttention';
 import { GanttChart } from './components/GanttChart';
+import { GanttLegend } from './components/GanttLegend';
+import { SprintSwitcher } from './components/SprintSwitcher';
+import { pickDefaultSprintId } from './lib/sprintSelection';
 import { TaskPopup, type CreateTaskInput, type NewTaskDraft, type TaskPatch } from './components/TaskPopup';
 import { PersonalReports } from './components/PersonalReports';
 import { TeamReportCard } from './components/TeamReportCard';
 import { useTeamContext } from './hooks/useTeamContext';
 import { useGantt } from './hooks/useGantt';
+import { useProjectSprints } from './hooks/useProjectSprints';
 import {
   useCreateTask,
   useDeleteTask,
@@ -23,10 +46,10 @@ import { formatISODate } from './lib/dates';
 import styles from './StudentProjectPage.module.css';
 
 type TabKey = 'gantt' | 'reports' | 'meetings';
+const TAB_KEYS: TabKey[] = ['gantt', 'reports', 'meetings'];
 
 export function StudentProjectPage(): JSX.Element {
   const me = useRequireUser();
-  const [tab, setTab] = useState<TabKey>('gantt');
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupTask, setPopupTask] = useState<TaskDto | null>(null);
   const [popupDraft, setPopupDraft] = useState<NewTaskDraft | null>(null);
@@ -58,8 +81,6 @@ export function StudentProjectPage(): JSX.Element {
     <Loaded
       team={team}
       currentUserId={me.userId}
-      tab={tab}
-      onTabChange={setTab}
       popupOpen={popupOpen}
       popupTask={popupTask}
       popupDraft={popupDraft}
@@ -80,8 +101,6 @@ export function StudentProjectPage(): JSX.Element {
 interface LoadedProps {
   team: TeamContextDto;
   currentUserId: number;
-  tab: TabKey;
-  onTabChange: (t: TabKey) => void;
   popupOpen: boolean;
   popupTask: TaskDto | null;
   popupDraft: NewTaskDraft | null;
@@ -92,18 +111,74 @@ interface LoadedProps {
 function Loaded({
   team,
   currentUserId,
-  tab,
-  onTabChange,
   popupOpen,
   popupTask,
   popupDraft,
   openPopup,
   closePopup,
 }: LoadedProps): JSX.Element {
-  const { teamId, projectTitle, teamName, currentSprint, sprintsTotal, members, mentor, initiator } = team;
+  const { teamId, projectId, projectTitle, teamName, currentSprint, members, mentor, initiator } = team;
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const ganttQuery = useGantt(teamId, currentSprint.id);
-  const teamReportQuery = useTeamReport(teamId, currentSprint.id);
+  const tabRaw = searchParams.get('tab');
+  const tab: TabKey = TAB_KEYS.includes(tabRaw as TabKey) ? (tabRaw as TabKey) : 'gantt';
+  const setTab = (next: TabKey): void => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set('tab', next);
+    setSearchParams(sp, { replace: true });
+  };
+
+  const sprintsQuery = useProjectSprints(projectId);
+  const fallbackSprint = useMemo<Sprint>(
+    () => ({
+      id: currentSprint.id,
+      projectId,
+      number: currentSprint.number,
+      startDate: currentSprint.startDate,
+      endDate: currentSprint.endDate,
+      status: currentSprint.status,
+    }),
+    [currentSprint, projectId],
+  );
+  // Пока /sprints не загрузились (или вернули пустой массив на ранних
+  // этапах проекта), показываем хотя бы текущий спринт в дропдауне —
+  // нужный для корректного onChange и pickDefault'а.
+  const sprintsList = useMemo<Sprint[]>(
+    () => (sprintsQuery.data && sprintsQuery.data.length > 0 ? sprintsQuery.data : [fallbackSprint]),
+    [sprintsQuery.data, fallbackSprint],
+  );
+
+  const defaultSprintId = useMemo(() => pickDefaultSprintId(sprintsList) ?? currentSprint.id, [
+    sprintsList,
+    currentSprint.id,
+  ]);
+  const sprintParam = Number.parseInt(searchParams.get('sprintId') ?? '', 10);
+  const selectedSprintId =
+    Number.isFinite(sprintParam) && sprintsList.some((s) => s.id === sprintParam)
+      ? sprintParam
+      : defaultSprintId;
+
+  useEffect(() => {
+    if (selectedSprintId == null) return;
+    if (sprintParam !== selectedSprintId && searchParams.get('sprintId') == null) {
+      const sp = new URLSearchParams(searchParams);
+      sp.set('sprintId', String(selectedSprintId));
+      setSearchParams(sp, { replace: true });
+    }
+  }, [selectedSprintId, sprintParam, searchParams, setSearchParams]);
+
+  const setSprintId = (id: number): void => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set('sprintId', String(id));
+    setSearchParams(sp, { replace: true });
+  };
+
+  const selectedSprint =
+    sprintsList.find((s) => s.id === selectedSprintId) ?? fallbackSprint;
+  const isActiveSprint = selectedSprint.status === 'Активный';
+
+  const ganttQuery = useGantt(teamId, selectedSprint.id);
+  const teamReportQuery = useTeamReport(teamId, selectedSprint.id);
 
   // Дата «сегодня» — фиксируем в локальной таймзоне, чтобы Гант стабильно
   // подсвечивал текущий день между ререндерами.
@@ -113,11 +188,11 @@ function Loaded({
   const isLeader = me?.isLeader === true;
   const isTeamlead = me?.role === 'teamlead' || isLeader;
 
-  const updateTask = useUpdateTask({ teamId, sprintId: currentSprint.id });
-  const submitForReview = useSubmitTaskForReview({ teamId, sprintId: currentSprint.id });
-  const deleteTask = useDeleteTask({ teamId, sprintId: currentSprint.id });
-  const createTask = useCreateTask({ teamId, sprintId: currentSprint.id });
-  const saveTeamReport = useSaveTeamReport(teamId, currentSprint.id);
+  const updateTask = useUpdateTask({ teamId, sprintId: selectedSprint.id });
+  const submitForReview = useSubmitTaskForReview({ teamId, sprintId: selectedSprint.id });
+  const deleteTask = useDeleteTask({ teamId, sprintId: selectedSprint.id });
+  const createTask = useCreateTask({ teamId, sprintId: selectedSprint.id });
+  const saveTeamReport = useSaveTeamReport(teamId, selectedSprint.id);
 
   const handleAutoSave = async (id: number, patch: TaskPatch): Promise<boolean> => {
     await updateTask.mutateAsync({
@@ -144,7 +219,7 @@ function Loaded({
   const handleCreateTask = async (payload: CreateTaskInput): Promise<void> => {
     await createTask.mutateAsync({
       teamId,
-      sprintId: currentSprint.id,
+      sprintId: selectedSprint.id,
       assigneeId: payload.assigneeId,
       name: payload.name,
       description: payload.description,
@@ -157,8 +232,8 @@ function Loaded({
   const onAddTask = (): void => {
     openPopup(null, {
       assigneeId: currentUserId,
-      startDate: currentSprint.startDate,
-      endDate: currentSprint.endDate,
+      startDate: selectedSprint.startDate,
+      endDate: selectedSprint.endDate,
     });
   };
 
@@ -167,21 +242,19 @@ function Loaded({
   return (
     <div className={styles.page}>
       <RequiresAttention />
-      <header>
-        <h1 className={styles.title}>Текущий проект</h1>
-        <p className={styles.context}>
-          {projectTitle} · {teamName} · Спринт {currentSprint.number} из {sprintsTotal}
-        </p>
-      </header>
 
-      <div className={styles.chips}>
-        {mentor ? (
-          <span className={styles.chip}>
-            Ментор: {fullNameWithMiddle({ ...mentor, middleName: mentor.middleName ?? null })}
-          </span>
-        ) : null}
-        {initiator ? <span className={styles.chip}>Инициатор: {initiator}</span> : null}
-      </div>
+      <header className={styles.header}>
+        <div>
+          <h1 className={styles.title}>{teamName}</h1>
+          <div className={styles.subtitle}>
+            {projectTitle}
+            {mentor
+              ? ` · Ментор: ${fullNameWithMiddle({ ...mentor, middleName: mentor.middleName ?? null })}`
+              : ''}
+            {initiator ? ` · Инициатор: ${initiator}` : ''}
+          </div>
+        </div>
+      </header>
 
       <section className={styles.membersCard} aria-label="Состав команды">
         <div className={styles.membersGrid}>
@@ -205,26 +278,54 @@ function Loaded({
         </div>
       </section>
 
-      <nav className={styles.tabs} role="tablist">
-        <Tab active={tab === 'gantt'} label="Диаграмма Ганта" onClick={() => onTabChange('gantt')} />
-        <Tab active={tab === 'reports'} label="Отчёты" onClick={() => onTabChange('reports')} />
-        <Tab active={tab === 'meetings'} label="Встречи" onClick={() => onTabChange('meetings')} />
+      <nav className={styles.tabs} role="tablist" aria-label="Разделы команды">
+        <Tab active={tab === 'gantt'} label="Диаграмма Ганта" onClick={() => setTab('gantt')} />
+        <Tab active={tab === 'reports'} label="Отчёты по спринтам" onClick={() => setTab('reports')} />
+        <Tab active={tab === 'meetings'} label="Встречи" onClick={() => setTab('meetings')} />
       </nav>
 
       <div className={styles.tabContent}>
         {tab === 'gantt' ? (
-          <GanttTab
-            ganttData={ganttQuery.data}
-            isLoading={ganttQuery.isLoading}
-            error={ganttQuery.error}
-            todayIso={todayIso}
-            currentUserId={currentUserId}
-            canEditAll={isTeamlead}
-            sprintNumber={currentSprint.number}
-            sprintsTotal={sprintsTotal}
-            onTaskClick={(t) => openPopup(t, null)}
-            onAddTask={onAddTask}
-          />
+          <div className={styles.gantt}>
+            <div className={styles.controls}>
+              <GanttLegend className={styles.legendInControls} />
+              <div className={styles.controlsRight}>
+                <SprintSwitcher
+                  sprints={sprintsList}
+                  selectedId={selectedSprintId}
+                  onChange={setSprintId}
+                />
+                {isActiveSprint ? (
+                  <button type="button" className={styles.addBtn} onClick={onAddTask}>
+                    + Добавить задачу
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            {ganttQuery.isLoading ? (
+              <div className={styles.placeholder}>Загружаем задачи…</div>
+            ) : ganttQuery.error ? (
+              <div className={styles.error}>
+                {ganttQuery.error instanceof ApiError
+                  ? `Ошибка ${ganttQuery.error.status}: ${ganttQuery.error.message}`
+                  : 'Не удалось загрузить задачи'}
+              </div>
+            ) : ganttQuery.data ? (
+              <GanttChart
+                data={ganttQuery.data}
+                todayIso={todayIso}
+                currentUserId={currentUserId}
+                canEditAll={isTeamlead && isActiveSprint}
+                canAddTask={false}
+                mode={isActiveSprint ? 'student' : 'mentor'}
+                onTaskClick={(t) => openPopup(t, null)}
+                onAddTask={onAddTask}
+                sprintNumber={selectedSprint.number}
+                showLegend={false}
+              />
+            ) : null}
+          </div>
         ) : null}
 
         {tab === 'reports' ? (
@@ -233,7 +334,7 @@ function Loaded({
             members={members}
             tasks={tasksInSprint}
             currentUserId={currentUserId}
-            sprint={currentSprint}
+            sprint={selectedSprint}
             todayIso={todayIso}
             onTaskClick={(t) => openPopup(t, null)}
             teamReport={teamReportQuery.data ?? null}
@@ -261,8 +362,13 @@ function Loaded({
         newDraft={popupDraft ?? undefined}
         members={members}
         currentUserId={currentUserId}
-        canEditAll={isTeamlead}
+        canEditAll={isTeamlead && isActiveSprint}
         todayIso={todayIso}
+        sprintHint={{
+          number: selectedSprint.number,
+          startDate: selectedSprint.startDate,
+          endDate: selectedSprint.endDate,
+        }}
         callbacks={{
           onAutoSave: handleAutoSave,
           onSubmitForReview: handleSubmitReview,
@@ -295,60 +401,12 @@ function Tab({ active, label, onClick }: TabProps): JSX.Element {
   );
 }
 
-interface GanttTabProps {
-  ganttData: ReturnType<typeof useGantt>['data'];
-  isLoading: boolean;
-  error: unknown;
-  todayIso: string;
-  currentUserId: number;
-  canEditAll: boolean;
-  sprintNumber: number;
-  sprintsTotal: number;
-  onTaskClick: (t: TaskDto) => void;
-  onAddTask: () => void;
-}
-
-function GanttTab({
-  ganttData,
-  isLoading,
-  error,
-  todayIso,
-  currentUserId,
-  canEditAll,
-  sprintNumber,
-  sprintsTotal,
-  onTaskClick,
-  onAddTask,
-}: GanttTabProps): JSX.Element {
-  if (isLoading) return <div className={styles.placeholder}>Загружаем диаграмму…</div>;
-  if (error) {
-    const msg =
-      error instanceof ApiError ? `Ошибка ${error.status}: ${error.message}` : 'Не удалось загрузить задачи.';
-    return <div className={styles.error}>{msg}</div>;
-  }
-  if (!ganttData) return <div className={styles.empty}>Нет данных по спринту.</div>;
-
-  return (
-    <GanttChart
-      data={ganttData}
-      todayIso={todayIso}
-      currentUserId={currentUserId}
-      canEditAll={canEditAll}
-      canAddTask
-      onTaskClick={onTaskClick}
-      onAddTask={onAddTask}
-      sprintNumber={sprintNumber}
-      sprintsTotal={sprintsTotal}
-    />
-  );
-}
-
 interface ReportsTabProps {
   isTeamlead: boolean;
   members: TeamContextDto['members'];
   tasks: TaskDto[];
   currentUserId: number;
-  sprint: TeamContextDto['currentSprint'];
+  sprint: Sprint;
   todayIso: string;
   onTaskClick: (t: TaskDto) => void;
   teamReport: Parameters<typeof TeamReportCard>[0]['report'];

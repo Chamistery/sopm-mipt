@@ -55,7 +55,6 @@ describe('GanttChart', () => {
         onTaskClick={onTaskClick}
         onAddTask={() => undefined}
         sprintNumber={2}
-        sprintsTotal={3}
       />,
     );
 
@@ -80,7 +79,6 @@ describe('GanttChart', () => {
         onTaskAction={onTaskAction}
         onAddTask={() => undefined}
         sprintNumber={2}
-        sprintsTotal={3}
       />,
     );
 
@@ -103,7 +101,6 @@ describe('GanttChart', () => {
         onTaskAction={() => undefined}
         onAddTask={() => undefined}
         sprintNumber={2}
-        sprintsTotal={3}
       />,
     );
     expect(screen.queryByRole('button', { name: /Добавить задачу/ })).toBeNull();
@@ -123,7 +120,6 @@ describe('GanttChart', () => {
         onTaskAction={onTaskAction}
         onAddTask={() => undefined}
         sprintNumber={2}
-        sprintsTotal={3}
       />,
     );
 

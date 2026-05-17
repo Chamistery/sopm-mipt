@@ -172,7 +172,6 @@ export const Student: Story = {
     onTaskClick: () => {},
     onAddTask: () => {},
     sprintNumber: 2,
-    sprintsTotal: 3,
   },
 };
 
@@ -196,7 +195,6 @@ export const Mentor: Story = {
     onTaskAction: () => {},
     onAddTask: () => {},
     sprintNumber: 2,
-    sprintsTotal: 3,
   },
 };
 
@@ -228,6 +226,5 @@ export const Archive: Story = {
     onTaskClick: () => {},
     onAddTask: () => {},
     sprintNumber: 2,
-    sprintsTotal: 3,
   },
 };

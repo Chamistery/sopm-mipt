@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useCurrentUser } from '@/auth/useCurrentUser';
 import { useAuthStore } from '@/auth/store';
 import { ROLE_LABELS_RU } from '@/auth/roles';
-import { homePathForRole } from '@/auth/redirectByRole';
 import { getCoordinatorDashboard } from '@/api/coordinatorDashboard';
-import { RoleSwitcher } from './RoleSwitcher';
+import { getTeamContext } from '@/api/teams';
+import { ApiError } from '@/api/client';
 import styles from './Sidebar.module.css';
 
 type IconKey =
@@ -104,15 +104,19 @@ function NavIcon({ kind }: { kind: IconKey }): JSX.Element {
   }
 }
 
+const STUDENT_CATALOG_NAV: NavItem[] = [
+  { to: '/student', label: 'Каталог проектов', icon: 'catalog' },
+  { to: '/profile', label: 'Мой профиль', icon: 'profile' },
+];
+
+const STUDENT_PROJECT_NAV: NavItem[] = [
+  { to: '/student/project', label: 'Текущий проект', icon: 'project' },
+  { to: '/profile', label: 'Мой профиль', icon: 'profile' },
+];
+
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
-  student: [
-    { to: '/student', label: 'Каталог проектов', icon: 'catalog' },
-    { to: '/profile', label: 'Мой профиль', icon: 'profile' },
-  ],
-  teamlead: [
-    { to: '/student/project', label: 'Текущий проект', icon: 'project' },
-    { to: '/profile', label: 'Мой профиль', icon: 'profile' },
-  ],
+  student: STUDENT_CATALOG_NAV,
+  teamlead: STUDENT_PROJECT_NAV,
   mentor: [
     { to: '/mentor', label: 'Дашборд', icon: 'dashboard', end: true },
     { to: '/mentor/distribution', label: 'Незапущенные команды', icon: 'distribution' },
@@ -145,9 +149,25 @@ export function Sidebar(): JSX.Element {
     staleTime: 30_000,
   });
 
+  // Студент, попавший в команду, видит «Текущий проект» вместо каталога —
+  // как в прототипе student_assigned.html. До распределения команды нет и
+  // backend отдаёт 404; ApiError 404 трактуем как «команды нет», остальные
+  // ошибки — как «пока неизвестно», в этом случае оставляем дефолтную nav.
+  const teamQuery = useQuery({
+    queryKey: ['user', user?.userId, 'team'],
+    queryFn: () => getTeamContext(user!.userId),
+    enabled: user?.role === 'student',
+    retry: (failureCount, error) =>
+      error instanceof ApiError && error.status === 404 ? false : failureCount < 2,
+    staleTime: 30_000,
+  });
+  const studentHasTeam =
+    user?.role === 'student' && teamQuery.isSuccess && teamQuery.data != null;
+
   if (!user) return <aside className={styles.sidebar} />;
 
-  const items = NAV_BY_ROLE[user.role] ?? [];
+  const baseItems = NAV_BY_ROLE[user.role] ?? [];
+  const items = studentHasTeam ? STUDENT_PROJECT_NAV : baseItems;
   const pendingApplications = coordDashQuery.data?.attention.pendingApplications ?? 0;
 
   const handleSignOut = (): void => {
@@ -165,14 +185,6 @@ export function Sidebar(): JSX.Element {
           проектным практикумом
         </div>
       </div>
-
-      <RoleSwitcher
-        currentRole={user.role}
-        onChange={(role) => {
-          useAuthStore.getState().switchRole(role);
-          navigate(homePathForRole(role), { replace: true });
-        }}
-      />
 
       <nav className={styles.nav}>
         {items.map((item) => {

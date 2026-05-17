@@ -154,6 +154,13 @@ export function formatRuRange(startIso: string, endIso: string): string {
   return `${a.getDate()} ${MONTHS_GENITIVE_RU[a.getMonth()]} — ${b.getDate()} ${MONTHS_GENITIVE_RU[b.getMonth()]}`;
 }
 
+/** «17 марта — 13 апреля 2025» (с годом по конечной дате). */
+export function formatRuLongRange(startIso: string, endIso: string): string {
+  const a = parseISODate(startIso);
+  const b = parseISODate(endIso);
+  return `${a.getDate()} ${MONTHS_RU[a.getMonth()]} — ${b.getDate()} ${MONTHS_RU[b.getMonth()]} ${b.getFullYear()}`;
+}
+
 /** Краткий формат для подписи дня в таймлайне: «17» внутри месяца, «1 апр» — на переходе. */
 export function formatTimelineDayLabel(iso: string, prevIso: string | null): string {
   const d = parseISODate(iso);

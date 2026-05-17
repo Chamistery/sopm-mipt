@@ -21,6 +21,34 @@ import styles from './GanttChart.module.css';
 
 export type GanttMode = 'student' | 'mentor' | 'archive';
 
+/*
+ * Суммарная ширина sticky-колонок (Задача 220 + Статус 30 + Часы 50).
+ * Должна совпадать с CSS-настройками .colTask/.colStatus/.colHours;
+ * используется в minWidth таблицы и в position-расчёте today-line.
+ */
+const STICKY_COLS_WIDTH = 300;
+
+/**
+ * «(текущий)» / «(завершён)» / «(запланирован)» рядом с номером спринта в
+ * шапке Ганта. archive-режим всегда «завершён», иначе берём по
+ * sprint.status.
+ */
+function sprintLabelSuffix(status: SprintDtoStatus, isArchive: boolean): string {
+  if (isArchive) return ' (завершён)';
+  switch (status) {
+    case 'Активный':
+      return ' (текущий)';
+    case 'Завершён':
+      return ' (завершён)';
+    case 'Запланирован':
+      return ' (запланирован)';
+    default:
+      return '';
+  }
+}
+
+type SprintDtoStatus = 'Запланирован' | 'Активный' | 'Завершён';
+
 interface Props {
   data: GanttResponseDto;
   todayIso: string;
@@ -50,11 +78,12 @@ interface Props {
   onTaskAction?: (task: TaskDto) => void;
   onAddTask: () => void;
   sprintNumber: number;
-  sprintsTotal: number;
   /**
-   * Показывать ли легенду над диаграммой. По умолчанию `true`. Когда у
-   * ментора стек из нескольких спринтов, легенда нужна только сверху —
-   * остальные спринты передают `showLegend={false}`.
+   * Показывать ли встроенную легенду. Используется только в архивном
+   * режиме (зелёно-фиолетовая палитра по прототипу mentor.html:1554-1560).
+   * В режиме `student`/`mentor` встроенная легенда не рендерится в любом
+   * случае: студент по дизайну живёт без легенды, а ментор использует
+   * отдельный `<GanttLegend/>`.
    */
   showLegend?: boolean;
 }
@@ -70,7 +99,6 @@ export function GanttChart({
   onTaskAction,
   onAddTask,
   sprintNumber,
-  sprintsTotal,
   showLegend = true,
 }: Props): JSX.Element {
   const { sprint, members, tasks } = data;
@@ -111,7 +139,8 @@ export function GanttChart({
     <section className={styles.wrapper} aria-label="Диаграмма Ганта">
       <div className={styles.headerBar}>
         <div>
-          Спринт {sprintNumber} из {sprintsTotal}
+          Спринт {sprintNumber}
+          {sprintLabelSuffix(sprint.status, isArchive)}
           <span className={styles.headerMeta}>
             {' '}
             · {formatRuRange(sprint.startDate, sprint.endDate)} · {days.length} дн.
@@ -124,6 +153,13 @@ export function GanttChart({
         ) : null}
       </div>
 
+      {/*
+       * Легенда статусов + блок event-маркеров справа от вертикальной
+       * полоски — пиксельная копия прототипа student_assigned.html:104-117
+       * (у ментора в его шапке есть отдельный <GanttLegend/>, поэтому он
+       * передаёт showLegend={false}). Архивный режим использует
+       * упрощённую палитру.
+       */}
       {!showLegend ? null : isArchive ? (
         <div className={styles.archiveLegend} aria-label="Легенда архивной диаграммы">
           <span className={styles.archiveLegendItem}>
@@ -187,7 +223,7 @@ export function GanttChart({
         <div className={styles.empty}>В этом спринте задач пока нет.</div>
       ) : (
         <div className={styles.scroll}>
-          <table className={styles.table} style={{ minWidth: `${344 + minBarsWidth}px` }}>
+          <table className={styles.table} style={{ minWidth: `${STICKY_COLS_WIDTH + minBarsWidth}px` }}>
             <thead>
               <tr>
                 <th className={styles.colTask}>Задача</th>
@@ -236,7 +272,7 @@ export function GanttChart({
           {todayPct != null ? (
             <div
               className={styles.todayLine}
-              style={{ left: `calc(${344}px + (100% - ${344}px) * ${todayPct} / 100)` }}
+              style={{ left: `calc(${STICKY_COLS_WIDTH}px + (100% - ${STICKY_COLS_WIDTH}px) * ${todayPct} / 100)` }}
             />
           ) : null}
         </div>

@@ -36,13 +36,14 @@ export function StudentCatalogPage(): JSX.Element {
   const catalog = useCatalog();
 
   // Если у студента уже есть команда (запись в team_members) — каталог
-  // ему не нужен, отправляем на личную страницу команды. 404 от
-  // /users/{id}/team = «нет команды» → остаёмся в каталоге. Делаем через
-  // useEffect (не early return), чтобы порядок хуков ниже не нарушался.
+  // ему не нужен, отправляем на страницу текущего проекта (тот же экран,
+  // что у тимлида: Гант + отчёты + встречи). 404 от /users/{id}/team =
+  // «нет команды» → остаёмся в каталоге. Делаем через useEffect (не early
+  // return), чтобы порядок хуков ниже не нарушался.
   const teamQuery = useTeamContext(me.userId);
   useEffect(() => {
     if (teamQuery.isSuccess && teamQuery.data) {
-      navigate('/student/team', { replace: true });
+      navigate('/student/project', { replace: true });
     }
   }, [teamQuery.isSuccess, teamQuery.data, navigate]);
 

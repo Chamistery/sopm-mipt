@@ -323,7 +323,6 @@ function GanttTab({
           onTaskClick={() => undefined}
           onAddTask={() => undefined}
           sprintNumber={sprintNumber}
-          sprintsTotal={sortedSprints.length}
         />
       ) : null}
     </>

@@ -6,7 +6,6 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { ProfilePage } from '@/features/profile/ProfilePage';
 import { StudentCatalogPage } from '@/features/student-catalog';
 import { StudentProjectPage } from '@/features/student-project';
-import { StudentTeamPage } from '@/features/student-team';
 import { NotFoundPage } from '@/features/errors/NotFoundPage';
 import { redirectByRole } from '@/auth/redirectByRole';
 import { MentorDashboardPage } from '@/features/mentor-dashboard/MentorDashboardPage';
@@ -44,7 +43,9 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to={redirectByRole()} replace /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'student', element: <StudentCatalogPage /> },
-      { path: 'student/team', element: <StudentTeamPage /> },
+      // Legacy URL: страница распределённого студента унифицирована со
+      // страницей тимлида (см. student_assigned.html в прототипах).
+      { path: 'student/team', element: <Navigate to="/student/project" replace /> },
       { path: 'student/project', element: <StudentProjectPage /> },
       { path: 'mentor', element: <MentorDashboardPage /> },
       { path: 'mentor/projects/new', element: <NewProjectPage /> },

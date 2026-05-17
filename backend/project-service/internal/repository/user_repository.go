@@ -123,5 +123,38 @@ func (r *UserRepository) GetTeam(ctx context.Context, userID int) (*models.Team,
 		return nil, err
 	}
 
+	// Подтягиваем состав команды — фронту страница «Текущий проект»
+	// нужна с заполненными участниками, иначе members-card пустой.
+	// Запрос идентичен TeamRepository.getMembers (та же SELECT-список и
+	// scan-функция), чтобы shape JSON совпадал с /api/teams/{id}.
+	memberQuery := `
+		SELECT tm.id, tm.team_id, tm.user_id, COALESCE(tm.role_in_team, ''), tm.joined_at,
+		       u.id, u.first_name, u.last_name
+		FROM team_members tm
+		JOIN users u ON u.id = tm.user_id
+		WHERE tm.team_id = $1
+		ORDER BY tm.id
+	`
+	memberScan := func(s Scanner) (models.TeamMember, error) {
+		var member models.TeamMember
+		err := s.Scan(
+			&member.ID,
+			&member.TeamID,
+			&member.UserID,
+			&member.RoleInTeam,
+			&member.JoinedAt,
+			&member.User.ID,
+			&member.User.FirstName,
+			&member.User.LastName,
+		)
+		member.IsLeader = team.LeaderID != nil && *team.LeaderID == member.UserID
+		return member, err
+	}
+	members, err := ScanAll(ctx, r.db, memberQuery, []interface{}{team.ID}, memberScan)
+	if err != nil {
+		return nil, err
+	}
+	team.Members = members
+
 	return team, nil
 }

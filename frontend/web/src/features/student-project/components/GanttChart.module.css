@@ -97,10 +97,15 @@
   background: var(--color-card);
 }
 
+/*
+ * Ширины sticky-колонок выверены по прототипу common.css:174-176
+ * (col-task 220, col-status 30, col-hours 50). Менять синхронно с
+ * --gantt-sticky-width ниже и значениями `left:` у соседних колонок.
+ */
 .colTask {
-  width: 254px;
-  min-width: 254px;
-  max-width: 254px;
+  width: 220px;
+  min-width: 220px;
+  max-width: 220px;
   left: 0;
 }
 
@@ -108,15 +113,15 @@
   width: 30px;
   min-width: 30px;
   max-width: 30px;
-  left: 254px;
+  left: 220px;
   text-align: center;
 }
 
 .colHours {
-  width: 60px;
-  min-width: 60px;
-  max-width: 60px;
-  left: 284px;
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
+  left: 250px;
   text-align: center;
   box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.06);
 }

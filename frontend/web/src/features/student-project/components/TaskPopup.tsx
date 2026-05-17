@@ -4,7 +4,7 @@ import type { TaskDto, TeamMemberDto } from '@/api/teams';
 import { ApiError } from '@/api/client';
 import { calcEffectiveStatus, statusVisual, wasOverdue } from '../lib/taskStatus';
 import { avatarColor, findMember, fullNameWithMiddle, initials, shortName } from '../lib/people';
-import { formatRuRange } from '../lib/dates';
+import { formatRuLongRange, formatRuRange } from '../lib/dates';
 import styles from './TaskPopup.module.css';
 
 /*
@@ -44,7 +44,9 @@ export interface CreateTaskInput {
 export interface NewTaskDraft {
   /** Используется при создании новой задачи. */
   assigneeId: number;
+  /** Дефолтная дата начала и одновременно нижняя граница (start of sprint). */
   startDate: string;
+  /** Дефолтная дата окончания и одновременно верхняя граница (end of sprint). */
   endDate: string;
 }
 
@@ -60,6 +62,11 @@ interface Props {
   /** Тимлид может редактировать любую задачу. */
   canEditAll: boolean;
   todayIso: string;
+  /**
+   * Опциональная подпись «Спринт N: ...» под полями дат. Совпадает с
+   * прототипом student_assigned.html:267. Если не передано — не рендерим.
+   */
+  sprintHint?: { number: number; startDate: string; endDate: string };
   callbacks: TaskPopupCallbacks;
   onClose: () => void;
 }
@@ -72,6 +79,7 @@ export function TaskPopup({
   currentUserId,
   canEditAll,
   todayIso,
+  sprintHint,
   callbacks,
   onClose,
 }: Props): JSX.Element | null {
@@ -109,6 +117,19 @@ export function TaskPopup({
   );
 
   const [form, setForm] = useState<TaskPatch>(initialForm);
+  // Даты задачи держим отдельно: при создании их выбирает студент в
+  // пределах спринта; при редактировании показываем readonly значения.
+  // Бэкенд сейчас не позволяет двигать существующую задачу — так что
+  // редактируются только в режиме «Новая задача» (прототип
+  // student_assigned.html:316 — даты всегда readOnly после создания).
+  const initialDates = useMemo(
+    () => ({
+      startDate: task?.startDate ?? newDraft?.startDate ?? '',
+      endDate: task?.endDate ?? newDraft?.endDate ?? '',
+    }),
+    [task, newDraft],
+  );
+  const [dates, setDates] = useState(initialDates);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
@@ -118,10 +139,11 @@ export function TaskPopup({
   useEffect(() => {
     if (open) {
       setForm(initialForm);
+      setDates(initialDates);
       setError(null);
       closingRef.current = false;
     }
-  }, [open, initialForm]);
+  }, [open, initialForm, initialDates]);
 
   if (!open) return null;
 
@@ -227,6 +249,14 @@ export function TaskPopup({
       setError('Введите название задачи');
       return;
     }
+    if (!dates.startDate || !dates.endDate) {
+      setError('Укажите даты задачи');
+      return;
+    }
+    if (dates.endDate < dates.startDate) {
+      setError('Дата окончания не может быть раньше начала');
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -234,8 +264,8 @@ export function TaskPopup({
         name: form.name.trim(),
         description: (form.description ?? '').trim() || null,
         hours: Number(form.hours) || 8,
-        startDate: newDraft.startDate,
-        endDate: newDraft.endDate,
+        startDate: dates.startDate,
+        endDate: dates.endDate,
         assigneeId: newDraft.assigneeId,
       });
       onClose();
@@ -315,7 +345,10 @@ export function TaskPopup({
             form={form}
             isCreating={isCreating}
             update={update}
-            dateRange={dateRange}
+            dates={dates}
+            updateDates={(patch) => setDates((prev) => ({ ...prev, ...patch }))}
+            sprintBounds={newDraft ?? null}
+            sprintHint={sprintHint}
             mrPlaceholder="!123 или https://gitlab.com/…"
           />
         ) : (
@@ -348,7 +381,13 @@ interface EditableBodyProps {
   form: TaskPatch;
   isCreating: boolean;
   update: (patch: Partial<TaskPatch>) => void;
-  dateRange: string;
+  dates: { startDate: string; endDate: string };
+  updateDates: (patch: Partial<{ startDate: string; endDate: string }>) => void;
+  /** Спринтовые границы (min/max). Берутся из newDraft (которое всегда
+   *  содержит даты начала/конца спринта). null = редактирование задачи
+   *  без сведений о спринте — даты будут readOnly. */
+  sprintBounds: { startDate: string; endDate: string } | null;
+  sprintHint?: { number: number; startDate: string; endDate: string };
   mrPlaceholder: string;
 }
 
@@ -356,9 +395,17 @@ function EditableBody({
   form,
   isCreating,
   update,
-  dateRange,
+  dates,
+  updateDates,
+  sprintBounds,
+  sprintHint,
   mrPlaceholder,
 }: EditableBodyProps): JSX.Element {
+  // Прототип student_assigned.html:316 — у студента даты задачи нельзя
+  // изменить после создания (только при «Новая задача»). Сохраняем то же
+  // ограничение: показываем поля всегда, но в режиме редактирования
+  // делаем их readOnly.
+  const datesReadOnly = !isCreating;
   return (
     <>
       <div className={styles.field}>
@@ -392,7 +439,37 @@ function EditableBody({
           />
         </div>
       </div>
-      {dateRange ? <div className={styles.hint}>Сроки: {dateRange}</div> : null}
+      <div className={styles.gridTwo}>
+        <div>
+          <label className={styles.label}>Дата начала</label>
+          <input
+            className={styles.input}
+            type="date"
+            value={dates.startDate}
+            min={sprintBounds?.startDate}
+            max={sprintBounds?.endDate}
+            readOnly={datesReadOnly}
+            onChange={(e) => updateDates({ startDate: e.target.value })}
+          />
+        </div>
+        <div>
+          <label className={styles.label}>Дата окончания</label>
+          <input
+            className={styles.input}
+            type="date"
+            value={dates.endDate}
+            min={sprintBounds?.startDate ?? dates.startDate}
+            max={sprintBounds?.endDate}
+            readOnly={datesReadOnly}
+            onChange={(e) => updateDates({ endDate: e.target.value })}
+          />
+        </div>
+      </div>
+      {sprintHint ? (
+        <div className={styles.hint}>
+          Спринт {sprintHint.number}: {formatRuLongRange(sprintHint.startDate, sprintHint.endDate)}
+        </div>
+      ) : null}
       {!isCreating ? (
         <>
           <div className={styles.field}>
