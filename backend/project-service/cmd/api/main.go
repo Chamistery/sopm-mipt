@@ -34,6 +34,7 @@ func setupRoutes(
 	defenseHandler *handlers.DefenseHandler,
 	coordinatorGradingHandler *handlers.CoordinatorGradingHandler,
 	internalDistributionHandler *handlers.InternalDistributionHandler,
+	teamReportExportHandler *handlers.TeamReportExportHandler,
 ) {
 	mux.HandleFunc("POST /api/projects", projectHandler.Create)
 	mux.HandleFunc("GET /api/projects", projectHandler.GetList)
@@ -113,6 +114,7 @@ func setupRoutes(
 
 	mux.HandleFunc("POST /api/team-reports", teamReportHandler.Create)
 	mux.HandleFunc("GET /api/team-reports", teamReportHandler.GetList)
+	mux.HandleFunc("GET /api/team-reports/export", teamReportExportHandler.Export)
 	mux.HandleFunc("PUT /api/team-reports/{id}", teamReportHandler.Update)
 	mux.HandleFunc("PUT /api/team-reports/{id}/review", teamReportHandler.Review)
 
@@ -213,6 +215,11 @@ func main() {
 	coordinatorGradingRepo := repository.NewCoordinatorGradingRepository(db.Pool)
 	coordinatorGradingHandler := handlers.NewCoordinatorGradingHandler(coordinatorGradingRepo)
 	internalDistributionHandler := handlers.NewInternalDistributionHandler(projectRepo, teamRepo, userRepo, applicationRepo)
+	teamReportExportHandler := handlers.NewTeamReportExportHandler(
+		teamRepo, projectRepo, userRepo, sprintRepo, taskRepo,
+		teamReportRepo, sprintScoreRepo, meetingRepo,
+		os.Getenv("REPORT_SERVICE_URL"),
+	)
 	mux := http.NewServeMux()
 	setupRoutes(
 		mux,
@@ -234,6 +241,7 @@ func main() {
 		defenseHandler,
 		coordinatorGradingHandler,
 		internalDistributionHandler,
+		teamReportExportHandler,
 	)
 	authMiddleware := middleware.AuthContextWithServiceToken(os.Getenv("INTERNAL_SERVICE_TOKEN"))
 	// Порядок: Auth → Logger → CORS → mux. Auth снаружи Logger'а, иначе

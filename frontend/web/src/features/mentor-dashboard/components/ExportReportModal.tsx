@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import styles from './ExportReportModal.module.css';
 
-export type ExportFormat = 'pdf' | 'docx' | 'xlsx';
+export type ExportFormat = 'docx';
 
 export interface ExportReportPeriodOption {
   /** Уникальный value опции (`current`, `all`, `sprint:201`). */
@@ -41,9 +41,7 @@ interface Props {
 }
 
 const FORMATS: Array<{ value: ExportFormat; label: string }> = [
-  { value: 'pdf', label: 'PDF' },
   { value: 'docx', label: 'DOCX' },
-  { value: 'xlsx', label: 'XLSX' },
 ];
 
 export function ExportReportModal({
@@ -55,7 +53,7 @@ export function ExportReportModal({
   const initialPeriod = periodOptions[0]?.value ?? 'current';
 
   const [period, setPeriod] = useState(initialPeriod);
-  const [format, setFormat] = useState<ExportFormat>('pdf');
+  const [format, setFormat] = useState<ExportFormat>('docx');
   const [includeTeamReports, setIncludeTeamReports] = useState(true);
   const [includePersonal, setIncludePersonal] = useState(true);
   const [includeScores, setIncludeScores] = useState(true);

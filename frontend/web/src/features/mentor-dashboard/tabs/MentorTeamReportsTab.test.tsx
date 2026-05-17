@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 
 import type * as SprintScoresModule from '@/api/sprintScores';
 import type * as TeamReportsModule from '@/api/teamReports';
+import type * as TeamReportExportModule from '@/api/teamReportExport';
 import type { Sprint, Team } from '@/api/teams';
 import type { TeamReport } from '@/api/teamReports';
 import { ToastProvider } from '@/_shared/Toast';
@@ -32,6 +33,19 @@ vi.mock('@/api/teamReports', async () => {
     ...actual,
     listTeamReports: vi.fn().mockResolvedValue([]),
     reviewTeamReport: vi.fn().mockResolvedValue({}),
+  };
+});
+
+vi.mock('@/api/teamReportExport', async () => {
+  const actual =
+    await vi.importActual<typeof TeamReportExportModule>('@/api/teamReportExport');
+  return {
+    ...actual,
+    exportTeamReportDocx: vi.fn().mockResolvedValue({
+      blob: new Blob(['fake-docx'], { type: 'application/octet-stream' }),
+      filename: 'sprint_report_2_team300.docx',
+    }),
+    triggerDownload: vi.fn(),
   };
 });
 
@@ -132,14 +146,22 @@ describe('MentorTeamReportsTab', () => {
     expect(collapsed.some((t) => t.includes('Спринт 1'))).toBe(true);
   });
 
-  it('кнопка «Выгрузить отчёт» открывает модалку, «Скачать» закрывает с баннером', async () => {
+  it('кнопка «Выгрузить отчёт» открывает модалку, «Скачать» дёргает экспорт и скачивает blob', async () => {
+    const exportMod = await import('@/api/teamReportExport');
+    const exportSpy = vi.mocked(exportMod.exportTeamReportDocx);
+    const downloadSpy = vi.mocked(exportMod.triggerDownload);
+    exportSpy.mockClear();
+    downloadSpy.mockClear();
+
     renderTab();
     await userEvent.click(screen.getByRole('button', { name: /Выгрузить отчёт/ }));
     expect(screen.getByRole('dialog', { name: 'Выгрузить отчёт' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Скачать' }));
+    expect(exportSpy).toHaveBeenCalledWith({ teamId: 300, sprintId: 201, kind: 'team' });
+    expect(downloadSpy).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog', { name: 'Выгрузить отчёт' })).not.toBeInTheDocument();
-    expect(screen.getByText('Отчёт сформирован')).toBeInTheDocument();
+    expect(screen.getByText('Отчёт скачан')).toBeInTheDocument();
   });
 
   it('пустое состояние если нет отчётов', () => {

@@ -22,6 +22,10 @@ import {
   type SprintScore,
 } from '@/api/sprintScores';
 import {
+  exportTeamReportDocx,
+  triggerDownload,
+} from '@/api/teamReportExport';
+import {
   reviewTeamReport,
   type TeamReport,
 } from '@/api/teamReports';
@@ -63,7 +67,8 @@ export function MentorTeamReportsTab({ teamId, mode = 'mentor' }: Props): JSX.El
   const sprintsQuery = useProjectSprints(projectId);
 
   const [showExportModal, setShowExportModal] = useState(false);
-  const { showSuccess } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const sprintsList = sprintsQuery.data;
   const sprintsById = useMemo(() => {
@@ -114,12 +119,36 @@ export function MentorTeamReportsTab({ teamId, mode = 'mentor' }: Props): JSX.El
     return opts;
   }, [currentSprintId, sortedReports, sprintsById]);
 
-  function handleExportSubmit(_selection: ExportReportSelection): void {
-    // TODO(backend): дернуть POST /api/team-reports/export с параметрами и
-    // получить link на скачивание (или blob). Пока что закрываем модалку и
-    // показываем toast — это согласовано с задачей.
-    setShowExportModal(false);
-    showSuccess('Отчёт сформирован');
+  async function handleExportSubmit(selection: ExportReportSelection): Promise<void> {
+    // period: 'current' | 'all' | 'sprint:N' (см. ExportReportModal).
+    // 'all' идёт одним запросом с sprintIds=... — бэк склеит все спринты
+    // в один DOCX через page break (build_multi_docx).
+    const sprintIds = resolveSprintIds(selection.period, currentSprintId, sortedReports);
+    if (sprintIds.length === 0) {
+      showError('Не удалось определить спринт для выгрузки');
+      return;
+    }
+    setIsExporting(true);
+    try {
+      const { blob, filename } = await exportTeamReportDocx(
+        sprintIds.length === 1
+          ? { teamId, sprintId: sprintIds[0], kind: 'team' }
+          : { teamId, sprintIds, kind: 'team' },
+      );
+      triggerDownload(blob, filename);
+      setShowExportModal(false);
+      showSuccess('Отчёт скачан');
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? `Ошибка ${err.status}: ${err.message}`
+          : err instanceof Error
+            ? err.message
+            : 'Не удалось скачать отчёт';
+      showError(msg);
+    } finally {
+      setIsExporting(false);
+    }
   }
 
   if (reportsQuery.isLoading || teamQuery.isLoading) {
@@ -172,6 +201,7 @@ export function MentorTeamReportsTab({ teamId, mode = 'mentor' }: Props): JSX.El
           periodOptions={periodOptions}
           onClose={() => setShowExportModal(false)}
           onSubmit={handleExportSubmit}
+          isSubmitting={isExporting}
         />
       ) : null}
     </div>
@@ -268,6 +298,31 @@ function ReportCardWrapper({
       }}
     />
   );
+}
+
+/**
+ * Маппит выбор period из ExportReportModal в список sprintId, по которым
+ * нужно сгенерировать DOCX. 'current' → текущий спринт; 'all' → все спринты
+ * с отчётами (по возрастанию); 'sprint:N' → один спринт N.
+ */
+function resolveSprintIds(
+  period: string,
+  currentSprintId: number | null,
+  sortedReports: TeamReport[],
+): number[] {
+  if (period === 'current') {
+    return currentSprintId != null ? [currentSprintId] : [];
+  }
+  if (period === 'all') {
+    // sortedReports идёт по убыванию (текущий первым) — для скачивания
+    // удобнее по возрастанию.
+    return [...sortedReports].reverse().map((r) => r.sprintId);
+  }
+  if (period.startsWith('sprint:')) {
+    const id = Number.parseInt(period.slice('sprint:'.length), 10);
+    return Number.isFinite(id) && id > 0 ? [id] : [];
+  }
+  return [];
 }
 
 function errorMessage(err: unknown, fallback: string): string {

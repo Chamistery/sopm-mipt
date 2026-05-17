@@ -11,14 +11,13 @@ const PERIODS = [
 ];
 
 describe('ExportReportModal', () => {
-  it('рендерит select периода, radio формата (default PDF) и 4 чекбокса', () => {
+  it('рендерит select периода, формат DOCX по умолчанию и 4 чекбокса', () => {
     render(
       <ExportReportModal periodOptions={PERIODS} onClose={() => {}} onSubmit={() => {}} />,
     );
 
     expect(screen.getByLabelText(/Период/)).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'PDF' })).toBeChecked();
-    expect(screen.getByRole('radio', { name: 'DOCX' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'DOCX' })).toBeChecked();
     expect(screen.getByLabelText('Командные отчёты')).toBeChecked();
     expect(screen.getByLabelText('Личные вклады')).toBeChecked();
     expect(screen.getByLabelText('Оценки')).toBeChecked();
@@ -32,7 +31,6 @@ describe('ExportReportModal', () => {
     );
 
     await userEvent.selectOptions(screen.getByLabelText(/Период/), 'all');
-    await userEvent.click(screen.getByRole('radio', { name: 'DOCX' }));
     await userEvent.click(screen.getByLabelText('Встречи'));
     await userEvent.click(screen.getByRole('button', { name: 'Скачать' }));
 

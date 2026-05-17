@@ -51,6 +51,7 @@ services:
       # Если переменная пустая или сервис недоступен — fallback на
       # встроенный наивный алгоритм / 503 соответственно.
       DISTRIBUTION_SERVICE_URL: http://distribution-service:8090
+      REPORT_SERVICE_URL: http://report-service:8091
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-}
     expose:
       - "8080"
@@ -80,6 +81,15 @@ services:
       - "8090"
     depends_on:
       - project-service
+    restart: unless-stopped
+
+  report-service:
+    build:
+      context: backend/report_service
+      dockerfile: Dockerfile
+    container_name: sopm-report-service
+    expose:
+      - "8091"
     restart: unless-stopped
 
   web:
